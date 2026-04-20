@@ -1,0 +1,119 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111827;
+  --surface: #ffffff;
+  --surface-muted: #f6fcfa;
+  --panel: #ffffff;
+  --panel-hover: #e8f8f2;
+  --border: rgba(57, 99, 88, 0.18);
+  --ring: rgba(45, 212, 191, 0.2);
+  --accent: #10b981;
+  --accent-foreground: #ffffff;
+  --sidebar-width: 5.5rem;
+}
+
+html[data-theme="dark"] {
+  --background: #0f1715;
+  --foreground: #effcf7;
+  --surface: #16211f;
+  --surface-muted: #1d2c28;
+  --panel: rgba(22, 33, 31, 0.92);
+  --panel-hover: #1f3530;
+  --border: rgba(127, 203, 180, 0.22);
+  --ring: rgba(45, 212, 191, 0.26);
+  --accent: #34d399;
+  --accent-foreground: #06251e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-panel: var(--panel);
+  --color-panel-hover: var(--panel-hover);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-code);
+  --font-display: var(--font-display);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), sans-serif;
+  overflow: hidden;
+}
+
+a,
+button {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.surface-card {
+  background: var(--panel);
+  box-shadow: none;
+}
+
+.content-panel {
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.04);
+}
+
+.chart-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px);
+  background-size: 72px 100%, 100% 64px;
+}
+
+.chart-area-purple {
+  fill: rgba(129, 140, 248, 0.32);
+  stroke: rgba(129, 140, 248, 0.92);
+}
+
+.chart-area-cyan {
+  fill: rgba(45, 212, 191, 0.18);
+  stroke: rgba(45, 212, 191, 0.92);
+}
+
+html[data-theme="light"] .chart-area-purple {
+  fill: rgba(99, 102, 241, 0.16);
+  stroke: rgba(79, 70, 229, 0.8);
+}
+
+html[data-theme="light"] .chart-area-cyan {
+  fill: rgba(6, 182, 212, 0.12);
+  stroke: rgba(8, 145, 178, 0.88);
+}
+
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--border) 85%, transparent) transparent;
+}
