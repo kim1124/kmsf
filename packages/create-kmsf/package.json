@@ -1,0 +1,9 @@
+{
+  "name": "create-kmsf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "create-kmsf": "./bin/create-kmsf.js"
+  }
+}
