@@ -1,0 +1,9 @@
+{
+  "name": "@kmsf/template-backend-base",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"backend workspace placeholder\"",
+    "build": "echo \"backend workspace placeholder\""
+  }
+}

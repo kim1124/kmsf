@@ -1,0 +1,209 @@
+{
+  "navigation": {
+    "dashboard": "대시보드",
+    "dashboardCaption": "기본 요약 화면",
+    "tableSample": "데이터 테이블 샘플",
+    "tableSampleCaption": "표 컴포넌트 예시",
+    "chartSample": "차트 샘플",
+    "chartSampleCaption": "차트 영역 예시",
+    "settings": "설정",
+    "settingsCaption": "계정 및 환경 설정"
+  },
+  "dashboard": {
+    "title": "대시보드",
+    "subtitle": "화이트-민트 기반 기본 레이아웃 미리보기",
+    "summary": {
+      "title": "요약",
+      "description": "현재 레이아웃은 상단 헤더, 접히는 좌측 서랍 메뉴, 내부 콘텐츠 패널 구조를 기준으로 정리되어 있습니다."
+    },
+    "activity": {
+      "title": "최근 작업",
+      "description": "데이터 테이블 샘플과 차트 샘플 페이지를 통해 개별 콘텐츠 영역 확장 방식을 확인할 수 있습니다."
+    },
+    "status": {
+      "title": "상태",
+      "description": "라이트와 다크 테마 모두 민트 포인트 컬러를 유지하며, 불필요한 그라데이션은 제거했습니다."
+    }
+  },
+  "tableSample": {
+    "title": "데이터 테이블 샘플",
+    "subtitle": "표 기반 콘텐츠 예시",
+    "columns": {
+      "id": "ID",
+      "name": "이름",
+      "status": "상태",
+      "count": "건수"
+    }
+  },
+  "chartSample": {
+    "title": "차트 샘플",
+    "subtitle": "테두리 중심 차트 패널 예시"
+  },
+  "analytics": {
+    "redirect": "차트 샘플로 이동합니다."
+  },
+  "settings": {
+    "title": "설정",
+    "description": "계정 정보와 인증 상태를 확인할 수 있습니다.",
+    "profileTitle": "프로필 정보",
+    "profileDescription": "상단 프로필 메뉴에서도 동일한 수정 팝업을 열 수 있습니다.",
+    "securityTitle": "보안 및 연동",
+    "securityDescription": "Google 로그인은 Supabase 연동 후 사용할 수 있습니다.",
+    "demoFallback": "demo",
+    "profileUpdated": "계정 정보가 업데이트되었습니다.",
+    "profileErrors": {
+      "validation": "계정 정보를 다시 확인해 주세요.",
+      "auth": "계정 정보를 업데이트할 수 없습니다.",
+      "duplicate": "이미 사용 중인 계정 정보입니다.",
+      "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요."
+    },
+    "accountErrors": {
+      "validation": "회원 탈퇴 요청을 다시 확인해 주세요.",
+      "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.",
+      "service-role": "회원 탈퇴를 위해 서버 전용 Supabase 키 설정이 필요합니다.",
+      "delete": "회원 탈퇴 처리 중 문제가 발생했습니다."
+    },
+    "googleMessages": {
+      "linked": "Google 계정 연결이 완료되었습니다.",
+      "unlinked": "Google 계정 연결이 해제되었습니다."
+    },
+    "googleErrors": {
+      "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.",
+      "unavailable": "Google 계정 연결은 Supabase 인증 환경에서만 사용할 수 있습니다.",
+      "link": "Google 계정 연결을 시작할 수 없습니다.",
+      "unlink": "Google 계정 연결을 해제할 수 없습니다.",
+      "missing": "연결된 Google 계정을 찾을 수 없습니다.",
+      "single-identity": "Google 계정이 유일한 로그인 수단이라 해제할 수 없습니다."
+    },
+    "fields": {
+      "name": "ID",
+      "email": "E-mail",
+      "role": "권한",
+      "auth": "인증 방식"
+    },
+    "authModes": {
+      "demo": "데모",
+      "password": "ID / 비밀번호",
+      "google": "Google",
+      "supabase": "Supabase",
+      "local-json": "로컬 JSON"
+    },
+    "securityItems": {
+      "password": "ID / 비밀번호 로그인 지원",
+      "google": "Supabase 연동 시 Google 로그인 지원",
+      "mfa": "JWT 세션과 CSRF 토큰 검증 적용"
+    },
+    "googleIdentity": {
+      "title": "Google 계정 연결",
+      "linked": "현재 계정에 Google 로그인이 연결되어 있습니다.",
+      "notLinked": "현재 계정에 Google 로그인이 연결되어 있지 않습니다.",
+      "unavailable": "로컬 JSON 또는 Supabase 미설정 환경에서는 Google 계정 연결을 사용할 수 없습니다.",
+      "link": "Google 계정 연결",
+      "unlink": "Google 연결 해제"
+    }
+  },
+  "auth": {
+    "title": "KMSF 로그인",
+  "description": "",
+  "confirmEmail": "이메일 확인 후 다시 로그인해 주세요.",
+  "accountDeleted": "회원 탈퇴가 완료되었습니다.",
+  "sessionExpired": "1시간 이상 활동이 없어 세션이 종료되었습니다. 다시 로그인해 주세요.",
+  "username": "ID",
+    "password": "비밀번호",
+    "signIn": "로그인",
+    "google": "구글 계정으로 로그인",
+    "signUp": "회원 가입",
+    "errors": {
+      "validation": "입력값을 확인해 주세요.",
+      "auth": "ID 또는 비밀번호가 올바르지 않습니다.",
+      "oauth": "Google 로그인은 Supabase 연동 후 사용할 수 있습니다.",
+      "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요."
+    },
+    "tooltips": {
+      "username": "6자~32자의 영문, 숫자 또는 이메일 형식으로 입력해 주세요.",
+      "password": "6자~32자의 영문, 숫자, 특수문자를 모두 포함해 입력해 주세요."
+    },
+    "fieldErrors": {
+      "username": {
+        "invalid": "ID는 6자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다."
+      },
+      "password": {
+        "invalid": "비밀번호는 6자~32자의 영문, 숫자, 특수문자를 모두 포함해야 합니다."
+      }
+    }
+  },
+  "initialSetup": {
+    "title": "초기 관리자 설정",
+    "description": "등록된 계정이 없어 최초 관리자 계정을 생성합니다.",
+    "username": "ID",
+    "email": "E-mail",
+    "password": "비밀번호",
+    "passwordConfirm": "비밀번호 확인",
+    "submit": "관리자 계정 생성",
+    "errors": {
+      "auth": "초기 관리자 계정을 생성할 수 없습니다.",
+      "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요."
+    },
+    "tooltips": {
+      "username": "6자~32자의 영문, 숫자 또는 이메일 형식으로 입력해 주세요.",
+      "email": "올바른 E-mail 주소를 입력해 주세요.",
+      "password": "6자~32자의 영문, 숫자, 특수문자를 모두 포함해 입력해 주세요.",
+      "passwordConfirm": "비밀번호를 한 번 더 동일하게 입력해 주세요."
+    },
+    "fieldErrors": {
+      "username": {
+        "invalid": "ID는 6자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다.",
+        "duplicate": "이미 사용 중인 ID입니다."
+      },
+      "email": {
+        "invalid": "올바른 E-mail 주소를 입력해 주세요.",
+        "duplicate": "이미 사용 중인 E-mail입니다."
+      },
+      "password": {
+        "invalid": "비밀번호는 6자~32자의 영문, 숫자, 특수문자를 모두 포함해야 합니다."
+      },
+      "passwordConfirm": {
+        "invalid": "비밀번호 확인은 6자 이상 입력해 주세요.",
+        "mismatch": "비밀번호가 일치하지 않습니다."
+      }
+    }
+  },
+  "signUp": {
+    "title": "회원 가입",
+    "description": "Supabase 계정을 생성하고 로그인합니다.",
+    "username": "ID",
+    "email": "E-mail",
+    "password": "비밀번호",
+    "passwordConfirm": "비밀번호 확인",
+    "submit": "회원 가입",
+    "google": "구글 계정으로 회원 가입",
+    "backToSignIn": "로그인 화면으로",
+    "errors": {
+      "auth": "현재 Supabase 설정으로는 회원 가입을 진행할 수 없습니다.",
+      "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요."
+    },
+    "tooltips": {
+      "username": "6자~32자의 영문, 숫자 또는 이메일 형식으로 입력해 주세요.",
+      "email": "올바른 E-mail 주소를 입력해 주세요.",
+      "password": "6자~32자의 영문, 숫자, 특수문자를 모두 포함해 입력해 주세요.",
+      "passwordConfirm": "비밀번호를 한 번 더 동일하게 입력해 주세요."
+    },
+    "fieldErrors": {
+      "username": {
+        "invalid": "ID는 6자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다.",
+        "duplicate": "이미 사용 중인 ID입니다."
+      },
+      "email": {
+        "invalid": "올바른 E-mail 주소를 입력해 주세요.",
+        "duplicate": "이미 사용 중인 E-mail입니다."
+      },
+      "password": {
+        "invalid": "비밀번호는 6자~32자의 영문, 숫자, 특수문자를 모두 포함해야 합니다."
+      },
+      "passwordConfirm": {
+        "invalid": "비밀번호 확인은 6자 이상 입력해 주세요.",
+        "mismatch": "비밀번호가 일치하지 않습니다."
+      }
+    }
+  }
+}
