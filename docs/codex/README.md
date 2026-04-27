@@ -1,19 +1,30 @@
-# Next.js Template Docs for Codex
+# KMSF Codex 운영 문서
 
-이 폴더는 Next.js 기반 사내/팀 공용 프로젝트 템플릿을 설계하고, 이후 Codex가 실제 템플릿 프로젝트를 생성할 때 기준으로 사용할 문서 모음이다.
+이 폴더는 `kmsf` 저장소에서 Codex와 사람이 함께 참고하는 운영 문서 모음이다.
 
-문서 기준일:
-- 2026-04-18
+중요한 원칙:
 
-문서 구성:
-- [01-product-goals.md](/Users/kim1124/개발/kmsf/docs/codex/01-product-goals.md): 템플릿 목표, 범위, 성공 기준
-- [02-tech-stack-decisions.md](/Users/kim1124/개발/kmsf/docs/codex/02-tech-stack-decisions.md): 기술 스택과 공식 문서 기반 의사결정
-- [03-architecture-layout.md](/Users/kim1124/개발/kmsf/docs/codex/03-architecture-layout.md): App Router 구조, SSR/CSR 전략, 레이아웃 기준
-- [04-auth-security-supabase.md](/Users/kim1124/개발/kmsf/docs/codex/04-auth-security-supabase.md): 인증, 보안, 환경변수, Supabase 운영 기준
-- [05-roadmap-open-questions.md](/Users/kim1124/개발/kmsf/docs/codex/05-roadmap-open-questions.md): 플러그인 로드맵과 남은 결정 사항
+- 실제 실행 계약은 `AGENTS.md` 계층에 있다.
+- 이 폴더는 자동 실행 규칙이 아니라 설명 가능한 운영 기준과 참고 문서다.
+- 기존 템플릿 설계 문서는 `docs/codex/reference/`로 이동했다.
 
-작업 원칙:
-- 공식 문서 기준으로 결정한다.
-- 공식 문서에 없는 항목은 문서에 `추론`으로 명시한다.
-- 템플릿은 복제 또는 Fork 후 바로 신규 프로젝트로 사용할 수 있어야 한다.
-- 기본값은 보수적으로 잡고, 확장 포인트는 문서로 분리한다.
+문서 순서:
+
+- [01-instruction-architecture.md](/Users/kim1124/개발/kmsf/docs/codex/01-instruction-architecture.md)
+  - `AGENTS.md`, repo skill, `docs/codex`의 역할 분리
+- [02-style-and-auth-rules.md](/Users/kim1124/개발/kmsf/docs/codex/02-style-and-auth-rules.md)
+  - Gemini식 명확한 규칙을 흡수한 스타일/폼/인증 운영 규칙
+- [03-verification-and-browser-gate.md](/Users/kim1124/개발/kmsf/docs/codex/03-verification-and-browser-gate.md)
+  - lint, unit, e2e, build, 브라우저 검증 게이트
+- [04-plugin-and-skill-strategy.md](/Users/kim1124/개발/kmsf/docs/codex/04-plugin-and-skill-strategy.md)
+  - Superpowers, repo skill, browser 도구, 외부 리포팅 전략
+- [90-open-questions.md](/Users/kim1124/개발/kmsf/docs/codex/90-open-questions.md)
+  - 아직 확정하지 않은 항목만 분리 관리
+
+참고 문서:
+
+- `docs/codex/reference/01-product-goals.md`
+- `docs/codex/reference/02-tech-stack-decisions.md`
+- `docs/codex/reference/03-architecture-layout.md`
+- `docs/codex/reference/04-auth-security-supabase.md`
+- `docs/codex/reference/05-roadmap-open-questions.md`
