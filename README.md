@@ -1,168 +1,132 @@
-# KMSF — Knowledge Management System Framework
+# KMSF 워크스페이스
 
-Next.js 16 App Router 기반의 관리자 대시보드 템플릿 프로젝트입니다.
+`kmsf`는 `create-kmsf` 형태의 보일러플레이트와 재사용 패키지를 함께 관리하는 `npm workspaces` 저장소로 구성된다.
 
-![Next.js](https://img.shields.io/badge/Next.js-16.2-black?logo=next.js)
-![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss)
-![Supabase](https://img.shields.io/badge/Supabase-Auth-3ECF8E?logo=supabase)
+## 현재 구조
 
----
-
-## 주요 기술 스택
-
-| 영역 | 기술 |
-|------|------|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript 5 |
-| UI | React 19, Tailwind CSS 4, Radix UI, shadcn/ui |
-| 인증 | Supabase Auth (이메일/비밀번호 + Google OAuth) |
-| 다국어 | next-intl (ko/en, URL prefix 숨김) |
-| 상태 관리 | Zustand |
-| 폼 검증 | Zod |
-| 테스트 | Vitest, Playwright |
-| 아이콘 | Lucide React |
-
----
-
-## 프로젝트 구조
-
-```
-src/
-├── app/                        # Next.js App Router
-│   ├── layout.tsx              # Root Layout (html/body, Google Fonts)
-│   ├── page.tsx                # / → 인증 상태에 따른 리다이렉트
-│   ├── globals.css             # 전역 CSS (테마 변수, 유틸리티)
-│   │
-│   ├── sign-in/                # 로그인 페이지 (locale fallback)
-│   ├── sign-up/                # 회원가입 페이지 (locale fallback)
-│   ├── (protected)/            # 인증 필요 페이지 (locale fallback)
-│   │   ├── layout.tsx          #   AppShell (사이드바 + 헤더)
-│   │   ├── dashboard/          #   대시보드
-│   │   ├── chart-sample/       #   차트 샘플
-│   │   ├── data-table-sample/  #   데이터 테이블 샘플
-│   │   └── settings/           #   설정
-│   │
-│   ├── [locale]/               # 다국어 Dynamic Segment
-│   │   ├── (public)/           #   공개 페이지 (sign-in, sign-up)
-│   │   └── (protected)/        #   인증 페이지 (dashboard, settings 등)
-│   │
-│   ├── auth/callback/          # OAuth 콜백 핸들러
-│   └── setup/initial-admin/    # 초기 관리자 설정
-│
-├── components/
-│   ├── auth/                   # 인증 관련 폼 컴포넌트
-│   ├── layout/                 # AppShell, Sidebar, Header
-│   ├── theme/                  # 테마 토글
-│   └── ui/                     # shadcn 기반 공용 컴포넌트
-│
-├── lib/
-│   ├── auth/                   # 세션 관리, 폼 검증 스키마
-│   ├── security/               # CSRF 토큰
-│   └── supabase/               # Supabase 클라이언트 (Server/Admin)
-│
-├── i18n/                       # next-intl 설정
-│   ├── routing.ts              # localePrefix: "never"
-│   └── request.ts              # 요청별 locale 감지
-│
-└── test/                       # 테스트 파일
+```text
+kmsf/
+├── apps/
+│   ├── kmsf/                 # 현재 메인 Next.js 16 App Router 앱
+│   ├── docs/                 # 내부 문서 앱 placeholder
+│   └── playground/           # 내부 실험 앱 placeholder
+├── examples/
+│   └── basic-dashboard/      # 패키지 소비 검증용 예제 앱
+├── packages/
+│   ├── create-kmsf/           # CLI placeholder
+│   ├── generator-core/        # 생성 로직 placeholder
+│   ├── charts/                # package name: @kmsf/charts
+│   ├── data-table/            # package name: @kmsf/data-table
+│   └── gridstack/             # package name: @kmsf/gridstack
+├── templates/
+│   ├── next-app-base/         # base template placeholder
+│   ├── next-app-auth/         # auth template placeholder
+│   ├── next-monorepo/         # monorepo template placeholder
+│   └── backend-base/          # backend template placeholder
+├── docs/
+├── test-reports/              # 일자별 보고서 + 테스트 아티팩트
+├── .codex/skills/
+└── package.json               # root workspace orchestration
 ```
 
----
+`@kmsf/charts` 같은 이름은 디렉터리명이 아니라 `package.json`의 package name에 두는 편이 일반적인 구성에 더 가깝다. 따라서 실제 디렉터리는 `packages/charts`처럼 두고, 패키지명은 `@kmsf/charts`로 유지한다.
 
-## 주요 기능
+## 실행 규칙
 
-### 🔐 인증 시스템
-- Supabase Auth 연동 (이메일/비밀번호 회원가입 + 로그인)
-- Google OAuth 소셜 로그인
-- 초기 관리자 설정 페이지 (`/setup/initial-admin`)
-- CSRF 토큰 기반 보안
+- 저장소 공통 계약: [AGENTS.md](<home>/개발/kmsf/AGENTS.md)
+- 메인 앱 계약: [apps/kmsf/AGENTS.md](<home>/개발/kmsf/apps/kmsf/AGENTS.md)
+- 메인 앱 소스 규칙: [apps/kmsf/src/AGENTS.md](<home>/개발/kmsf/apps/kmsf/src/AGENTS.md)
+- 메인 앱 테스트 규칙: [apps/kmsf/tests/AGENTS.md](<home>/개발/kmsf/apps/kmsf/tests/AGENTS.md)
+- 패키지 소비 예제 계약: [examples/basic-dashboard/AGENTS.md](<home>/개발/kmsf/examples/basic-dashboard/AGENTS.md)
+- 저장소 전용 skill: [.codex/skills/kmsf-delivery/SKILL.md](<home>/개발/kmsf/.codex/skills/kmsf-delivery/SKILL.md)
 
-### 🎨 UI/UX
-- **라이트/다크 테마** 토글 (쿠키 기반 유지)
-- **민트 컬러 시스템** (`#10b981` 포인트 컬러)
-- 좌측 사이드바 (접기/펼치기, 아이콘 모드)
-- 프로필 팝업 (계정 정보 변경, 프로필 사진 업로드)
-- 알림 팝업
-- 전역 로딩 오버레이 (API 요청 중 중복 제출 방지)
-- 모든 폼의 실시간 Validation
+## 워크스페이스
 
-### 🌐 다국어
-- `next-intl` 기반 한국어/영어 지원
-- URL에 locale prefix 노출 없음 (`localePrefix: "never"`)
-- 쿠키 기반 locale 감지
+### 메인 앱
 
-### 📊 샘플 페이지
-- 대시보드 (요약, 활동, 상태 카드)
-- 차트 샘플 (SVG 차트)
-- 데이터 테이블 샘플
+- 경로: `apps/kmsf`
+- package name: `@kmsf/app-kmsf`
+- 기술 스택: Next.js 16, React 19, Tailwind CSS 4, next-intl, Supabase Auth
 
----
+### 예제 앱
 
-## 시작하기
+- 경로: `examples/basic-dashboard`
+- package name: `@kmsf/example-basic-dashboard`
+- 역할: `@kmsf/charts`, `@kmsf/data-table`, `@kmsf/gridstack` 소비 검증용
 
-### 사전 요구 사항
+### 재사용 패키지
 
-- Node.js 20+
-- npm
+- `packages/create-kmsf` -> `create-kmsf`
+- `packages/generator-core` -> `@kmsf/generator-core`
+- `packages/charts` -> `@kmsf/charts`
+- `packages/data-table` -> `@kmsf/data-table`
+- `packages/gridstack` -> `@kmsf/gridstack`
 
-### 설치
+### 템플릿
+
+- `templates/next-app-base`
+- `templates/next-app-auth`
+- `templates/next-monorepo`
+- `templates/backend-base`
+
+현재는 모두 placeholder 상태이며, `create-kmsf` 구현 시 실제 템플릿 소스로 채워질 예정이다.
+
+## 루트 명령
+
+루트 명령은 모두 `apps/kmsf` workspace로 위임된다.
 
 ```bash
-# 의존성 설치
-npm install
-
-# 환경 변수 설정
-cp .env.example .env.local
+npm run dev
+npm run build
+npm run lint
+npm run test:run
+npm run test:e2e
+npm run test:e2e:headed
+npm run verify
 ```
 
-### 환경 변수
+## 앱 환경 변수
 
-`.env.local` 파일에 아래 값들을 설정하세요:
+메인 앱 환경 변수 파일은 `apps/kmsf` 아래에 둔다.
+
+```bash
+cp apps/kmsf/.env.example apps/kmsf/.env.local
+```
+
+예시:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-### 개발 서버 실행
+인증 provider, Supabase Google OAuth, local-json ID/PW provider 설정은 [인증 가이드](<home>/개발/kmsf/docs/auth-guide.md)를 참고한다.
 
-```bash
-npm run dev
-```
+## 검증 기준
 
-브라우저에서 [http://localhost:3000](http://localhost:3000) 을 열어 확인합니다.
+완료 전 기본 검증:
 
-### 빌드
+- `npm run lint`
+- `npm run test:run`
+- `npm run build`
+- 렌더링 변경 시 브라우저 검증
 
-```bash
-npm run build
-npm start
-```
+브라우저 검증 경로:
 
-### 테스트
+1. Codex in-app browser
+2. Codex computer use
+3. `npm run test:e2e:headed`
 
-```bash
-npm test           # Vitest (단위 테스트)
-npm run test:run   # Vitest (CI 모드)
-```
+## 보고 규칙
 
----
+- 작업 보고서는 `test-reports/YYYY-MM-DD.md` 형식으로 기록한다.
+- 같은 날짜의 요청 결과는 하나의 파일에 이어서 누적한다.
+- 브라우저/테스트 산출물도 저장소 루트 `test-reports/` 아래에 둔다.
+- 기존 `docs/reports/*`는 과거 기록 보관용이며, 신규 보고의 기준 경로는 아니다.
 
-## 디자인 시스템
+## 참고 문서
 
-| 토큰 | 라이트 모드 | 다크 모드 |
-|------|------------|----------|
-| Background | `#ffffff` | `#0f1715` |
-| Foreground | `#111827` | `#effcf7` |
-| Accent | `#10b981` | `#34d399` |
-| Surface | `#ffffff` | `#16211f` |
-| Border | `rgba(57,99,88,0.18)` | `rgba(127,203,180,0.22)` |
-
----
-
-## 라이선스
-
-Private
+- 운영 문서: [docs/codex/README.md](<home>/개발/kmsf/docs/codex/README.md)
+- 오늘 작업 보고서: [2026-04-23.md](<home>/개발/kmsf/test-reports/2026-04-23.md)
