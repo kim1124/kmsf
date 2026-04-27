@@ -1,0 +1,83 @@
+:root {
+  color-scheme: light;
+  --background: #f4f7f1;
+  --foreground: #0f172a;
+  --panel: #ffffff;
+  --line: rgba(15, 23, 42, 0.08);
+  --accent: #8fd14f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: radial-gradient(circle at top, #eff8d8 0%, var(--background) 45%, #eef2f4 100%);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
+    "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.page {
+  margin: 0 auto;
+  max-width: 1080px;
+  padding: 56px 24px 80px;
+}
+
+.hero {
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #52751f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0 0 12px;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.05;
+}
+
+.description {
+  margin: 0;
+  max-width: 720px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.package-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.package-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--panel) 90%, #f2ffdf 10%);
+  padding: 24px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.06);
+}
+
+.package-card h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.package-card p {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.76);
+  line-height: 1.6;
+}
