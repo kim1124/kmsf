@@ -1,3 +1,14 @@
+// AI-NOTE: copyDir + glob-style exclude. plan spec의 단순 compilePattern은
+// 두 케이스에서 깨지므로 (도메인문서.md §3.1.2):
+//   1. `dir/**` 패턴이 dir 자체를 prune 못 함 (빈 디렉터리 남음)
+//   2. `**/x` 패턴이 root-level 파일을 매칭 못 함
+// 그래서 본 모듈은 input pattern 한 개에서 여러 RegExp variant를 생성한다.
+// `tokens.ts`에도 동일 spec 버그 우회 코드가 있음 (tokenizer 방식).
+// 두 모듈을 통합하려면 두 동작 모두를 보존하는 regression test 먼저 작성.
+//
+// EXCLUDE는 POSIX path 기준. Windows 호환성은 미검증.
+// symlinks는 명시적으로 skip.
+
 import { mkdir, readdir, copyFile, stat } from "node:fs/promises";
 import path from "node:path";
 
