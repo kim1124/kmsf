@@ -1,0 +1,36 @@
+name: sync-template drift check
+
+on:
+  pull_request:
+    paths:
+      - "apps/kmsf/**"
+      - "templates/next-app-base/**"
+      - "scripts/sync-template.sh"
+  push:
+    branches: [main]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Verify drift between apps/kmsf and templates/next-app-base
+        run: bash scripts/sync-template.sh --check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm --workspace=packages/generator-core run build
+      - run: npm --workspace=packages/generator-core run test:run
+      - run: npm --workspace=packages/create-kmsf run build
+      - run: npm --workspace=packages/create-kmsf run test:run
+      - run: npm run lint
