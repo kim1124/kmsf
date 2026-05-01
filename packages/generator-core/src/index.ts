@@ -1,3 +1,19 @@
+// AI-NOTE: scaffold() orchestrator — entry point of @kmsf/generator-core.
+// IMMUTABLE step order (도메인문서.md §3.1.1):
+//   1. ensureTemplateExists  →  TemplateMissing 에러 일찍 발생
+//   2. isEmptyOrMissing      →  TargetExists 에러 일찍 발생
+//   3. copyDir               →  파일 복사 (실패 시 partial dir cleanup)
+//   4. applyAuthMode         →  모드별 파일 제거 + sign-in wholesale 교체 (Q1)
+//   5. transformPackageJson  →  name 치환 + supabase dep 제거
+//   6. substituteTokens      →  {{project_name}} 텍스트 치환
+//   7. generateEnvLocal      →  .env.example → .env.local
+//   8. (optional) install / playwright / git
+// 순서를 바꾸면 token 치환이 supabase 제거된 자리에 적용되거나,
+// transform이 미존재 파일을 건드리는 등의 비대칭 버그가 발생한다.
+//
+// post-install 실패는 throw 하지 않는다 (warnings 배열에 누적).
+// 호출자가 사용자에게 surface하도록 ScaffoldResult.warnings에 담는다.
+
 import { access, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 

@@ -3,6 +3,15 @@
 # Sync apps/kmsf → templates/next-app-base by applying spec §6.1 EXCLUDE
 # and spec §6.2 transforms.
 #
+# AI-NOTE / IMMUTABLE RULES (도메인문서.md §3.2):
+#   - 한 방향 sync. 절대 반대로 돌리지 말 것 (templates → apps/kmsf 금지).
+#   - rsync EXCLUDE에 `[locale]` 같은 대괄호가 들어갈 때는 반드시
+#     backslash escape (`\[locale\]`). 미escape 시 character class로 해석되어
+#     매칭 안 됨 (B1 버그).
+#   - `--check` 모드는 CI gate. main에 들어가는 모든 PR에서 drift 0이어야 함.
+#   - 새 transform을 추가할 때는 반드시 `--check` 모드에서도 동일하게 작동해야 함
+#     (즉, transform 결과가 결정적이어야 함; 시간/난수/사용자 환경 의존 X).
+#
 # Usage:
 #   bash scripts/sync-template.sh           # write templates/next-app-base
 #   bash scripts/sync-template.sh --check   # diff-only mode for CI; exits non-zero on drift

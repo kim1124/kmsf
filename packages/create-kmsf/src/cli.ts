@@ -1,3 +1,17 @@
+// AI-NOTE: create-kmsf의 main entry point.
+// 흐름: parseArgs → resolveScaffoldOptions(prompts) → scaffold() → 결과 출력.
+//
+// IMMUTABLE invariants (도메인문서.md §3.5):
+//   - exit code 매핑: TargetExists=1, TemplateMissing=2, 기타 ScaffoldError=3,
+//     AbortedError=130, unexpected=99. cli.ts의 catch 블록이 단일 진실 소스.
+//   - `--silent`는 banner/colors/log level만 끔. 누락된 prompt를 자동 채우지
+//     않는다 (D-11). CI 사용자는 모든 인터랙티브 옵션을 flag로 제공해야 함.
+//
+// findTemplateRoot는 monorepo path 기반. dist/cli.js 또는 src/cli.ts 어디서
+// 실행해도 ../../../templates/next-app-base를 가리킨다 (3단계 위로 = packages/
+// create-kmsf → kmsf root → templates).
+// npm publish 시 templates 번들링은 별도 PR 예정 (Q2).
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
