@@ -37,6 +37,31 @@ describe("dashboard layout state", () => {
     expect(serializeDashboardLayout(removed)).toEqual({ columns: 6, widgets: [] });
   });
 
+  it("places a new widget in the first horizontal space that fits its requested size", () => {
+    const state = createDashboardLayoutState({
+      columns: 6,
+      widgets: [
+        { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 2, h: 2 } },
+        { id: "traffic", layout: { id: "traffic", x: 2, y: 0, w: 2, h: 2 } },
+      ],
+    });
+
+    const added = addDashboardWidget(state, {
+      id: "orders",
+      title: "Orders",
+      layout: { id: "orders", x: 0, y: 0, w: 2, h: 2 },
+    });
+
+    expect(serializeDashboardLayout(added)).toEqual({
+      columns: 6,
+      widgets: [
+        { id: "sales", x: 0, y: 0, w: 2, h: 2 },
+        { id: "traffic", x: 2, y: 0, w: 2, h: 2 },
+        { id: "orders", x: 4, y: 0, w: 2, h: 2 },
+      ],
+    });
+  });
+
   it("maximizes, minimizes, and restores a widget from the stored previous layout", () => {
     const state = createDashboardLayoutState({
       columns: 6,

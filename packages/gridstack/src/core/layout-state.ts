@@ -28,14 +28,14 @@ export function addDashboardWidget<TData>(
   state: DashboardLayoutState<TData>,
   widget: DashboardWidget<TData>,
 ): DashboardLayoutState<TData> {
-  const nextWidget = normalizeWidget(widget);
+  const nextWidget = normalizeWidget(widget, state.columns);
   const exists = state.widgets.some((item) => item.id === nextWidget.id);
 
   return {
     ...state,
     widgets: exists
       ? state.widgets.map((item) => (item.id === nextWidget.id ? nextWidget : item))
-      : [...state.widgets, nextWidget],
+      : [...state.widgets, placeWidgetInFirstAvailableSpace(state, nextWidget)],
   };
 }
 
@@ -329,10 +329,31 @@ export function serializeDashboardState<TData>(state: DashboardLayoutState<TData
   };
 }
 
-function normalizeWidget<TData>(widget: DashboardWidget<TData>): DashboardWidget<TData> {
+function placeWidgetInFirstAvailableSpace<TData>(
+  state: DashboardLayoutState<TData>,
+  widget: DashboardWidget<TData>,
+): DashboardWidget<TData> {
+  const { w, h } = widget.layout;
+
+  for (let y = 0; ; y += 1) {
+    for (let x = 0; x <= state.columns - w; x += 1) {
+      const candidate = { ...widget.layout, x, y, w, h };
+      const overlaps = state.widgets.some((item) => layoutsOverlap(candidate, item.layout));
+      if (!overlaps) {
+        return { ...widget, layout: candidate };
+      }
+    }
+  }
+}
+
+function layoutsOverlap(left: DashboardWidgetLayout, right: DashboardWidgetLayout): boolean {
+  return left.x < right.x + right.w && left.x + left.w > right.x && left.y < right.y + right.h && left.y + left.h > right.y;
+}
+
+function normalizeWidget<TData>(widget: DashboardWidget<TData>, columns = 12): DashboardWidget<TData> {
   return {
     ...widget,
-    layout: normalizeLayout({ ...widget.layout, id: widget.id }, 12),
+    layout: normalizeLayout({ ...widget.layout, id: widget.id }, columns),
   };
 }
 

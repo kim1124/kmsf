@@ -148,6 +148,42 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
   await expect(page.getByText("복원 완료")).toBeVisible();
 });
 
+test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByLabel("새 위젯 너비").selectOption("2");
+  await page.getByLabel("새 위젯 높이").selectOption("3");
+
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+  const firstAdded = page.getByTestId("dashboard-widget-widget-5");
+  await expect(firstAdded).toHaveAttribute("data-layout-x", "0");
+  await expect(firstAdded).toHaveAttribute("data-layout-y", "4");
+  await expect(firstAdded).toHaveAttribute("data-layout-w", "2");
+  await expect(firstAdded).toHaveAttribute("data-layout-h", "3");
+
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+  const secondAdded = page.getByTestId("dashboard-widget-widget-6");
+  await expect(secondAdded).toHaveAttribute("data-layout-x", "2");
+  await expect(secondAdded).toHaveAttribute("data-layout-y", "4");
+  await expect(secondAdded).toHaveAttribute("data-layout-w", "2");
+  await expect(secondAdded).toHaveAttribute("data-layout-h", "3");
+
+  await page.getByRole("button", { name: "레이아웃 저장" }).click();
+  const saved = JSON.parse(await page.getByLabel("저장된 레이아웃 JSON").inputValue());
+  expect(saved.widgets).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        id: "widget-5",
+        layout: expect.objectContaining({ w: 2, h: 3 }),
+      }),
+      expect.objectContaining({
+        id: "widget-6",
+        layout: expect.objectContaining({ w: 2, h: 3 }),
+      }),
+    ]),
+  );
+});
+
 test("clears all widgets and applies distinct add/delete button colors", async ({ page }) => {
   await page.goto("/");
 
