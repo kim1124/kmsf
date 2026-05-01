@@ -1,0 +1,197 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "dashboardCaption": "Base overview page",
+    "tableSample": "Data Table Sample",
+    "tableSampleCaption": "Table component example",
+    "chartSample": "Chart Sample",
+    "chartSampleCaption": "Chart section example",
+    "settings": "Settings",
+    "settingsCaption": "Account and environment settings"
+  },
+  "dashboard": {
+    "title": "Welcome",
+    "subtitle": "Starter page from create-kmsf."
+  },
+  "tableSample": {
+    "title": "Data Table Sample",
+    "subtitle": "Table based content example",
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "status": "Status",
+      "count": "Count"
+    }
+  },
+  "chartSample": {
+    "title": "Chart Sample",
+    "subtitle": "Border focused chart panel example"
+  },
+  "analytics": {
+    "redirect": "Redirecting to chart sample."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Review account details and authentication status.",
+    "profileTitle": "Profile details",
+    "profileDescription": "The same edit dialog is also available from the top profile menu.",
+    "securityTitle": "Security and integrations",
+    "securityDescription": "Google sign-in becomes available after Supabase is connected.",
+    "demoFallback": "demo",
+    "profileUpdated": "Account details were updated.",
+    "profileErrors": {
+      "validation": "Please review the account information.",
+      "auth": "We could not update the account information.",
+      "duplicate": "This account information is already in use.",
+      "security": "The security token is invalid. Refresh the page and try again."
+    },
+    "accountErrors": {
+      "validation": "Please review the account deletion request.",
+      "security": "The security token is invalid. Refresh the page and try again.",
+      "service-role": "A server-side Supabase key is required to delete accounts.",
+      "delete": "We could not complete the account deletion."
+    },
+    "googleMessages": {
+      "linked": "Google account linking is complete.",
+      "unlinked": "Google account linking was removed."
+    },
+    "googleErrors": {
+      "security": "The security token is invalid. Refresh the page and try again.",
+      "unavailable": "Google account linking is available only with Supabase authentication.",
+      "link": "We could not start Google account linking.",
+      "unlink": "We could not unlink the Google account.",
+      "missing": "No linked Google account was found.",
+      "single-identity": "Google cannot be unlinked because it is the only sign-in method."
+    },
+    "fields": {
+      "name": "ID",
+      "email": "E-mail",
+      "role": "Role",
+      "auth": "Auth mode"
+    },
+    "authModes": {
+      "demo": "Demo",
+      "password": "ID / Password",
+      "google": "Google",
+      "supabase": "Supabase",
+      "local-json": "Local JSON"
+    },
+    "securityItems": {
+      "password": "ID and password login supported",
+      "google": "Google sign-in available after Supabase setup",
+      "mfa": "JWT sessions and CSRF token verification are enabled"
+    },
+    "googleIdentity": {
+      "title": "Google account linking",
+      "linked": "Google sign-in is linked to this account.",
+      "notLinked": "Google sign-in is not linked to this account.",
+      "unavailable": "Google linking is unavailable in local JSON mode or without Supabase setup.",
+      "link": "Link Google account",
+      "unlink": "Unlink Google"
+    }
+  },
+  "auth": {
+    "title": "KMSF Sign In",
+    "description": "",
+    "confirmEmail": "Please verify your email and sign in again.",
+    "accountDeleted": "Your account has been deleted.",
+    "sessionExpired": "Your session ended after one hour of inactivity. Please sign in again.",
+    "username": "ID",
+    "password": "Password",
+    "signIn": "Sign In",
+    "google": "Sign in with Google",
+    "signUp": "Sign Up",
+    "errors": {
+      "validation": "Please check your input.",
+      "auth": "The ID or password is incorrect.",
+      "oauth": "Google sign-in is available after Supabase setup.",
+      "security": "The security token is invalid. Refresh the page and try again."
+    },
+    "tooltips": {
+      "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "password": "Use 6-32 characters with letters, numbers, and special characters."
+    },
+    "fieldErrors": {
+      "username": {
+        "invalid": "The ID must be 6-32 letters, numbers, or an email-style value."
+      },
+      "password": {
+        "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
+      }
+    }
+  },
+  "initialSetup": {
+    "title": "Initial Admin Setup",
+    "description": "No account has been registered yet, so create the first administrator account.",
+    "username": "ID",
+    "email": "E-mail",
+    "password": "Password",
+    "passwordConfirm": "Confirm password",
+    "submit": "Create Admin Account",
+    "errors": {
+      "auth": "We could not create the initial administrator account.",
+      "security": "The security token is invalid. Refresh the page and try again."
+    },
+    "tooltips": {
+      "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "email": "Enter a valid E-mail address.",
+      "password": "Use 6-32 characters with letters, numbers, and special characters.",
+      "passwordConfirm": "Re-enter the same password once more."
+    },
+    "fieldErrors": {
+      "username": {
+        "invalid": "The ID must be 6-32 letters, numbers, or an email-style value.",
+        "duplicate": "This ID is already in use."
+      },
+      "email": {
+        "invalid": "Enter a valid E-mail address.",
+        "duplicate": "This E-mail is already in use."
+      },
+      "password": {
+        "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
+      },
+      "passwordConfirm": {
+        "invalid": "The password confirmation must be at least 6 characters long.",
+        "mismatch": "The passwords do not match."
+      }
+    }
+  },
+  "signUp": {
+    "title": "Create Account",
+    "description": "Create a Supabase account and sign in.",
+    "username": "ID",
+    "email": "E-mail",
+    "password": "Password",
+    "passwordConfirm": "Confirm password",
+    "submit": "Create Account",
+    "google": "Sign up with Google",
+    "backToSignIn": "Back to Sign In",
+    "errors": {
+      "auth": "The current Supabase configuration does not allow sign up.",
+      "security": "The security token is invalid. Refresh the page and try again."
+    },
+    "tooltips": {
+      "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "email": "Enter a valid E-mail address.",
+      "password": "Use 6-32 characters with letters, numbers, and special characters.",
+      "passwordConfirm": "Re-enter the same password once more."
+    },
+    "fieldErrors": {
+      "username": {
+        "invalid": "The ID must be 6-32 letters, numbers, or an email-style value.",
+        "duplicate": "This ID is already in use."
+      },
+      "email": {
+        "invalid": "Enter a valid E-mail address.",
+        "duplicate": "This E-mail is already in use."
+      },
+      "password": {
+        "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
+      },
+      "passwordConfirm": {
+        "invalid": "The password confirmation must be at least 6 characters long.",
+        "mismatch": "The passwords do not match."
+      }
+    }
+  }
+}
