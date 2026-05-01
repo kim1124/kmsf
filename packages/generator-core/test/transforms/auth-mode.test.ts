@@ -84,6 +84,36 @@ describe("applyAuthMode", () => {
     expect(after).not.toContain("<form");
   });
 
+  it("local-json: handles multi-line import block (regression for Q1 follow-up)", async () => {
+    // The original sign-in page in apps/kmsf uses a multi-line import block
+    // for signInWithGoogleAction AND a separate import from @/lib/supabase/manager.
+    // The earlier regex-based stripper missed both. The fix replaces the file
+    // wholesale with a known-good local-json variant.
+    await setupTree();
+    const signInPath = path.join(workDir, "src/app/[locale]/(public)/sign-in/page.tsx");
+    await writeFile(
+      signInPath,
+      `import {\n` +
+        `  signInWithGoogleAction,\n` +
+        `} from "@/app/[locale]/(public)/sign-in/actions";\n` +
+        `import { GoogleMark } from "@/components/auth/_components/google-mark";\n` +
+        `import { isSupabaseConfigured } from "@/lib/supabase/env";\n` +
+        `import { isInitialSetupRequired } from "@/lib/supabase/manager";\n` +
+        `export default function Page() {\n` +
+        `  const setupRequired = await isInitialSetupRequired();\n` +
+        `  return null;\n` +
+        `}\n`,
+    );
+    await applyAuthMode(workDir, "local-json");
+    const after = await readFile(signInPath, "utf8");
+    expect(after).not.toContain("signInWithGoogleAction");
+    expect(after).not.toContain("GoogleMark");
+    expect(after).not.toContain("isSupabaseConfigured");
+    expect(after).not.toContain("isInitialSetupRequired");
+    expect(after).not.toContain("@/lib/supabase");
+    expect(after).toContain("SignInForm");
+  });
+
   it("supabase: removes local-json files only", async () => {
     await setupTree();
     await applyAuthMode(workDir, "supabase");
