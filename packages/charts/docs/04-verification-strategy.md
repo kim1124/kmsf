@@ -45,6 +45,12 @@ npm --workspace=@kmsf/charts run test:run
 npm --workspace=@kmsf/charts run test:e2e
 ```
 
+`verify:full`은 Playwright까지 포함하는 완료 gate로 사용한다.
+
+```bash
+npm --workspace=@kmsf/charts run verify:full
+```
+
 ## Build
 
 대상:
@@ -69,5 +75,7 @@ npm --workspace=@kmsf/charts run build
 - 관련 Playwright
 - `build`
 - 브라우저 렌더링 확인
+
+패키지 배포 전 또는 browser-visible behavior 변경 후에는 `verify:full`을 우선 실행한다.
 
 문서 또는 지침만 변경한 경우에는 자동화 테스트 대신 파일 존재와 문서 링크 검증으로 대체할 수 있으며, 그 사유를 `test/reports/YYYY-MM-DD.md`에 남긴다.

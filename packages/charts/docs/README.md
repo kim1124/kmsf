@@ -10,6 +10,7 @@
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: 후속 합의가 필요한 항목
 - `06-quick-start.md`: 외부 개발자용 빠른 시작 예시
+- `07-acceptance-matrix.md`: 차트별 완료 기준과 verification gate
 - `superpowers/2026-04-25-kmsf-charts-guidelines.md`: Superpowers 기반 작업 지침
 
 ## 현재 상태
