@@ -17,6 +17,10 @@ function listFiles(dir: string): string[] {
   });
 }
 
+function readText(path: string): string {
+  return readFileSync(path, "utf8");
+}
+
 describe("package harness contract", () => {
   it("exposes a full verification script that includes Playwright", () => {
     const packageJson = readJson<{ scripts: Record<string, string> }>(join(packageRoot, "package.json"));
@@ -52,7 +56,7 @@ describe("package harness contract", () => {
   });
 
   it("documents chart acceptance gates for every public chart", () => {
-    const matrix = readFileSync(join(packageRoot, "docs/07-acceptance-matrix.md"), "utf8");
+    const matrix = readText(join(packageRoot, "docs/07-acceptance-matrix.md"));
 
     for (const chartName of ["TrendChart", "TopChart", "SankeyChart", "WordCloud", "GuageChart", "SunbustChart"]) {
       expect(matrix).toContain(chartName);
@@ -60,6 +64,62 @@ describe("package harness contract", () => {
 
     for (const gateName of ["Vitest", "Playwright", "verify:full", "Residual risk"]) {
       expect(matrix).toContain(gateName);
+    }
+  });
+
+  it("keeps agent instruction maps discoverable and bounded", () => {
+    const requiredFiles = [
+      "GUIDE.md",
+      "AGENTS.md",
+      "docs/agents/README.md",
+      "docs/agents/root/research.md",
+      "docs/agents/root/plan.md",
+      "docs/agents/root/memory.md",
+      "docs/agents/common/research.md",
+      "docs/agents/common/plan.md",
+      "docs/agents/common/memory.md",
+      "docs/agents/components/research.md",
+      "docs/agents/components/plan.md",
+      "docs/agents/components/memory.md",
+      "docs/agents/test/research.md",
+      "docs/agents/test/plan.md",
+      "docs/agents/test/memory.md",
+      "docs/agents/example/research.md",
+      "docs/agents/example/plan.md",
+      "docs/agents/example/memory.md",
+      "src/common/AGENTS.md",
+      "src/components/AGENTS.md",
+      "test/AGENTS.md",
+      "example/AGENTS.md",
+    ];
+
+    for (const file of requiredFiles) {
+      expect(readText(join(packageRoot, file)), file).toBeTruthy();
+    }
+
+    const rootAgents = readText(join(packageRoot, "AGENTS.md"));
+    expect(rootAgents).toContain("docs/agents/README.md");
+    expect(rootAgents).toContain("GUIDE.md");
+    expect(rootAgents).toContain("Superpowers");
+    expect(rootAgents).toContain("TDD");
+    expect(rootAgents).toContain("verify:full");
+
+    const agentsFiles = [
+      join(packageRoot, "AGENTS.md"),
+      join(packageRoot, "src/common/AGENTS.md"),
+      join(packageRoot, "src/components/AGENTS.md"),
+      join(packageRoot, "test/AGENTS.md"),
+      join(packageRoot, "example/AGENTS.md"),
+    ];
+
+    for (const file of agentsFiles) {
+      const lineCount = readText(file).split(/\r?\n/).length;
+      expect(lineCount, relative(packageRoot, file)).toBeLessThanOrEqual(100);
+    }
+
+    for (const planFile of listFiles(join(packageRoot, "docs/agents")).filter((file) => file.endsWith("/plan.md"))) {
+      const lineCount = readText(planFile).split(/\r?\n/).length;
+      expect(lineCount, relative(packageRoot, planFile)).toBeLessThanOrEqual(500);
     }
   });
 });

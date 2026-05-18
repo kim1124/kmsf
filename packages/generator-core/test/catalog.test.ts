@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TEMPLATE_CATALOG, getTemplate } from "../src/catalog";
+import { TEMPLATE_CATALOG, getTemplate } from "../src/catalog.js";
 
 describe("catalog", () => {
   it("exposes next-app-base template", () => {

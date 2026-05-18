@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:e2e": "playwright test --config=playwright.config.ts",
+    "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
     "verify": "npm run lint && npm run test:run && npm run build"
   },
   "exports": {
@@ -29,9 +29,9 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "latest",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "typescript": "latest",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "typescript": "^6.0.3",
     "vite": "latest",
     "vitest": "latest"
   },

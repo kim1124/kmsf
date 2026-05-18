@@ -1,5 +1,5 @@
 import prompts from "prompts";
-import { validateProjectName, type AuthMode } from "@kmsf/generator-core";
+import { validateProjectName, type AuthMode } from "./generator-core/index.js";
 
 import type { ParsedArgs } from "./args.js";
 
@@ -19,7 +19,29 @@ class AbortedError extends Error {
   }
 }
 
+class MissingRequiredOptionsError extends Error {
+  constructor(missing: string[]) {
+    super(`--silent requires all interactive options. Missing: ${missing.join(", ")}`);
+    this.name = "MissingRequiredOptionsError";
+  }
+}
+
 export async function resolveScaffoldOptions(args: ParsedArgs): Promise<ResolvedOptions> {
+  if (args.silent) {
+    const missing = [
+      !args.projectName ? "project name" : null,
+      !args.authMode ? "--auth" : null,
+      args.includeI18n === undefined ? "--i18n or --no-i18n" : null,
+      args.runInstall === undefined ? "--install or --no-install" : null,
+      args.runGitInit === undefined ? "--git or --no-git" : null,
+      args.runPlaywrightInstall === undefined ? "--playwright or --no-playwright" : null,
+    ].filter((value): value is string => value !== null);
+
+    if (missing.length > 0) {
+      throw new MissingRequiredOptionsError(missing);
+    }
+  }
+
   const questions: prompts.PromptObject[] = [];
 
   if (!args.projectName) {
@@ -127,4 +149,4 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
   return merged as ResolvedOptions;
 }
 
-export { AbortedError };
+export { AbortedError, MissingRequiredOptionsError };

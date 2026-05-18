@@ -22,11 +22,12 @@ type SignUpPageProps = {
 export default async function SignUpPage({ params, searchParams }: SignUpPageProps) {
   const { locale } = await params;
   await searchParams;
-  const setupRequired = isLocalJsonAuthEnabled() ? false : await isInitialSetupRequired();
+  const localJsonEnabled = isLocalJsonAuthEnabled();
+  const setupRequired = await isInitialSetupRequired();
   const user = await getCurrentUser();
   const t = await getTranslations({ locale, namespace: "signUp" });
   const csrfToken = await getCsrfToken();
-  const supabaseReady = isSupabaseConfigured();
+  const supabaseReady = !localJsonEnabled && isSupabaseConfigured();
 
   if (user) {
     if (!(await isRequestAppSessionActive())) {

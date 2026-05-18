@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runGitInit } from "../../src/post-install/git-init";
+import { runGitInit } from "../../src/post-install/git-init.js";
 
 const spawnSync = vi.hoisted(() => vi.fn());
 vi.mock("node:child_process", () => ({ spawnSync }));

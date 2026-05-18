@@ -1,3 +1,5 @@
+"use client";
+
 import { kmsfChartsPackage } from "@kmsf/charts";
 import { kmsfDataTablePackage } from "@kmsf/data-table";
 import { kmsfGridstackPackage } from "@kmsf/gridstack";

@@ -1,7 +1,10 @@
 import { randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
 
 import type { AppRole } from "@/lib/auth/roles";
 
@@ -53,6 +56,23 @@ function getLocalJsonAuthDbPath() {
   );
 }
 
+function createEmptyDb(): LocalJsonAuthDb {
+  return { version: DB_VERSION, accounts: [] };
+}
+
+async function openDb() {
+  const adapter = new JSONFile<LocalJsonAuthDb>(getLocalJsonAuthDbPath());
+  const db = new Low(adapter, createEmptyDb());
+
+  await db.read();
+
+  if (db.data.version !== DB_VERSION || !Array.isArray(db.data.accounts)) {
+    db.data = createEmptyDb();
+  }
+
+  return db;
+}
+
 function normalizeIdentifier(value: string) {
   return value.trim().toLowerCase();
 }
@@ -85,36 +105,18 @@ async function verifyPassword(password: string, stored: StoredLocalJsonAccount) 
 }
 
 async function readDb(): Promise<LocalJsonAuthDb> {
-  const dbPath = getLocalJsonAuthDbPath();
+  const db = await openDb();
 
-  try {
-    const raw = await readFile(dbPath, "utf8");
-    const parsed = JSON.parse(raw) as Partial<LocalJsonAuthDb>;
-
-    if (parsed.version !== DB_VERSION || !Array.isArray(parsed.accounts)) {
-      return { version: DB_VERSION, accounts: [] };
-    }
-
-    return {
-      version: DB_VERSION,
-      accounts: parsed.accounts,
-    };
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      return { version: DB_VERSION, accounts: [] };
-    }
-
-    throw error;
-  }
+  return db.data;
 }
 
 async function writeDb(db: LocalJsonAuthDb) {
   const dbPath = getLocalJsonAuthDbPath();
-  const tempPath = `${dbPath}.${process.pid}.${Date.now()}.tmp`;
+  const lowdb = await openDb();
 
   await mkdir(dirname(dbPath), { recursive: true });
-  await writeFile(tempPath, `${JSON.stringify(db, null, 2)}\n`, "utf8");
-  await rename(tempPath, dbPath);
+  lowdb.data = db;
+  await lowdb.write();
 }
 
 async function withDbMutation<T>(operation: () => Promise<T>) {
@@ -172,6 +174,12 @@ export async function findLocalJsonAccountById(id: string) {
   const account = db.accounts.find((candidate) => candidate.id === id);
 
   return account ? toPublicAccount(account) : null;
+}
+
+export async function hasLocalJsonAccounts() {
+  const db = await readDb();
+
+  return db.accounts.length > 0;
 }
 
 export async function verifyLocalJsonCredentials(identifier: string, password: string) {

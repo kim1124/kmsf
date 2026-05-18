@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runInstall, detectPackageManager } from "../../src/post-install/npm-install";
+import { runInstall, detectPackageManager } from "../../src/post-install/npm-install.js";
 
 const spawnSync = vi.hoisted(() => vi.fn());
 vi.mock("node:child_process", () => ({ spawnSync }));

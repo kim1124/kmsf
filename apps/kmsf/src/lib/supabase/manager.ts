@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -54,6 +55,14 @@ export async function ensureManagerProfile(input: {
 }
 
 export const isInitialSetupRequired = cache(async () => {
+  if (isLocalJsonAuthEnabled()) {
+    const { hasLocalJsonAccounts } = await import(
+      "@/lib/auth/providers/local-json-auth-store"
+    );
+
+    return !(await hasLocalJsonAccounts());
+  }
+
   if (hasSupabaseServiceRoleKey()) {
     const admin = createSupabaseAdminClient();
     const { count, error } = await admin
@@ -127,7 +136,23 @@ export async function findManagerLoginEmail(identifier: string) {
     login_username: normalized,
   });
 
-  if (error || typeof data !== "string" || !data) {
+  if (!error && typeof data === "string" && data) {
+    return data;
+  }
+
+  if (error) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("manager")
+      .select("email")
+      .eq("username", normalized)
+      .maybeSingle<{ email: string }>();
+
+    if (!fallbackError && fallbackData?.email) {
+      return fallbackData.email;
+    }
+  }
+
+  if (typeof data !== "string" || !data) {
     return null;
   }
 
@@ -160,6 +185,16 @@ export async function isManagerUsernameTaken(username: string) {
   });
 
   if (error) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("manager")
+      .select("id")
+      .eq("username", normalized)
+      .maybeSingle<{ id: string }>();
+
+    if (!fallbackError && fallbackData?.id) {
+      return true;
+    }
+
     return false;
   }
 

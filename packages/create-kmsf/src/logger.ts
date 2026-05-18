@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import type { ScaffoldLogger } from "@kmsf/generator-core";
+import type { ScaffoldLogger } from "./generator-core/index.js";
 
 export type LogLevel = "silent" | "info" | "debug";
 

@@ -1,22 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { parseCliArgs, HELP_TEXT } from "../src/args";
-import { renderBanner } from "../src/banner";
+import { parseCliArgs, HELP_TEXT } from "../src/args.js";
+import { renderBanner } from "../src/banner.js";
 
 describe("HELP_TEXT", () => {
   it("matches snapshot", () => {
     expect(HELP_TEXT).toMatchInlineSnapshot(`
-      "Usage: npx create-kmsf [name] [options]
+	      "Usage: npx create-kmsf [name] [options]
 
-      Options:
-        --auth=<mode>           local-json (default) | supabase | none
-        --no-i18n               skip ko/en i18n setup
-        --no-install            skip npm install
-        --no-git                skip git init
-        --no-playwright         skip playwright browser install
-        --silent                no banner / colors / prompts (CI)
-        --verbose               extra debug logs
-        -h, --help              this message
-        -v, --version           print version"
+	      Options:
+	        --auth=<mode>           local-json (default) | supabase | none
+	        --no-i18n               skip ko/en i18n setup
+	        --no-install            skip npm install
+	        --no-git                skip git init
+	        --no-playwright         skip playwright browser install
+	        --silent                no banner / colors / prompts; requires all options (CI)
+	        --verbose               extra debug logs
+	        -h, --help              this message
+	        -v, --version           print version"
     `);
   });
 });

@@ -48,6 +48,8 @@ function ExampleApp() {
   const [resizable, setResizable] = useState(true);
   const [layoutJson, setLayoutJson] = useState("");
   const [layoutStatus, setLayoutStatus] = useState("저장된 레이아웃이 없습니다.");
+  const [newWidgetHeight, setNewWidgetHeight] = useState(2);
+  const [newWidgetWidth, setNewWidgetWidth] = useState(2);
   const nextWidgetNumber = useMemo(() => dashboard.widgets.length + 1, [dashboard.widgets.length]);
 
   const addWidget = () => {
@@ -55,7 +57,7 @@ function ExampleApp() {
     dashboard.commands.addWidget({
       id,
       title: `위젯 ${nextWidgetNumber}`,
-      layout: { id, x: 0, y: 0, w: 2, h: 2 },
+      layout: { id, x: 0, y: 0, w: newWidgetWidth, h: newWidgetHeight },
       data: { description: "새 대시보드 위젯", value: String(nextWidgetNumber) },
     });
   };
@@ -101,6 +103,34 @@ function ExampleApp() {
         <button type="button" onClick={() => dashboard.commands.autoArrangeWidgets()}>
           자동 정렬
         </button>
+        <label className="example-column-select" htmlFor="new-widget-width">
+          <span>새 위젯 너비</span>
+          <select
+            id="new-widget-width"
+            value={newWidgetWidth}
+            onChange={(event) => setNewWidgetWidth(Number(event.target.value))}
+          >
+            {DASHBOARD_COLUMN_COUNTS.map((column) => (
+              <option key={column} value={column}>
+                {column}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="example-column-select" htmlFor="new-widget-height">
+          <span>새 위젯 높이</span>
+          <select
+            id="new-widget-height"
+            value={newWidgetHeight}
+            onChange={(event) => setNewWidgetHeight(Number(event.target.value))}
+          >
+            {[1, 2, 3, 4].map((height) => (
+              <option key={height} value={height}>
+                {height}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="example-column-select" htmlFor="dashboard-columns">
           <span>컬럼 선택</span>
           <select

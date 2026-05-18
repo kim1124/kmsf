@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runPlaywrightInstall } from "../../src/post-install/playwright-install";
+import { runPlaywrightInstall } from "../../src/post-install/playwright-install.js";
 
 const spawnSync = vi.hoisted(() => vi.fn());
 vi.mock("node:child_process", () => ({ spawnSync }));

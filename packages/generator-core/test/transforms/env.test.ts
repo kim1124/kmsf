@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, writeFile, readFile, rm, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { generateEnvLocal } from "../../src/transforms/env";
+import { generateEnvLocal } from "../../src/transforms/env.js";
 
 let workDir: string;
 

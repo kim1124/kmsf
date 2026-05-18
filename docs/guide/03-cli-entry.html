@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. npx 명령을 입력하면? — KMSF 신입 가이드</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="./index.html">📘 KMSF 신입 가이드</a>
+    <div class="nav-btns">
+      <a class="btn" href="./02-architecture.html">← 이전</a>
+      <a class="btn" href="./index.html">목차</a>
+      <a class="btn" href="./04-cli-internals.html">다음 →</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <span class="chapter-label">Chapter 3 / 10</span>
+  <h1>npx 명령을 입력하면?</h1>
+
+  <div class="tldr">
+    <span class="tldr-label">한 줄 요약</span>
+    <p><code>npx create-kmsf my-app</code>은 → <code>bin/create-kmsf.js</code>를 실행 → 그 안에서 <code>dist/cli.js</code>의 <code>runCli()</code>를 호출 → 결과 exit code로 종료. 3단계뿐이다.</p>
+  </div>
+
+  <h2>3.1 사용자가 입력하는 명령</h2>
+  <span class="code-label">터미널</span>
+<pre><code>npx create-kmsf my-app --auth=local-json</code></pre>
+
+  <p>이 한 줄을 컴퓨터가 어떻게 풀어 읽는지 천천히 따라가 봅시다.</p>
+
+  <h2>3.2 스텝 1: <code>npx</code>가 무엇을 하나</h2>
+  <p><code>npx</code>는 npm이 제공하는 "<strong>한 번 실행하는 도구</strong>"입니다. 동작은 이렇습니다.</p>
+  <ol>
+    <li>로컬에 <code>create-kmsf</code>가 설치되어 있는지 확인</li>
+    <li>없으면 npm registry(인터넷)에서 임시로 다운로드</li>
+    <li>다운로드한 패키지의 <code>package.json</code> → <code>"bin"</code> 필드를 본다</li>
+    <li><code>bin</code>이 가리키는 파일을 Node.js로 실행</li>
+  </ol>
+
+  <div class="callout info">
+    <p class="callout-title">📦 우리 저장소에서는 어떻게?</p>
+    <p>지금은 사내 모노레포라 npm registry에 publish된 게 아닙니다. 그래서 직접 <code>node packages/create-kmsf/bin/create-kmsf.js</code>로 실행합니다. 동작은 npx와 동일합니다.</p>
+  </div>
+
+  <h2>3.3 스텝 2: <code>bin/create-kmsf.js</code> 의 역할</h2>
+  <p>이 파일을 한 번 들여다 봅시다. 정말 짧습니다.</p>
+  <span class="code-label">packages/create-kmsf/bin/create-kmsf.js</span>
+<pre><code>#!/usr/bin/env node
+// dist/ 의 컴파일된 CLI를 로드한다. npm run build를 먼저 실행해야 함.
+import { runCli } from "../dist/cli.js";
+
+runCli().then(
+  (code) =&gt; process.exit(code),
+  (e) =&gt; {
+    process.stderr.write(`Fatal: ${e?.message ?? e}\n`);
+    process.exit(99);
+  },
+);</code></pre>
+
+  <p>이게 전부입니다. 즉 <code>bin</code> 파일은 단지 <strong>"진짜 CLI 코드를 호출해서 exit code로 종료"</strong>하는 얇은 래퍼(wrapper)입니다. 비유하자면 사무실 입구의 안내데스크 같습니다 — 손님(사용자)을 받아서 담당 부서(<code>runCli</code>)로 안내만 합니다.</p>
+
+  <h2>3.4 스텝 3: 실제 코드는 <code>dist/cli.js</code>에서</h2>
+  <p><code>bin</code>은 <code>../dist/cli.js</code>에서 <code>runCli</code>를 import합니다. 이 dist는 어디서 왔을까요?</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- src/cli.ts -->
+      <rect x="20" y="40" width="180" height="100" rx="10" fill="#dbeafe" stroke="#3b82f6"/>
+      <text x="110" y="68" text-anchor="middle" font-size="13" font-weight="700">src/cli.ts</text>
+      <text x="110" y="90" text-anchor="middle" font-size="11" fill="#64748b">개발자가 작성한</text>
+      <text x="110" y="106" text-anchor="middle" font-size="11" fill="#64748b">TypeScript 원본</text>
+      <text x="110" y="125" text-anchor="middle" font-size="11" fill="#64748b">(편집 가능)</text>
+
+      <!-- 화살표: build -->
+      <line x1="200" y1="90" x2="280" y2="90" stroke="#64748b" stroke-width="1.5"/>
+      <polygon points="280,90 272,86 272,94" fill="#64748b"/>
+      <text x="240" y="80" text-anchor="middle" font-size="11" fill="#64748b">npm run build</text>
+      <text x="240" y="105" text-anchor="middle" font-size="10" fill="#64748b">(tsc)</text>
+
+      <!-- dist/cli.js -->
+      <rect x="290" y="40" width="180" height="100" rx="10" fill="#d1fae5" stroke="#10b981"/>
+      <text x="380" y="68" text-anchor="middle" font-size="13" font-weight="700">dist/cli.js</text>
+      <text x="380" y="90" text-anchor="middle" font-size="11" fill="#64748b">컴파일된</text>
+      <text x="380" y="106" text-anchor="middle" font-size="11" fill="#64748b">JavaScript 결과물</text>
+      <text x="380" y="125" text-anchor="middle" font-size="11" fill="#64748b">(편집 X · git ignore)</text>
+
+      <!-- 화살표: import -->
+      <line x1="470" y1="90" x2="540" y2="90" stroke="#64748b" stroke-width="1.5"/>
+      <polygon points="540,90 532,86 532,94" fill="#64748b"/>
+      <text x="505" y="80" text-anchor="middle" font-size="11" fill="#64748b">import</text>
+
+      <!-- bin -->
+      <rect x="550" y="40" width="160" height="100" rx="10" fill="#fef3c7" stroke="#f59e0b"/>
+      <text x="630" y="68" text-anchor="middle" font-size="13" font-weight="700">bin/create-kmsf.js</text>
+      <text x="630" y="90" text-anchor="middle" font-size="11" fill="#64748b">사용자가 실행하는</text>
+      <text x="630" y="106" text-anchor="middle" font-size="11" fill="#64748b">진입점 (entry)</text>
+      <text x="630" y="125" text-anchor="middle" font-size="11" fill="#64748b">(Node가 실행)</text>
+
+      <!-- 하단 라벨 -->
+      <text x="110" y="170" text-anchor="middle" font-size="11" fill="#64748b">[작성]</text>
+      <text x="380" y="170" text-anchor="middle" font-size="11" fill="#64748b">[빌드 결과]</text>
+      <text x="630" y="170" text-anchor="middle" font-size="11" fill="#64748b">[실행]</text>
+    </svg>
+    <div class="diagram-caption">TypeScript 원본은 직접 실행 못 하니까 한 번 변환한 후 실행한다.</div>
+  </div>
+
+  <div class="callout warn">
+    <p class="callout-title">⚠️ Node.js는 .ts를 직접 못 읽어요</p>
+    <p>그래서 <code>tsc</code> (TypeScript 컴파일러)로 한 번 <code>.js</code>로 변환하고, 이걸 <code>dist/</code> 폴더에 둡니다. 사용자가 <code>node bin/create-kmsf.js</code>를 실행하면 <code>../dist/cli.js</code>를 읽기 때문에 <strong>빌드를 먼저 해야 합니다.</strong></p>
+  </div>
+
+  <h2>3.5 전체 호출 계통도</h2>
+  <p>여기까지를 한눈에 보면:</p>
+  <div class="flow">
+    <div class="flow-step primary"><strong>사용자 명령</strong><div class="meta">npx create-kmsf my-app --auth=local-json</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step"><strong>npx</strong><div class="meta">패키지 다운로드/조회 → bin 필드 확인</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step orange"><strong>bin/create-kmsf.js</strong><div class="meta">../dist/cli.js 에서 runCli() import</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step mint"><strong>dist/cli.js (= src/cli.ts 컴파일 결과)</strong><div class="meta">runCli(process.argv.slice(2)) 호출</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step"><strong>runCli() 내부</strong><div class="meta">→ 이 부분이 다음 챕터의 주제</div></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-step primary"><strong>process.exit(code)</strong><div class="meta">0 = 성공, 1~99 = 다양한 실패</div></div>
+  </div>
+
+  <h2>3.6 generator-core는 어디 끼어들까?</h2>
+  <p>위 흐름에서 <code>runCli()</code>가 일을 하다가 <strong>scaffold 관련 작업</strong>이 필요해지면 <code>@kmsf/generator-core</code>를 import해서 호출합니다. 즉 generator-core는 cli.ts에 의해 사용되는 <strong>도구 상자</strong>입니다.</p>
+
+  <span class="code-label">src/cli.ts (발췌)</span>
+<pre><code>import {
+  scaffold,
+  detectPackageManager,
+  ScaffoldError,
+  TargetExistsError,
+} from "@kmsf/generator-core";  // ← generator-core 라이브러리 import</code></pre>
+
+  <p>그래서 generator-core도 마찬가지로 <code>dist/</code>가 빌드되어 있어야 합니다.</p>
+
+  <h2>3.7 직접 확인해보기</h2>
+  <span class="code-label">터미널</span>
+<pre><code># 1) 두 패키지 모두 빌드
+npm --workspace=packages/generator-core run build
+npm --workspace=packages/create-kmsf run build
+
+# 2) bin 파일이 어떻게 동작하는지 확인 (--version만 출력하고 종료)
+node packages/create-kmsf/bin/create-kmsf.js --version
+# → 0.1.0 출력
+
+# 3) dist/ 안 들여다보기
+ls packages/create-kmsf/dist/
+# args.js  banner.js  cli.js  logger.js  prompts.js</code></pre>
+
+  <h2>3.8 신입에게 흔한 함정</h2>
+  <div class="callout danger">
+    <p class="callout-title">🚨 dist/ 가 없으면 ERR_MODULE_NOT_FOUND</p>
+    <p>방금 git clone 받았다면 <code>dist/</code> 폴더가 없습니다 (gitignore). 그래서 첫 실행 전 반드시 <code>npm run build</code>를 워크스페이스별로 실행하세요.</p>
+  </div>
+
+  <hr>
+
+  <div class="footer-nav">
+    <a href="./02-architecture.html">
+      <div class="label">← 이전</div>
+      <div class="title">2. 모노레포 큰 그림</div>
+    </a>
+    <a class="next" href="./04-cli-internals.html">
+      <div class="label">다음 →</div>
+      <div class="title">4. cli.ts의 흐름</div>
+    </a>
+  </div>
+</div>
+</body>
+</html>
