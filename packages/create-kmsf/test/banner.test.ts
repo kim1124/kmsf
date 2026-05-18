@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderBanner } from "../src/banner";
+import { renderBanner } from "../src/banner.js";
 
 describe("renderBanner", () => {
   it("includes KMSF brand and version", () => {

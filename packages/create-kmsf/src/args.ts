@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import type { AuthMode } from "@kmsf/generator-core";
+import type { AuthMode } from "./generator-core/index.js";
 
 export interface ParsedArgs {
   projectName?: string;
@@ -76,7 +76,7 @@ Options:
   --no-install            skip npm install
   --no-git                skip git init
   --no-playwright         skip playwright browser install
-  --silent                no banner / colors / prompts (CI)
+  --silent                no banner / colors / prompts; requires all options (CI)
   --verbose               extra debug logs
   -h, --help              this message
   -v, --version           print version

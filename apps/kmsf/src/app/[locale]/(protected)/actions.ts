@@ -23,7 +23,7 @@ export async function signOutAction(formData: FormData) {
     redirect(`/settings?accountError=security`);
   }
 
-  if (isSupabaseConfigured()) {
+  if (!isLocalJsonAuthEnabled() && isSupabaseConfigured()) {
     const supabase = await createSupabaseServerClient();
     await supabase.auth.signOut();
   }

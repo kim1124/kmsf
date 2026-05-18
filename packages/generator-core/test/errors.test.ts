@@ -4,7 +4,7 @@ import {
   TargetExistsError,
   TemplateMissingError,
   CopyFailedError,
-} from "../src/errors";
+} from "../src/errors.js";
 
 describe("error classes", () => {
   it("InvalidProjectNameError carries name", () => {

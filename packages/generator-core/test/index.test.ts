@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, mkdir, writeFile, readFile, access, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { scaffold } from "../src/index";
-import type { ScaffoldLogger } from "../src/types";
+import { scaffold } from "../src/index.js";
+import type { ScaffoldLogger } from "../src/types.js";
 
 const spawnSync = vi.hoisted(() => vi.fn().mockReturnValue({ status: 0 }));
 vi.mock("node:child_process", () => ({ spawnSync }));

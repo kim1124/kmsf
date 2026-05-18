@@ -10,6 +10,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: isCI ? 1 : 0,
   timeout: 60_000,
+  workers: 1,
   use: {
     baseURL,
     trace: "on-first-retry",

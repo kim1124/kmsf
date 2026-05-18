@@ -8,6 +8,7 @@ import {
   createLocalJsonAccount,
   deleteLocalJsonAccount,
   findLocalJsonAccountById,
+  hasLocalJsonAccounts,
   verifyLocalJsonCredentials,
 } from "./local-json-auth-store";
 
@@ -26,6 +27,26 @@ afterEach(async () => {
 });
 
 describe("local-json auth store", () => {
+  it("uses lowdb as the local file database adapter", async () => {
+    const source = await readFile("src/lib/auth/providers/local-json-auth-store.ts", "utf8");
+
+    expect(source).toContain("lowdb/node");
+    expect(source).toContain("JSONFile");
+  });
+
+  it("reports whether any local account exists", async () => {
+    await expect(hasLocalJsonAccounts()).resolves.toBe(false);
+
+    await createLocalJsonAccount({
+      username: "admin01",
+      email: "admin01@local.test",
+      password: "Admin01!",
+      role: "admin",
+    });
+
+    await expect(hasLocalJsonAccounts()).resolves.toBe(true);
+  });
+
   it("creates an account with a hashed password", async () => {
     const account = await createLocalJsonAccount({
       username: "member01",

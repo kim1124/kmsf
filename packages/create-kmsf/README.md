@@ -1,33 +1,58 @@
 # create-kmsf
 
-CLI to scaffold a standalone Next.js admin dashboard from KMSF templates.
+CLI to scaffold a standalone Next.js admin dashboard from bundled KMSF templates.
 
 ## Usage
 
+Published npm usage:
+
 ```bash
-# interactive (recommended for first time)
-npx create-kmsf
-
-# with positional name
 npx create-kmsf my-app
-
-# fully scripted (CI-friendly)
-npx create-kmsf my-app --auth=local-json --no-i18n --no-install --no-git --no-playwright --silent
 ```
+
+Tarball usage before npm publish:
+
+```bash
+# from this package directory
+npm pack
+npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app
+```
+
+Remote tarball usage:
+
+```bash
+npx --yes --package https://github.com/<owner>/<repo>/releases/download/create-kmsf-v0.1.0/create-kmsf-0.1.0.tgz -- create-kmsf my-app
+```
+
+Fully scripted CI usage:
+
+```bash
+npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app --auth=local-json --no-i18n --no-install --no-git --no-playwright --silent
+```
+
+`--silent` never opens prompts. Provide every interactive option when using it.
 
 ## Flags
 
 | Flag | Effect |
 |---|---|
 | `--auth=<mode>` | `local-json` (default) / `supabase` / `none` |
-| `--no-i18n` | skip ko/en i18n setup |
-| `--no-install` | skip dependency install |
-| `--no-git` | skip git init + initial commit |
-| `--no-playwright` | skip `npx playwright install` |
-| `--silent` | no banner, no prompts (for CI) |
+| `--i18n`, `--no-i18n` | include or skip ko/en i18n setup |
+| `--install`, `--no-install` | run or skip dependency install |
+| `--git`, `--no-git` | run or skip git init + initial commit |
+| `--playwright`, `--no-playwright` | run or skip `npx playwright install` |
+| `--silent` | no banner, colors, or prompts; requires all options |
 | `--verbose` | debug logs |
 | `--help`, `-h` | usage |
 | `--version`, `-v` | print version |
+
+## Package Boundary
+
+The package is self-contained for tarball execution:
+
+- generator core code is compiled into `dist/generator-core`
+- starter templates are shipped under `templates/next-app-base`
+- runtime dependencies are public third-party packages only
 
 ## What you get
 
@@ -35,8 +60,8 @@ npx create-kmsf my-app --auth=local-json --no-i18n --no-install --no-git --no-pl
 - Tailwind 4 + Radix UI + lucide-react
 - next-intl (ko/en, URLs do not include locale prefix)
 - Optional auth: Supabase or file-backed JSON store
-- Vitest + Playwright config (one smoke spec)
-- A `Welcome to {project_name}` Hello World dashboard
+- Vitest + Playwright config
+- A `Welcome to {project_name}` dashboard
 
 ## Auth modes
 
@@ -48,10 +73,21 @@ npx create-kmsf my-app --auth=local-json --no-i18n --no-install --no-git --no-pl
 
 ```bash
 cd my-app
+npm install
 npm run dev
 ```
 
 Open <http://localhost:3000>.
+
+## Development Verification
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+npm run test:run
+npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --dry-run
+```
 
 ## Requirements
 

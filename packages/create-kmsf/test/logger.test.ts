@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { createLogger } from "../src/logger";
+import { createLogger } from "../src/logger.js";
 
 describe("createLogger", () => {
   it("info prints to provided sink", () => {
     const out: string[] = [];
     const log = createLogger({
-      out: (s) => out.push(s),
+      out: (s: string) => out.push(s),
       err: () => {},
       level: "info",
       color: false,
@@ -17,7 +17,7 @@ describe("createLogger", () => {
   it("debug suppressed at info level", () => {
     const out: string[] = [];
     const log = createLogger({
-      out: (s) => out.push(s),
+      out: (s: string) => out.push(s),
       err: () => {},
       level: "info",
       color: false,
@@ -29,7 +29,7 @@ describe("createLogger", () => {
   it("debug shown at debug level", () => {
     const out: string[] = [];
     const log = createLogger({
-      out: (s) => out.push(s),
+      out: (s: string) => out.push(s),
       err: () => {},
       level: "debug",
       color: false,
@@ -42,7 +42,7 @@ describe("createLogger", () => {
     const err: string[] = [];
     const log = createLogger({
       out: () => {},
-      err: (s) => err.push(s),
+      err: (s: string) => err.push(s),
       level: "info",
       color: false,
     });
@@ -55,7 +55,7 @@ describe("createLogger", () => {
   it("step + stepDone produce single-line update with duration", () => {
     const out: string[] = [];
     const log = createLogger({
-      out: (s) => out.push(s),
+      out: (s: string) => out.push(s),
       err: () => {},
       level: "info",
       color: false,

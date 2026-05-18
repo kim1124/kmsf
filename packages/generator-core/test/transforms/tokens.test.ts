@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { substituteTokens } from "../../src/transforms/tokens";
+import { substituteTokens } from "../../src/transforms/tokens.js";
 
 let workDir: string;
 

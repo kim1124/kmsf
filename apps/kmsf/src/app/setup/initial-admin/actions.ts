@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { touchAppSessionCookie } from "@/lib/auth/app-session.server";
+import { setLocalJsonSessionCookie } from "@/lib/auth/local-session.server";
+import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   accountSchema,
@@ -73,6 +75,38 @@ export async function createInitialAdminAction(
 
   if (!setupRequired) {
     redirect("/sign-in");
+  }
+
+  if (isLocalJsonAuthEnabled()) {
+    const { createLocalJsonAccount, LocalJsonAuthStoreError } = await import(
+      "@/lib/auth/providers/local-json-auth-store"
+    );
+    let account: Awaited<ReturnType<typeof createLocalJsonAccount>>;
+
+    try {
+      account = await createLocalJsonAccount({
+        username: parsed.data.username,
+        email: parsed.data.email,
+        password: parsed.data.password,
+        role: "admin",
+      });
+    } catch (error) {
+      if (error instanceof LocalJsonAuthStoreError) {
+        return buildState(fields, {
+          fieldErrors: {
+            username: error.code === "duplicate_username" ? "duplicate.username" : null,
+            email: error.code === "duplicate_email" ? "duplicate.email" : null,
+          },
+        });
+      }
+
+      console.error("createInitialAdminAction local-json failed", { error });
+      return buildState(fields, { authError: "auth.failed" });
+    }
+
+    await setLocalJsonSessionCookie(account.id);
+    await touchAppSessionCookie();
+    redirect("/dashboard");
   }
 
   const supabase = await createSupabaseServerClient();

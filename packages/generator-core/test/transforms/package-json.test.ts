@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { transformPackageJson } from "../../src/transforms/package-json";
+import { transformPackageJson } from "../../src/transforms/package-json.js";
 
 let workDir: string;
 

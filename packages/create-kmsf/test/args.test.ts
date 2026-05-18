@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCliArgs } from "../src/args";
+import { parseCliArgs } from "../src/args.js";
 
 describe("parseCliArgs", () => {
   it("parses positional name", () => {

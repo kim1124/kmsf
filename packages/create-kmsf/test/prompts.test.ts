@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { resolveScaffoldOptions } from "../src/prompts";
+import { resolveScaffoldOptions } from "../src/prompts.js";
 
 const promptMock = vi.hoisted(() => vi.fn());
 vi.mock("prompts", () => ({ default: promptMock }));
@@ -40,5 +40,15 @@ describe("resolveScaffoldOptions", () => {
     await expect(
       resolveScaffoldOptions({ authMode: "none", includeI18n: false }),
     ).rejects.toThrow(/aborted/i);
+  });
+
+  it("fails fast in silent mode when required values are missing", async () => {
+    promptMock.mockResolvedValue({});
+
+    await expect(
+      resolveScaffoldOptions({ projectName: "ci-app", silent: true }),
+    ).rejects.toThrow(/--silent/);
+
+    expect(promptMock).not.toHaveBeenCalled();
   });
 });

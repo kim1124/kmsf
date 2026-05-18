@@ -2,17 +2,17 @@
 // 흐름: parseArgs → resolveScaffoldOptions(prompts) → scaffold() → 결과 출력.
 //
 // IMMUTABLE invariants (도메인문서.md §3.5):
-//   - exit code 매핑: TargetExists=1, TemplateMissing=2, 기타 ScaffoldError=3,
-//     AbortedError=130, unexpected=99. cli.ts의 catch 블록이 단일 진실 소스.
+//   - exit code 매핑: TargetExists=1, TemplateMissing=2,
+//     기타 ScaffoldError/MissingRequiredOptions=3, AbortedError=130,
+//     unexpected=99. cli.ts의 catch 블록이 단일 진실 소스.
 //   - `--silent`는 banner/colors/log level만 끔. 누락된 prompt를 자동 채우지
 //     않는다 (D-11). CI 사용자는 모든 인터랙티브 옵션을 flag로 제공해야 함.
 //
-// findTemplateRoot는 monorepo path 기반. dist/cli.js 또는 src/cli.ts 어디서
-// 실행해도 ../../../templates/next-app-base를 가리킨다 (3단계 위로 = packages/
-// create-kmsf → kmsf root → templates).
-// npm publish 시 templates 번들링은 별도 PR 예정 (Q2).
+// findTemplateRoot는 package-local template을 우선 사용한다. packed tarball,
+// npx tarball URL, monorepo source 실행 모두 같은 resolver를 공유한다.
 
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
@@ -21,10 +21,14 @@ import {
   detectPackageManager,
   ScaffoldError,
   TargetExistsError,
-} from "@kmsf/generator-core";
+} from "./generator-core/index.js";
 
 import { parseCliArgs, HELP_TEXT } from "./args.js";
-import { resolveScaffoldOptions, AbortedError } from "./prompts.js";
+import {
+  resolveScaffoldOptions,
+  AbortedError,
+  MissingRequiredOptionsError,
+} from "./prompts.js";
 import { renderBanner } from "./banner.js";
 import { createLogger } from "./logger.js";
 
@@ -32,11 +36,12 @@ const require = createRequire(import.meta.url);
 const PKG = require("../package.json") as { version: string };
 
 function findTemplateRoot(): string {
-  // dist/cli.js → dist/.. = packages/create-kmsf → ../../templates/next-app-base
-  // when running from source: src/cli.ts → src/.. = packages/create-kmsf → ../../templates/next-app-base
   const here = path.dirname(fileURLToPath(import.meta.url));
-  const candidate = path.resolve(here, "..", "..", "..", "templates", "next-app-base");
-  return candidate;
+  const packageRoot = path.resolve(here, "..");
+  const bundled = path.join(packageRoot, "templates", "next-app-base");
+  if (existsSync(bundled)) return bundled;
+
+  return path.resolve(packageRoot, "..", "..", "templates", "next-app-base");
 }
 
 export async function runCli(argv: string[] = process.argv.slice(2)): Promise<number> {
@@ -72,6 +77,10 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     if (e instanceof AbortedError) {
       logger.warn("Aborted.");
       return 130;
+    }
+    if (e instanceof MissingRequiredOptionsError) {
+      logger.error(e.message);
+      return 3;
     }
     throw e;
   }

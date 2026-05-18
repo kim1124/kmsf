@@ -15,15 +15,7 @@ const BIN = path.join(REPO_ROOT, "packages/create-kmsf/bin/create-kmsf.js");
 let workDir: string;
 
 beforeAll(async () => {
-  // Make sure both generator-core and create-kmsf dist/ are built
-  const buildGen = spawnSync(
-    "npm",
-    ["--workspace=packages/generator-core", "run", "build"],
-    { cwd: REPO_ROOT, encoding: "utf8" },
-  );
-  if (buildGen.status !== 0) {
-    throw new Error(`generator-core build failed: ${buildGen.stderr}`);
-  }
+  // Make sure create-kmsf dist/ is built before invoking the bin wrapper.
   const build = spawnSync(
     "npm",
     ["--workspace=packages/create-kmsf", "run", "build"],
@@ -61,6 +53,8 @@ describe("integration smoke", () => {
 
     expect(result.status).toBe(0);
     expect(await exists(path.join(projectPath, "package.json"))).toBe(true);
+    expect(await exists(path.join(projectPath, ".gitignore"))).toBe(true);
+    expect(await exists(path.join(projectPath, "gitignore"))).toBe(false);
     expect(await exists(path.join(projectPath, ".env.local"))).toBe(true);
     expect(await exists(path.join(projectPath, "src/lib/auth/local-session.server.ts"))).toBe(true);
     expect(await exists(path.join(projectPath, "src/lib/supabase"))).toBe(false);

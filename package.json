@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "node scripts/patch-next-postcss-metadata.mjs",
     "dev": "npm --workspace=apps/kmsf run dev --",
     "build": "npm --workspace=apps/kmsf run build",
     "start": "npm --workspace=apps/kmsf run start --",
@@ -17,5 +18,8 @@
     "test:e2e": "npm --workspace=apps/kmsf run test:e2e --",
     "test:e2e:headed": "npm --workspace=apps/kmsf run test:e2e:headed --",
     "verify": "npm --workspace=apps/kmsf run verify"
+  },
+  "overrides": {
+    "postcss": "8.5.14"
   }
 }

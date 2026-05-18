@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, readFile, rm, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { applyAuthMode } from "../../src/transforms/auth-mode";
+import { applyAuthMode } from "../../src/transforms/auth-mode.js";
 
 let workDir: string;
 

@@ -27,10 +27,11 @@ export default async function SignInPage({
 }: SignInPageProps) {
   const { locale } = await params;
   const { error, success } = await searchParams;
-  const setupRequired = isLocalJsonAuthEnabled() ? false : await isInitialSetupRequired();
+  const localJsonEnabled = isLocalJsonAuthEnabled();
+  const setupRequired = await isInitialSetupRequired();
   const user = await getCurrentUser();
   const t = await getTranslations({ locale, namespace: "auth" });
-  const supabaseReady = isSupabaseConfigured();
+  const supabaseReady = !localJsonEnabled && isSupabaseConfigured();
   const csrfToken = await getCsrfToken();
 
   if (user) {
