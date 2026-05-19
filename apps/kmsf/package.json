@@ -12,7 +12,8 @@
     "test:e2e": "env -u NO_COLOR playwright test",
     "test:e2e:headed": "env -u NO_COLOR playwright test --headed",
     "test:reset-auth": "node scripts/reset-auth-state.mjs",
-    "verify": "npm run lint && npm run test:run && npm run build && npm run test:e2e -- tests/e2e/layout-shell.spec.ts tests/e2e/language-toggle.spec.ts tests/e2e/auth-validation-i18n.spec.ts"
+    "verify": "npm run lint && npm run test:run && npm run build",
+    "verify:full": "npm run verify && npm run test:e2e -- tests/e2e/layout-shell.spec.ts tests/e2e/language-toggle.spec.ts tests/e2e/auth-validation-i18n.spec.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

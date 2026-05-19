@@ -14,4 +14,4 @@
 
 - copy와 transform은 임시 디렉터리 또는 in-memory input으로 검증한다.
 - post-install은 실제 external command에 의존하지 않는다.
-- daily report는 test/reports에 남긴다.
+- 신규 작업 report는 repo root `test-reports/YYYYMMDD_HHMMSS_report.md`에 남긴다.

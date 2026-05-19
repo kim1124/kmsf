@@ -12,4 +12,4 @@
 
 - The package must remain generic React compatible and avoid Next.js runtime APIs.
 - `verify:full` is the strongest package completion gate.
-- Package-local reports stay under `test/reports/YYYY-MM-DD.md`.
+- New package work reports go to repo root `test-reports/YYYYMMDD_HHMMSS_report.md`.

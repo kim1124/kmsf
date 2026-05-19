@@ -2,13 +2,10 @@
 
 ## Baseline Commands
 
-Run from `packages/gridstack`:
+Run from repo root:
 
 ```bash
-npm run lint
-npm run test:run
-npm run build
-npm run verify
+npm --workspace=@kmsf/gridstack run verify
 ```
 
 ## Browser Checks
@@ -16,7 +13,7 @@ npm run verify
 Run when rendered example, drag and drop, resize, maximize, minimize, or responsive behavior changes:
 
 ```bash
-npm run test:e2e
+npm --workspace=@kmsf/gridstack run verify:full
 ```
 
 ## Vitest Scope
@@ -47,10 +44,7 @@ Use Playwright for:
 
 Do not mark implementation work complete if:
 
-- lint fails
-- typecheck fails
-- unit tests fail
-- package build fails
+- package `verify` fails
 - required browser verification is skipped without a blocker
 - browser verification finds visible UI breakage
 
@@ -58,4 +52,4 @@ Do not mark implementation work complete if:
 
 - Vitest artifacts: `test/vitest`
 - Playwright artifacts: `test/playwright`
-- Work reports: `test/reports/YYYY-MM-DD.md`
+- Work reports: repo root `test-reports/YYYYMMDD_HHMMSS_report.md`
