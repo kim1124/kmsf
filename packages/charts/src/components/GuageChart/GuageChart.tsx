@@ -67,7 +67,7 @@ export function GuageChart(props: GuageChartProps) {
     return buildBaseOption({
       legend: props.legend ?? false,
       options: {
-        ...buildThemeOption(props.theme),
+        ...buildThemeOption(props.theme, props.themeOverrides),
         ...props.options,
       },
       series,
@@ -82,6 +82,7 @@ export function GuageChart(props: GuageChartProps) {
     props.series,
     props.seriesOptions,
     props.theme,
+    props.themeOverrides,
     props.tooltip,
     props.unit,
   ]);

@@ -24,7 +24,8 @@ export default async function ChartSamplePage() {
             />
             <path
               d="M40 250 C120 200, 220 160, 300 180 S470 270, 560 220 S760 120, 960 150"
-              fill="rgba(16,185,129,0.08)"
+              fill="var(--accent)"
+              fillOpacity="0.08"
               stroke="none"
             />
           </svg>

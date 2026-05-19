@@ -43,7 +43,7 @@ export default async function SettingsPage({
       </section>
 
       {profile === "updated" ? (
-        <section className="content-panel px-5 py-4 text-sm text-mint-700 dark:text-mint-300">
+        <section className="content-panel px-5 py-4 text-sm text-accent">
           {t("profileUpdated")}
         </section>
       ) : null}
@@ -61,7 +61,7 @@ export default async function SettingsPage({
       ) : null}
 
       {google ? (
-        <section className="content-panel px-5 py-4 text-sm text-mint-700 dark:text-mint-300">
+        <section className="content-panel px-5 py-4 text-sm text-accent">
           {t(`googleMessages.${google}`)}
         </section>
       ) : null}
@@ -77,19 +77,19 @@ export default async function SettingsPage({
           <h3 className="text-lg font-semibold">{t("profileTitle")}</h3>
           <p className="mt-2 text-sm leading-6 text-foreground/65">{t("profileDescription")}</p>
           <dl className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-[24px] border border-border bg-surface p-4">
+            <div className="rounded-[var(--kmsf-radius-xl)] border border-border bg-surface p-4">
               <dt className="text-sm text-foreground/60">{t("fields.name")}</dt>
               <dd className="mt-2 font-medium">{user?.displayName}</dd>
             </div>
-            <div className="rounded-[24px] border border-border bg-surface p-4">
+            <div className="rounded-[var(--kmsf-radius-xl)] border border-border bg-surface p-4">
               <dt className="text-sm text-foreground/60">{t("fields.email")}</dt>
               <dd className="mt-2 font-medium">{user?.email}</dd>
             </div>
-            <div className="rounded-[24px] border border-border bg-surface p-4">
+            <div className="rounded-[var(--kmsf-radius-xl)] border border-border bg-surface p-4">
               <dt className="text-sm text-foreground/60">{t("fields.role")}</dt>
               <dd className="mt-2 font-medium">{user?.role}</dd>
             </div>
-            <div className="rounded-[24px] border border-border bg-surface p-4">
+            <div className="rounded-[var(--kmsf-radius-xl)] border border-border bg-surface p-4">
               <dt className="text-sm text-foreground/60">{t("fields.auth")}</dt>
               <dd className="mt-2 font-medium">
                 {user?.authMode ? t(`authModes.${user.authMode}`) : t("authModes.demo")}
@@ -106,7 +106,7 @@ export default async function SettingsPage({
             <li>{t("securityItems.google")}</li>
             <li>{t("securityItems.mfa")}</li>
           </ul>
-          <div className="mt-6 rounded-[24px] border border-border bg-surface p-4">
+          <div className="mt-6 rounded-[var(--kmsf-radius-xl)] border border-border bg-surface p-4">
             <p className="text-sm font-medium text-foreground">{t("googleIdentity.title")}</p>
             <p className="mt-2 text-sm leading-6 text-foreground/65">
               {googleAvailable

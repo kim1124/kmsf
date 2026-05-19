@@ -2,30 +2,53 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
-  --surface: #ffffff;
-  --surface-muted: #f6fcfa;
-  --panel: #ffffff;
-  --panel-hover: #e8f8f2;
-  --border: rgba(57, 99, 88, 0.18);
-  --ring: rgba(45, 212, 191, 0.2);
-  --accent: #10b981;
-  --accent-foreground: #ffffff;
+  --kmsf-color-background: #ffffff;
+  --kmsf-color-foreground: #111827;
+  --kmsf-color-surface: #ffffff;
+  --kmsf-color-surface-muted: #f6fcfa;
+  --kmsf-color-panel: #ffffff;
+  --kmsf-color-panel-hover: #e8f8f2;
+  --kmsf-color-border: rgba(57, 99, 88, 0.18);
+  --kmsf-color-ring: rgba(45, 212, 191, 0.2);
+  --kmsf-color-accent: #10b981;
+  --kmsf-color-accent-foreground: #ffffff;
+  --kmsf-color-danger: #ef4444;
+  --kmsf-radius-sm: 0.375rem;
+  --kmsf-radius-md: 0.75rem;
+  --kmsf-radius-lg: 1rem;
+  --kmsf-radius-xl: 1.5rem;
+  --kmsf-radius-auth: 1.75rem;
+  --kmsf-radius-full: 9999px;
+  --kmsf-shadow-none: none;
+  --kmsf-shadow-panel: 0 12px 32px rgba(16, 185, 129, 0.04);
+  --kmsf-shadow-raised: 0 10px 24px rgba(15, 23, 42, 0.18);
+  --kmsf-shadow-overlay: 0 24px 80px rgba(15, 23, 42, 0.28);
+  --kmsf-motion-fast: 180ms;
+  --background: var(--kmsf-color-background);
+  --foreground: var(--kmsf-color-foreground);
+  --surface: var(--kmsf-color-surface);
+  --surface-muted: var(--kmsf-color-surface-muted);
+  --panel: var(--kmsf-color-panel);
+  --panel-hover: var(--kmsf-color-panel-hover);
+  --border: var(--kmsf-color-border);
+  --ring: var(--kmsf-color-ring);
+  --accent: var(--kmsf-color-accent);
+  --accent-foreground: var(--kmsf-color-accent-foreground);
   --sidebar-width: 5.5rem;
 }
 
 html[data-theme="dark"] {
-  --background: #0f1715;
-  --foreground: #effcf7;
-  --surface: #16211f;
-  --surface-muted: #1d2c28;
-  --panel: rgba(22, 33, 31, 0.92);
-  --panel-hover: #1f3530;
-  --border: rgba(127, 203, 180, 0.22);
-  --ring: rgba(45, 212, 191, 0.26);
-  --accent: #34d399;
-  --accent-foreground: #06251e;
+  --kmsf-color-background: #0f1715;
+  --kmsf-color-foreground: #effcf7;
+  --kmsf-color-surface: #16211f;
+  --kmsf-color-surface-muted: #1d2c28;
+  --kmsf-color-panel: rgba(22, 33, 31, 0.92);
+  --kmsf-color-panel-hover: #1f3530;
+  --kmsf-color-border: rgba(127, 203, 180, 0.22);
+  --kmsf-color-ring: rgba(45, 212, 191, 0.26);
+  --kmsf-color-accent: #34d399;
+  --kmsf-color-accent-foreground: #06251e;
+  --kmsf-color-danger: #f87171;
 }
 
 @theme inline {
@@ -63,11 +86,11 @@ body {
 a,
 button {
   transition:
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease,
-    box-shadow 180ms ease;
+    background-color var(--kmsf-motion-fast) ease,
+    border-color var(--kmsf-motion-fast) ease,
+    color var(--kmsf-motion-fast) ease,
+    transform var(--kmsf-motion-fast) ease,
+    box-shadow var(--kmsf-motion-fast) ease;
 }
 
 ::selection {
@@ -81,9 +104,9 @@ button {
 
 .content-panel {
   border: 1px solid var(--border);
-  border-radius: 1.5rem;
+  border-radius: var(--kmsf-radius-xl);
   background: var(--surface);
-  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.04);
+  box-shadow: var(--kmsf-shadow-panel);
 }
 
 .chart-grid {

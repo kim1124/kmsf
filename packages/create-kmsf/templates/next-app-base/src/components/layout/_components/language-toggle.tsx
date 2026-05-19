@@ -47,7 +47,7 @@ export function LanguageToggle({ locale }: LanguageToggleProps) {
             className={cn(
               "min-w-[42px] rounded-full px-3 py-1 text-xs font-semibold uppercase transition-colors",
               active
-                ? "bg-emerald-500 text-white"
+                ? "bg-accent text-accent-foreground"
                 : "text-foreground/70 hover:bg-surface hover:text-foreground",
             )}
             onClick={() => changeLocale(option)}

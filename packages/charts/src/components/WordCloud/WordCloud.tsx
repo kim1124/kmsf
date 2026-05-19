@@ -3,24 +3,31 @@ import type { EChartsOption, SeriesOption } from "echarts";
 
 import { KmsfChart } from "../../common/KmsfChart";
 import { applySeriesOptions, buildBaseOption } from "../../common/options";
-import { buildThemeOption } from "../../common/theme";
+import { buildThemeOption, kmsfDarkPalette, kmsfLightPalette } from "../../common/theme";
 import type { KmsfBaseChartProps } from "../../common/types";
 
 export interface WordCloudProps extends KmsfBaseChartProps<unknown> {
   series: SeriesOption[];
 }
 
-const wordCloudColors = ["#14b8a6", "#84cc16", "#0ea5e9", "#f97316", "#8b5cf6", "#ef4444", "#06b6d4"];
+export function getWordCloudPalette(theme: string | undefined, palette?: string[]): string[] {
+  if (palette?.length) {
+    return palette;
+  }
+
+  return theme === "dark" ? kmsfDarkPalette : kmsfLightPalette;
+}
 
 export function WordCloud(props: WordCloudProps) {
   const [isRegistered, setIsRegistered] = useState(false);
   const option = useMemo<EChartsOption>(() => {
+    const wordCloudPalette = getWordCloudPalette(props.theme, props.themeOverrides?.palette);
     const series = applySeriesOptions(
       props.series.map((item) => ({
         ...item,
         data: item.data ?? props.data,
         textStyle: {
-          color: () => wordCloudColors[Math.floor(Math.random() * wordCloudColors.length)],
+          color: () => wordCloudPalette[Math.floor(Math.random() * wordCloudPalette.length)],
         },
         type: "wordCloud",
       }) as SeriesOption),
@@ -30,13 +37,22 @@ export function WordCloud(props: WordCloudProps) {
     return buildBaseOption({
       legend: props.legend ?? false,
       options: {
-        ...buildThemeOption(props.theme),
+        ...buildThemeOption(props.theme, props.themeOverrides),
         ...props.options,
       },
       series,
       tooltip: props.tooltip,
     });
-  }, [props.data, props.legend, props.options, props.series, props.seriesOptions, props.theme, props.tooltip]);
+  }, [
+    props.data,
+    props.legend,
+    props.options,
+    props.series,
+    props.seriesOptions,
+    props.theme,
+    props.themeOverrides,
+    props.tooltip,
+  ]);
 
   useEffect(() => {
     let mounted = true;

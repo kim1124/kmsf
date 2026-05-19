@@ -35,7 +35,7 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
 
   return (
     <main className="flex flex-col h-[100dvh] items-center bg-background px-4 py-12 overflow-y-auto">
-      <section className="my-auto w-full max-w-md rounded-[28px] border border-border bg-surface p-8 text-foreground shadow-[0_20px_60px_rgba(16,185,129,0.08)] dark:shadow-none">
+      <section className="my-auto w-full max-w-md rounded-[var(--kmsf-radius-auth)] border border-border bg-surface p-8 text-foreground shadow-[var(--kmsf-shadow-panel)] dark:shadow-none">
         <div className="text-center">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="mt-3 text-sm leading-6 text-foreground/70">{t("description")}</p>

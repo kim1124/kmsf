@@ -7,6 +7,8 @@ import {
   mergeChartOptions,
   shouldRotateCategoryLabels,
 } from "../../src/common/options";
+import { buildThemeOption } from "../../src/common/theme";
+import { getWordCloudPalette } from "../../src/components/WordCloud/WordCloud";
 
 describe("buildLegendOption", () => {
   it("hides legend when false is provided", () => {
@@ -51,6 +53,41 @@ describe("mergeChartOptions", () => {
 describe("buildTrendDataZoom", () => {
   it("does not include a visible slider by default", () => {
     expect(buildTrendDataZoom()).toEqual([{ type: "inside" }]);
+  });
+});
+
+describe("buildThemeOption", () => {
+  it("uses KMSF accent as the first light palette color", () => {
+    expect(buildThemeOption("light").color).toEqual(expect.arrayContaining(["#10b981"]));
+  });
+
+  it("uses KMSF accent as the first dark palette color", () => {
+    expect(buildThemeOption("dark").color).toEqual(expect.arrayContaining(["#34d399"]));
+  });
+
+  it("allows consumers to override palette, text, and background", () => {
+    expect(
+      buildThemeOption("light", {
+        backgroundColor: "#ffffff",
+        palette: ["#2563eb", "#9333ea"],
+        textColor: "#0f172a",
+      }),
+    ).toMatchObject({
+      backgroundColor: "#ffffff",
+      color: ["#2563eb", "#9333ea"],
+      textStyle: { color: "#0f172a" },
+    });
+  });
+});
+
+describe("getWordCloudPalette", () => {
+  it("uses theme override palette when provided", () => {
+    expect(getWordCloudPalette("light", ["#2563eb", "#9333ea"])).toEqual(["#2563eb", "#9333ea"]);
+  });
+
+  it("falls back to KMSF theme palettes", () => {
+    expect(getWordCloudPalette("light")).toEqual(expect.arrayContaining(["#10b981"]));
+    expect(getWordCloudPalette("dark")).toEqual(expect.arrayContaining(["#34d399"]));
   });
 });
 

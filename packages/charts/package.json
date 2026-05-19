@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
-    "build": "vite build",
+    "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest",
@@ -16,10 +16,14 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "dependencies": {
     "dayjs": "latest",
     "echarts": "5.6.0",

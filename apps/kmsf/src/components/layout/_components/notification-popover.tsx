@@ -22,7 +22,7 @@ export function NotificationPopover() {
       <PopoverTrigger asChild>
         <Button
           aria-label="알림"
-          className="h-10 w-10 rounded-full px-0 hover:bg-emerald-500 hover:text-white transition-colors"
+          className="h-10 w-10 rounded-full px-0 transition-colors hover:bg-accent hover:text-accent-foreground"
           size="sm"
           variant="secondary"
         >
@@ -39,7 +39,7 @@ export function NotificationPopover() {
             {notifications.map((notification) => (
               <div
                 key={notification.title}
-                className="cursor-pointer rounded-xl border border-border bg-surface p-3 transition-colors hover:bg-[#10b981] hover:text-white"
+                className="cursor-pointer rounded-xl border border-border bg-surface p-3 transition-colors hover:bg-accent hover:text-accent-foreground"
               >
                 <p className="text-sm font-medium">{notification.title}</p>
                 <p className="mt-1 text-xs leading-5 text-foreground/60">

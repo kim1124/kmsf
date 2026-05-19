@@ -119,7 +119,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
         const x = (300 - img.width * scale) / 2;
         const y = (300 - img.height * scale) / 2;
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-        
+
         setAvatarPreview(canvas.toDataURL("image/jpeg", 0.9));
       }
     };
@@ -147,7 +147,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
     if (Object.values(nextErrors).some(Boolean)) {
       return;
     }
-    
+
     startTransition(async () => {
       const formData = new FormData();
       formData.append("locale", locale);
@@ -157,7 +157,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
       formData.append("email", sanitizeEmailInput(formValues.email));
       formData.append("password", formValues.password);
       formData.append("passwordConfirm", formValues.passwordConfirm);
-      
+
       try {
         await updateProfileAction(formData);
         setDialogOpen(false);
@@ -174,7 +174,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
         <PopoverTrigger asChild>
           <button
             aria-label="프로필 메뉴"
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-white text-foreground transition-colors hover:bg-emerald-500 hover:text-white dark:bg-surface"
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-white text-foreground transition-colors hover:bg-accent hover:text-accent-foreground dark:bg-surface"
             type="button"
           >
             {avatarPreview ? (
@@ -222,7 +222,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
               <div className="flex flex-col gap-2">
                 <Dialog open={dialogOpen} onOpenChange={(open) => { if (!isPending) setDialogOpen(open); }}>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="w-full justify-start px-0 border-0 shadow-none hover:text-[#10b981] hover:bg-transparent dark:hover:text-[#10b981] transition-colors">
+                    <Button variant="ghost" size="sm" className="w-full justify-start px-0 border-0 shadow-none transition-colors hover:bg-transparent hover:text-accent dark:hover:text-accent">
                       계정 정보 변경
                     </Button>
                   </DialogTrigger>
@@ -233,8 +233,8 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="mt-6 space-y-4 text-foreground">
                       <div className="mb-6 flex flex-col items-center">
-                        <div 
-                          className="relative flex h-32 w-32 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#10b981]/50 bg-surface-muted shadow-sm transition-all hover:border-[#10b981] group"
+                        <div
+                          className="group relative flex h-32 w-32 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-accent/50 bg-surface-muted shadow-sm transition-all hover:border-accent"
                           onClick={openFilePicker}
                         >
                           {avatarPreview ? (
@@ -272,7 +272,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                         name="username"
                         tooltip="프로젝트에 표시될 닉네임을 입력하세요."
                       />
-                      
+
                       <FieldWithTooltip
                         value={formValues.email}
                         onChange={handleChange}
@@ -330,7 +330,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                 <form action={signOutAction} className="w-full">
                   <input type="hidden" name="locale" value={locale} />
                   <input type="hidden" name="csrfToken" value={csrfToken} />
-                  <Button className="w-full justify-start px-0 border-0 shadow-none text-foreground hover:text-[#10b981] hover:bg-transparent dark:hover:text-[#10b981] transition-colors" type="submit" variant="ghost" size="sm">
+                  <Button className="w-full justify-start px-0 border-0 shadow-none text-foreground transition-colors hover:bg-transparent hover:text-accent dark:hover:text-accent" type="submit" variant="ghost" size="sm">
                     로그아웃
                   </Button>
                 </form>

@@ -8,5 +8,4 @@ export * from "./core/use-dashboard-grid";
 export * from "./components/DashboardGrid";
 export { DashboardWidgetShell } from "./components/DashboardWidget";
 export type { DashboardWidgetShellProps } from "./components/DashboardWidget";
-export * from "./gridstack/adapter";
 export * from "./gridstack/option-mapper";

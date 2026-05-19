@@ -17,7 +17,11 @@
     "test:run": "npm --workspace=apps/kmsf run test:run",
     "test:e2e": "npm --workspace=apps/kmsf run test:e2e --",
     "test:e2e:headed": "npm --workspace=apps/kmsf run test:e2e:headed --",
-    "verify": "npm --workspace=apps/kmsf run verify"
+    "verify": "npm --workspace=apps/kmsf run verify",
+    "smoke:pack:charts": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=@kmsf/charts --dry-run",
+    "smoke:pack:gridstack": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=@kmsf/gridstack --dry-run",
+    "smoke:pack:data-table": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=@kmsf/data-table --dry-run",
+    "smoke:pack:create-kmsf": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=create-kmsf --dry-run"
   },
   "overrides": {
     "postcss": "8.5.14"
