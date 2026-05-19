@@ -29,6 +29,13 @@ npm --workspace=@kmsf/charts run build
 npm --workspace=@kmsf/charts run test:e2e
 ```
 
+The example dev server uses port `4000` by default. If the port is already in use, choose the next available port explicitly:
+
+```bash
+KMSF_CHARTS_PORT=4001 npm --workspace=@kmsf/charts run dev
+KMSF_CHARTS_PORT=4001 npm --workspace=@kmsf/charts run test:e2e
+```
+
 현재 1차 구현 기준으로 공통 데이터 정규화, 옵션 병합, 예제 렌더링 검증까지 포함되어 있다.
 
 ## Quick Start
