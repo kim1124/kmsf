@@ -249,11 +249,11 @@ Command scope:
 - `npm run test:e2e`: Playwright browser checks
 - `npm run verify`: lint, Vitest, and build baseline
 
-The example dev server uses port `6000` by default. If the port is already in use, choose the next available port explicitly:
+The example dev server uses port `6001` by default because Chromium blocks `6000` as an unsafe port. If the port is already in use, choose the next available port explicitly:
 
 ```bash
-KMSF_GRIDSTACK_PORT=6001 npm --workspace=@kmsf/gridstack run dev
-KMSF_GRIDSTACK_PORT=6001 npm --workspace=@kmsf/gridstack run test:e2e
+KMSF_GRIDSTACK_PORT=6002 npm --workspace=@kmsf/gridstack run dev
+KMSF_GRIDSTACK_PORT=6002 npm --workspace=@kmsf/gridstack run test:e2e
 ```
 
 ## Repository Layout
