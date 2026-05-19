@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const port = Number(process.env.KMSF_GRIDSTACK_PORT ?? process.env.PORT ?? 6000);
+const port = Number(process.env.KMSF_GRIDSTACK_PORT ?? process.env.PORT ?? 6001);
 
 export default defineConfig({
   plugins: [react()],
