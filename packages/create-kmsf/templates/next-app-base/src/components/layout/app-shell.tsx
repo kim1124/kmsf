@@ -85,8 +85,8 @@ export function AppShell({
                 href={item.href}
                 prefetch={true}
                 className={cn(
-                  "flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-foreground/70 transition-colors hover:bg-emerald-50",
-                  active && "bg-emerald-50/50 text-emerald-600",
+                  "flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-foreground/70 transition-colors hover:bg-panel-hover",
+                  active && "bg-panel-hover text-accent",
                 )}
               >
                 <div className="flex h-6 w-6 items-center justify-center">{item.icon}</div>

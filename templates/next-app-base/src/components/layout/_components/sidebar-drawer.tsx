@@ -39,7 +39,7 @@ export function SidebarDrawer({ items }: SidebarDrawerProps) {
       <div className="flex h-full w-full flex-col items-center px-2 py-4">
         <button
           aria-label={expanded ? "메뉴 접기" : "메뉴 펼치기"}
-          className="mb-4 flex h-10 w-full items-center rounded-md text-foreground/75 transition-colors hover:bg-emerald-500 hover:text-white"
+          className="mb-4 flex h-10 w-full items-center rounded-md text-foreground/75 transition-colors hover:bg-accent hover:text-accent-foreground"
           onClick={() => setExpanded((value) => !value)}
           type="button"
         >
@@ -68,8 +68,8 @@ export function SidebarDrawer({ items }: SidebarDrawerProps) {
                 prefetch={true}
                 className={cn(
                   "flex h-10 w-full items-center rounded-md text-foreground/75 transition-colors",
-                  "hover:bg-emerald-500 hover:text-white",
-                  active && "bg-[#10b981] text-white",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  active && "bg-accent text-accent-foreground",
                 )}
                 onClick={() => {
                   if (expanded) {

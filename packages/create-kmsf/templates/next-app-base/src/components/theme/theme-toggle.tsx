@@ -27,7 +27,7 @@ export function ThemeToggle({ initialTheme }: ThemeToggleProps) {
       aria-label={isLight ? "다크 테마로 전환" : "라이트 테마로 전환"}
       className={cn(
         "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors",
-        isLight ? "bg-emerald-500 text-white hover:bg-emerald-600" : "bg-surface-muted text-foreground hover:bg-surface"
+        isLight ? "bg-accent text-accent-foreground hover:bg-accent/90" : "bg-surface-muted text-foreground hover:bg-surface"
       )}
       onClick={() => setDocumentTheme(isLight ? "dark" : "light")}
       type="button"

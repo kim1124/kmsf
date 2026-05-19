@@ -36,7 +36,7 @@ export function TopChart(props: TopChartProps) {
     return buildBaseOption({
       legend: props.legend,
       options: {
-        ...buildThemeOption(props.theme),
+        ...buildThemeOption(props.theme, props.themeOverrides),
         ...props.options,
       },
       series,
@@ -57,6 +57,7 @@ export function TopChart(props: TopChartProps) {
     props.series,
     props.seriesOptions,
     props.theme,
+    props.themeOverrides,
     props.tooltip,
     props.xAxis,
     props.yAxis,

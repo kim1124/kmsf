@@ -16,6 +16,7 @@ export type { WordCloudProps } from "./components/WordCloud";
 export type {
   KmsfBaseChartProps,
   KmsfChartTheme,
+  KmsfChartThemeOverrides,
   KmsfLegendOption,
   KmsfTooltipOption,
   TopChartMode,

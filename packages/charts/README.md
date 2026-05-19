@@ -57,6 +57,24 @@ export function Dashboard() {
 }
 ```
 
+## Theme Override
+
+KMSF provides a default chart palette. Consumers can override palette, text, and background without changing package source.
+
+```tsx
+<TrendChart
+  data={rows}
+  series={series}
+  theme="light"
+  themeOverrides={{
+    palette: ["#2563eb", "#9333ea"],
+    textColor: "#0f172a",
+  }}
+/>
+```
+
+`options` is still merged after the default chart option, so ECharts-native overrides remain available.
+
 ## Public API Notes
 
 - `GaugeChart`와 `SunburstChart`를 기본 사용 이름으로 권장한다.

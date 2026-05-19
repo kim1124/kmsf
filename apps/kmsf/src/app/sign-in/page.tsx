@@ -43,25 +43,25 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   return (
     <main className="h-[100dvh] overflow-y-auto bg-background">
       <div className="flex min-h-full flex-col items-center justify-center p-4 py-12">
-        <section className="w-full max-w-md rounded-[28px] border border-border bg-surface p-8 text-foreground shadow-[0_20px_60px_rgba(16,185,129,0.08)] dark:shadow-none">
+        <section className="w-full max-w-md rounded-[var(--kmsf-radius-auth)] border border-border bg-surface p-8 text-foreground shadow-[var(--kmsf-shadow-panel)] dark:shadow-none">
         <div className="text-center">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{t("title")}</h1>
         </div>
 
         {success === "confirm-email" ? (
-          <div className="mt-5 rounded-xl border border-mint-200 bg-mint-50 px-4 py-3 text-sm text-mint-800">
+          <div className="mt-5 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-foreground">
             {t("confirmEmail")}
           </div>
         ) : null}
 
         {success === "deleted" ? (
-          <div className="mt-5 rounded-xl border border-mint-200 bg-mint-50 px-4 py-3 text-sm text-mint-800">
+          <div className="mt-5 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-foreground">
             {t("accountDeleted")}
           </div>
         ) : null}
 
         {success === "session-expired" ? (
-          <div className="mt-5 rounded-xl border border-mint-200 bg-mint-50 px-4 py-3 text-sm text-mint-800">
+          <div className="mt-5 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-foreground">
             {t("sessionExpired")}
           </div>
         ) : null}

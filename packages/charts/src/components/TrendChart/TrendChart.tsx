@@ -46,7 +46,7 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
     return buildBaseOption({
       legend: props.legend,
       options: {
-        ...buildThemeOption(props.theme),
+        ...buildThemeOption(props.theme, props.themeOverrides),
         animation: false,
         animationDurationUpdate: 0,
         dataZoom: buildTrendDataZoom(),
@@ -66,6 +66,7 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
     props.series,
     props.seriesOptions,
     props.theme,
+    props.themeOverrides,
     props.tooltip,
     props.xAxis,
     props.yAxis,

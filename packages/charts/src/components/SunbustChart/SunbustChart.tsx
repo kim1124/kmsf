@@ -42,13 +42,23 @@ export function SunbustChart(props: SunbustChartProps) {
     return buildBaseOption({
       legend: props.legend ?? false,
       options: {
-        ...buildThemeOption(props.theme),
+        ...buildThemeOption(props.theme, props.themeOverrides),
         ...props.options,
       },
       series,
       tooltip: props.tooltip,
     });
-  }, [props.data, props.legend, props.options, props.radius, props.series, props.seriesOptions, props.theme, props.tooltip]);
+  }, [
+    props.data,
+    props.legend,
+    props.options,
+    props.radius,
+    props.series,
+    props.seriesOptions,
+    props.theme,
+    props.themeOverrides,
+    props.tooltip,
+  ]);
 
   return (
     <KmsfChart

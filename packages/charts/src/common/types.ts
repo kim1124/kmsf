@@ -15,6 +15,12 @@ export type KmsfTooltipOption = boolean | TooltipComponentOption;
 export type KmsfAxisOption<TAxis> = TAxis | TAxis[];
 export type SeriesOverride = Partial<SeriesOption> | Array<Partial<SeriesOption>>;
 
+export interface KmsfChartThemeOverrides {
+  backgroundColor?: string;
+  palette?: string[];
+  textColor?: string;
+}
+
 export interface KmsfBaseChartProps<TData> {
   data: TData;
   series?: SeriesOption[];
@@ -26,6 +32,7 @@ export interface KmsfBaseChartProps<TData> {
   labelContraction?: boolean;
   tooltip?: KmsfTooltipOption;
   theme?: KmsfChartTheme;
+  themeOverrides?: KmsfChartThemeOverrides;
   className?: string;
   style?: CSSProperties;
   height?: number | string;

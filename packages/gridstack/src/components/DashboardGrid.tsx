@@ -8,7 +8,6 @@ import type {
   DashboardWidget as DashboardWidgetModel,
   DashboardWidgetResizeFrameEvent,
 } from "../core/types";
-import { createDashboardGridAdapter } from "../gridstack/adapter";
 import type { DashboardGridAdapter } from "../gridstack/adapter";
 import { DashboardWidgetShell } from "./DashboardWidget";
 import type { DashboardWidgetActionLabels } from "./DashboardWidget";
@@ -53,13 +52,18 @@ export function DashboardGrid<TData = unknown>({
 }: DashboardGridProps<TData>) {
   const gridElementRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<DashboardGridAdapter<TData> | undefined>(undefined);
+  const resizeFrameHandlerRef = useRef(onWidgetResizeFrame);
   const resizeScheduler = useMemo(
     () =>
       createDashboardResizeScheduler((event) => {
-        onWidgetResizeFrame?.(event);
+        resizeFrameHandlerRef.current?.(event);
       }),
-    [onWidgetResizeFrame],
+    [],
   );
+
+  useEffect(() => {
+    resizeFrameHandlerRef.current = onWidgetResizeFrame;
+  }, [onWidgetResizeFrame]);
 
   const adapterOptions = useMemo(
     () => ({
@@ -76,23 +80,42 @@ export function DashboardGrid<TData = unknown>({
     }),
     [columns, editable, movable, onLayoutCommit, onWidgetLayoutChange, resizable, resizeScheduler, widgets],
   );
+  const adapterOptionsRef = useRef(adapterOptions);
 
   useEffect(() => {
-    if (!gridElementRef.current) {
+    const gridElement = gridElementRef.current;
+    if (!gridElement) {
       return;
     }
 
-    const adapter = createDashboardGridAdapter(gridElementRef.current, adapterOptions);
-    adapterRef.current = adapter;
+    let mounted = true;
+    let adapter: DashboardGridAdapter<TData> | undefined;
+
+    void import("../gridstack/adapter")
+      .then(({ createDashboardGridAdapter }) => {
+        if (!mounted || !gridElement.isConnected) {
+          return;
+        }
+        const nextAdapter = createDashboardGridAdapter(gridElement, adapterOptionsRef.current);
+        adapter = nextAdapter;
+        adapterRef.current = nextAdapter;
+      })
+      .catch((error: unknown) => {
+        if (mounted) {
+          console.error("Failed to initialize @kmsf/gridstack adapter.", error);
+        }
+      });
 
     return () => {
+      mounted = false;
       resizeScheduler.cancel();
-      adapter.destroy();
+      adapter?.destroy();
       adapterRef.current = undefined;
     };
   }, []);
 
   useEffect(() => {
+    adapterOptionsRef.current = adapterOptions;
     adapterRef.current?.sync(adapterOptions);
   }, [adapterOptions]);
 

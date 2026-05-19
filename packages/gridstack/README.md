@@ -190,15 +190,17 @@ import "gridstack/dist/gridstack.min.css";
 import "@kmsf/gridstack/styles.css";
 ```
 
-CSS variables can be overridden on the grid root.
+KMSF global tokens can be overridden at `:root`, and package-local variables can be overridden on the grid root.
 
 ```css
+:root {
+  --kmsf-color-accent: #2563eb;
+  --kmsf-radius-md: 0.5rem;
+}
+
 .kmsf-dashboard-grid {
-  --kmsf-dashboard-accent: #84cc16;
-  --kmsf-dashboard-accent-soft: #f7fee7;
-  --kmsf-dashboard-border: #d9e2ea;
-  --kmsf-dashboard-radius: 6px;
   --kmsf-dashboard-shadow: none;
+  --kmsf-dashboard-header-min-height: 40px;
 }
 ```
 
