@@ -70,12 +70,10 @@ npm --workspace=@kmsf/charts run build
 
 후속 구현 작업에서는 아래 중 하나라도 실패하면 완료로 처리하지 않는다.
 
-- `lint`
-- 관련 Vitest
-- 관련 Playwright
-- `build`
+- package `verify`
+- 관련 Playwright 또는 `verify:full`
 - 브라우저 렌더링 확인
 
-패키지 배포 전 또는 browser-visible behavior 변경 후에는 `verify:full`을 우선 실행한다.
+패키지 배포 전 또는 browser-visible behavior 변경 후에는 `npm --workspace=@kmsf/charts run verify:full`을 우선 실행한다.
 
-문서 또는 지침만 변경한 경우에는 자동화 테스트 대신 파일 존재와 문서 링크 검증으로 대체할 수 있으며, 그 사유를 `test/reports/YYYY-MM-DD.md`에 남긴다.
+문서 또는 지침만 변경한 경우에는 자동화 테스트 대신 파일 존재와 문서 링크 검증으로 대체할 수 있으며, 그 사유를 repo root `test-reports/YYYYMMDD_HHMMSS_report.md`에 남긴다.

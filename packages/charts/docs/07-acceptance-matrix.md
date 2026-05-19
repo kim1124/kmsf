@@ -25,5 +25,5 @@
 
 - behavior 변경은 가장 작은 관련 Vitest 또는 Playwright 실패 테스트를 먼저 추가한다.
 - browser-visible 변경은 Playwright로 desktop/mobile nonblank canvas와 console error absence를 확인한다.
-- `verify:full`을 실행하지 못하면 blocker와 residual risk를 `test/reports/YYYY-MM-DD.md`에 남긴다.
+- `verify:full`을 실행하지 못하면 blocker와 residual risk를 repo root `test-reports/YYYYMMDD_HHMMSS_report.md`에 남긴다.
 - `Residual risk`가 남은 항목은 완료 보고에서 숨기지 않는다.

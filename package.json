@@ -21,7 +21,10 @@
     "smoke:pack:charts": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=@kmsf/charts --dry-run",
     "smoke:pack:gridstack": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=@kmsf/gridstack --dry-run",
     "smoke:pack:data-table": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=@kmsf/data-table --dry-run",
-    "smoke:pack:create-kmsf": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=create-kmsf --dry-run"
+    "smoke:pack:create-kmsf": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=create-kmsf --dry-run",
+    "verify:full": "npm --workspace=apps/kmsf run verify:full",
+    "verify:packages": "npm --workspace=@kmsf/charts run verify && npm --workspace=@kmsf/gridstack run verify && npm --workspace=@kmsf/data-table run verify && npm --workspace=create-kmsf run verify && npm --workspace=@kmsf/generator-core run verify",
+    "verify:all": "npm run verify && npm run verify:packages"
   },
   "overrides": {
     "postcss": "8.5.14"

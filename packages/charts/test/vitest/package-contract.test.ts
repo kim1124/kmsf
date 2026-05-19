@@ -25,9 +25,9 @@ describe("package harness contract", () => {
   it("exposes a full verification script that includes Playwright", () => {
     const packageJson = readJson<{ scripts: Record<string, string> }>(join(packageRoot, "package.json"));
 
-    expect(packageJson.scripts["verify:full"]).toBe(
-      "npm run lint && npm run test:run && npm run build && npm run test:e2e",
-    );
+    expect(packageJson.scripts.verify).toBe("npm run lint && npm run test:run && npm run build");
+    expect(packageJson.scripts["verify:e2e"]).toBe("npm run test:e2e");
+    expect(packageJson.scripts["verify:full"]).toBe("npm run verify && npm run verify:e2e");
   });
 
   it("keeps React as a peer dependency", () => {
