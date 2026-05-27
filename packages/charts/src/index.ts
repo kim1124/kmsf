@@ -1,11 +1,11 @@
-export { GuageChart } from "./components/GuageChart";
-export { GuageChart as GaugeChart } from "./components/GuageChart";
-export type { GuageChartProps, GuageChartProps as GaugeChartProps } from "./components/GuageChart";
+export { GenericChart } from "./components/GenericChart";
+export type { GenericChartProps } from "./components/GenericChart";
+export { GaugeChart } from "./components/GaugeChart";
+export type { GaugeChartProps } from "./components/GaugeChart";
 export { SankeyChart } from "./components/SankeyChart";
 export type { SankeyChartProps } from "./components/SankeyChart";
-export { SunbustChart } from "./components/SunbustChart";
-export { SunbustChart as SunburstChart } from "./components/SunbustChart";
-export type { SunbustChartProps, SunbustChartProps as SunburstChartProps } from "./components/SunbustChart";
+export { SunburstChart } from "./components/SunburstChart";
+export type { SunburstChartProps } from "./components/SunburstChart";
 export { TopChart } from "./components/TopChart";
 export type { TopChartProps } from "./components/TopChart";
 export { TrendChart } from "./components/TrendChart";
@@ -27,5 +27,11 @@ export type {
 
 export { createTopRows, createTrendRows } from "./common/data-builders";
 export type { TopRowInput, TrendRowInput } from "./common/data-builders";
+export {
+  buildGenericChartOption,
+  resolveGenericDataFormat,
+  supportedGenericChartTypes,
+} from "./common/generic-chart";
+export type { GenericChartDataFormat, KmsfChartType } from "./common/generic-chart";
 
 export const kmsfChartsPackage = "@kmsf/charts";

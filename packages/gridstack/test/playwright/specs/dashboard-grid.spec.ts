@@ -8,6 +8,22 @@ type WidgetLayout = {
   h: number;
 };
 
+function collectBrowserDiagnostics(page: Page) {
+  const diagnostics: string[] = [];
+
+  page.on("console", (message) => {
+    if (message.type() === "warning" || message.type() === "error") {
+      diagnostics.push(`[${message.type()}] ${message.text()}`);
+    }
+  });
+
+  page.on("pageerror", (error) => {
+    diagnostics.push(`[pageerror] ${error.message}`);
+  });
+
+  return diagnostics;
+}
+
 async function readWidgetLayout(widget: Locator): Promise<WidgetLayout> {
   return widget.evaluate((element) => ({
     x: Number(element.getAttribute("data-layout-x")),
@@ -15,6 +31,13 @@ async function readWidgetLayout(widget: Locator): Promise<WidgetLayout> {
     w: Number(element.getAttribute("data-layout-w")),
     h: Number(element.getAttribute("data-layout-h")),
   }));
+}
+
+async function readGridEngineColumn(grid: Locator): Promise<number> {
+  return grid.evaluate((element) => {
+    const gridstack = (element as HTMLElement & { gridstack?: { opts?: { column?: number } } }).gridstack;
+    return Number(gridstack?.opts?.column ?? 0);
+  });
 }
 
 async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
@@ -45,6 +68,24 @@ async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY:
   await page.mouse.down();
   await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 12 });
   await page.mouse.up();
+}
+
+async function startWidgetResize(page: Page, widget: Locator) {
+  const widgetBox = await widget.boundingBox();
+  if (!widgetBox) {
+    throw new Error("Widget bounding box is not available");
+  }
+
+  await widget.hover({ position: { x: widgetBox.width - 4, y: widgetBox.height - 4 } });
+  const handle = widget.locator(".ui-resizable-se");
+  const handleBox = await handle.boundingBox();
+  const startX = handleBox ? handleBox.x + handleBox.width / 2 : widgetBox.x + widgetBox.width - 4;
+  const startY = handleBox ? handleBox.y + handleBox.height / 2 : widgetBox.y + widgetBox.height - 4;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+
+  return { startX, startY };
 }
 
 test("supports the dashboard example workflow", async ({ page }) => {
@@ -336,6 +377,43 @@ test("does not resize row widgets on header double-click when the row has no emp
   await expect(sales).toHaveAttribute("data-layout-w", "4");
   await expect(traffic).toHaveAttribute("data-layout-x", "4");
   await expect(traffic).toHaveAttribute("data-layout-w", "8");
+});
+
+test("defers grid sync while a widget is actively resizing", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/");
+
+  const grid = page.getByTestId("dashboard-grid");
+  const sales = page.getByTestId("dashboard-widget-sales");
+  await expect(grid).toHaveAttribute("data-columns", "6");
+
+  const beforeResize = await readWidgetLayout(sales);
+  const { startX, startY } = await startWidgetResize(page, sales);
+
+  await page.mouse.move(startX + 120, startY + 90, { steps: 8 });
+  await page.getByLabel("컬럼 선택").evaluate((element) => {
+    const select = element as HTMLSelectElement;
+    select.value = "12";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  await expect.poll(() => readGridEngineColumn(grid)).toBe(6);
+
+  await page.mouse.move(startX + 180, startY + 130, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(grid).toHaveAttribute("data-columns", "12");
+  await expect.poll(() => readGridEngineColumn(grid)).toBe(12);
+  await expect.poll(async () => {
+    const layout = await readWidgetLayout(sales);
+    return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
+  }).toBe(true);
+
+  await page.waitForTimeout(100);
+  expect(diagnostics).toEqual([]);
 });
 
 test("executes the complete dashboard feature set in development mode", async ({ page }, testInfo) => {

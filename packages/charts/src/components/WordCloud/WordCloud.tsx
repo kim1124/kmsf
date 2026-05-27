@@ -42,6 +42,7 @@ export function WordCloud(props: WordCloudProps) {
       },
       series,
       tooltip: props.tooltip,
+      tooltipTrigger: "item",
     });
   }, [
     props.data,

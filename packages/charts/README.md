@@ -10,8 +10,8 @@
 - `TopChart`: Pie, Bar, Column, Treemap 기반 TOP N 차트
 - `SankeyChart`: ECharts Sankey 옵션 기반 흐름 차트
 - `WordCloud`: `echarts-wordcloud` 확장 기반 워드 클라우드
-- `GuageChart`: 간결화된 Gauge 차트
-- `SunbustChart`: 계층형 Pie 차트
+- `GaugeChart`: 간결화된 Gauge 차트
+- `SunburstChart`: 계층형 Pie 차트
 
 ## Package Rules
 
@@ -84,8 +84,7 @@ KMSF provides a default chart palette. Consumers can override palette, text, and
 
 ## Public API Notes
 
-- `GaugeChart`와 `SunburstChart`를 기본 사용 이름으로 권장한다.
-- 요청서 호환을 위해 `GuageChart`, `SunbustChart`도 유지한다.
+- `GaugeChart`와 `SunburstChart`를 public chart 이름으로 사용한다.
 - tuple 포맷을 직접 만들 수 있지만, 처음 사용하는 개발자는 `createTrendRows`, `createTopRows`를 우선 사용한다.
 - `WordCloud`는 browser-only extension인 `echarts-wordcloud`를 내부에서 lazy load하므로, 패키지 import 자체는 SSR 환경에서도 깨지지 않아야 한다.
 

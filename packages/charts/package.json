@@ -31,7 +31,13 @@
     "echarts-wordcloud": "latest"
   },
   "devDependencies": {
+    "@kmsf/gridstack": "^1.0.0",
     "@playwright/test": "latest",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.16.0",
+    "radix-ui": "^1.4.3",
+    "tailwind-merge": "^3.6.0",
     "typescript": "^6.0.3",
     "vite": "latest",
     "vitest": "latest"

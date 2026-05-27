@@ -15,3 +15,9 @@
 - raw GridStack instance를 primary public API로 노출하지 않는다.
 - imperative DOM lifecycle은 adapter 안에서만 처리한다.
 - engine replacement 가능성을 깨는 public contract를 만들지 않는다.
+
+## 2026-05-27 Resize Interaction Findings
+
+- GridStack `dragstart`/`resizestart` callbacks are emitted before the active node interaction starts, and `dragstop`/`resizestop` callbacks are emitted before the final `change` custom event completes.
+- Calling `adapter.sync()` during active drag/resize can immediately run `grid.updateOptions`, `grid.column`, and widget update calls while GridStack still owns active interaction state.
+- The safe adapter behavior is to keep public React props current, but defer imperative GridStack engine sync until after the active interaction has completed.

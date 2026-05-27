@@ -25,4 +25,4 @@
 - 구현 전 `plan.md`를 갱신한다.
 - 계획 검토 후 `memory.md`에 결정과 잔여 리스크를 남긴다.
 - 상세 계획이 500줄을 넘으면 `plans/00_name.md`, `plans/01_name.md`로 분할한다.
-- 검증 실패, 생략, sandbox 제한은 repo root `test-reports/YYYYMMDD_HHMMSS_report.md`에 남긴다.
+- 검증 실패, 생략, sandbox 제한은 `packages/charts/reports/YYYY-MM-DD.md`에 남긴다.
