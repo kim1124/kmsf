@@ -29,6 +29,7 @@ export function SankeyChart(props: SankeyChartProps) {
       },
       series,
       tooltip: props.tooltip,
+      tooltipTrigger: "item",
     });
   }, [
     props.data,

@@ -52,4 +52,4 @@ Do not mark implementation work complete if:
 
 - Vitest artifacts: `test/vitest`
 - Playwright artifacts: `test/playwright`
-- Work reports: repo root `test-reports/YYYYMMDD_HHMMSS_report.md`
+- Work reports: `packages/gridstack/reports/YYYY-MM-DD.md`

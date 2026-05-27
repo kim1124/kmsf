@@ -6,8 +6,8 @@ const isCI = Boolean(process.env.CI);
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 
 export default defineConfig({
-  outputDir: "test/playwright/results",
-  reporter: [["html", { open: "never", outputFolder: "test/playwright/html-report" }], ["list"]],
+  outputDir: "reports/artifacts/playwright",
+  reporter: [["html", { open: "never", outputFolder: "reports/artifacts/playwright-html" }], ["list"]],
   testDir: "test/playwright/specs",
   use: {
     baseURL,

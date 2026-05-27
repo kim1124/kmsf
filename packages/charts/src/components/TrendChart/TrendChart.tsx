@@ -26,6 +26,18 @@ export interface TrendChartProps extends KmsfBaseChartProps<TrendChartRow[]> {
   series: SeriesOption[];
 }
 
+function buildTrendLegendOption(legend: TrendChartProps["legend"]): TrendChartProps["legend"] {
+  if (legend === false) {
+    return false;
+  }
+
+  if (legend === undefined || legend === true) {
+    return { icon: "circle" };
+  }
+
+  return { icon: "circle", ...legend };
+}
+
 export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function TrendChart(props, ref) {
   const chartRef = useRef<ECharts | null>(null);
   const normalized = useMemo(() => normalizeTrendRows(props.data), [props.data]);
@@ -44,7 +56,7 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
     const yAxis = normalizeAxisOption(props.yAxis, buildValueAxis(props.labelContraction ?? true));
 
     return buildBaseOption({
-      legend: props.legend,
+      legend: buildTrendLegendOption(props.legend),
       options: {
         ...buildThemeOption(props.theme, props.themeOverrides),
         animation: false,

@@ -50,12 +50,15 @@ export function buildLegendOption(legend: KmsfLegendOption | undefined): LegendC
   return { show: true, ...legend };
 }
 
-export function buildTooltipOption(tooltip: KmsfTooltipOption | undefined): TooltipComponentOption {
+export function buildTooltipOption(
+  tooltip: KmsfTooltipOption | undefined,
+  trigger: TooltipComponentOption["trigger"] = "axis",
+): TooltipComponentOption {
   const base: TooltipComponentOption = {
     appendToBody: true,
     confine: false,
     show: true,
-    trigger: "axis",
+    trigger,
   };
 
   if (tooltip === false) {
@@ -143,6 +146,7 @@ export function buildTrendDataZoom(showSlider = false): DataZoomComponentOption[
 export function buildBaseOption(input: {
   legend?: KmsfLegendOption;
   tooltip?: KmsfTooltipOption;
+  tooltipTrigger?: TooltipComponentOption["trigger"];
   options?: EChartsOption;
   series: SeriesOption[];
   xAxis?: XAXisComponentOption | XAXisComponentOption[];
@@ -158,7 +162,7 @@ export function buildBaseOption(input: {
       top: 36,
     },
     legend: buildLegendOption(input.legend),
-    tooltip: buildTooltipOption(input.tooltip),
+    tooltip: buildTooltipOption(input.tooltip, input.tooltipTrigger),
     series: input.series,
   };
 

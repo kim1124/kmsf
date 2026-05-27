@@ -6,60 +6,35 @@ import { applySeriesOptions, buildBaseOption } from "../../common/options";
 import { buildThemeOption } from "../../common/theme";
 import type { KmsfBaseChartProps } from "../../common/types";
 
-export interface GuageChartProps extends KmsfBaseChartProps<unknown> {
-  max?: number;
-  min?: number;
-  unit?: string;
+export interface SunburstChartProps extends KmsfBaseChartProps<unknown> {
+  radius?: string | [string, string];
 }
 
-function normalizeGaugeData(data: unknown) {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (typeof data === "number") {
-    return [{ value: data }];
-  }
-
-  if (data && typeof data === "object") {
-    return [data];
-  }
-
-  return [{ value: 0 }];
-}
-
-function formatGaugeValue(value: unknown, unit?: string) {
-  const numericValue = Number(value);
-  const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
-
-  return `${safeValue}${unit ?? ""}`;
-}
-
-export function GuageChart(props: GuageChartProps) {
+export function SunburstChart(props: SunburstChartProps) {
   const option = useMemo<EChartsOption>(() => {
-    const normalizedData = normalizeGaugeData(props.data);
     const baseSeries = props.series?.length
       ? props.series
       : [
           {
             name: "Series 1",
-            data: normalizedData,
+            data: props.data,
           },
         ];
     const series = applySeriesOptions(
       baseSeries.map((item) => ({
-        axisLabel: {
-          formatter: (value: unknown) => formatGaugeValue(value, props.unit),
+        data: item.data ?? props.data,
+        emphasis: {
+          focus: "ancestor",
         },
-        detail: {
-          formatter: (value: unknown) => formatGaugeValue(value, props.unit),
+        label: {
+          show: true,
         },
-        max: props.max ?? 100,
-        min: props.min ?? 0,
-        progress: { show: true },
-        data: item.data ?? normalizedData,
+        labelLine: {
+          show: true,
+        },
+        radius: props.radius,
         ...item,
-        type: "gauge",
+        type: "sunburst",
       }) as SeriesOption),
       props.seriesOptions,
     );
@@ -72,19 +47,18 @@ export function GuageChart(props: GuageChartProps) {
       },
       series,
       tooltip: props.tooltip,
+      tooltipTrigger: "item",
     });
   }, [
     props.data,
     props.legend,
-    props.max,
-    props.min,
     props.options,
+    props.radius,
     props.series,
     props.seriesOptions,
     props.theme,
     props.themeOverrides,
     props.tooltip,
-    props.unit,
   ]);
 
   return (

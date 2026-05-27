@@ -25,6 +25,11 @@ export function createDashboardGridAdapter<TData>(
 ): DashboardGridAdapter<TData> {
   const grid = GridStack.init(mapDashboardGridOptions(options), element);
   let currentOptions = options;
+  let isInteracting = false;
+  let pendingCommit = false;
+  let pendingSync = false;
+  let finishInteractionFrame: number | undefined;
+  let deferredSyncFrame: number | undefined;
 
   const commitLayout = () => {
     const snapshot = readDashboardLayoutSnapshot(grid, currentOptions.columns ?? 12);
@@ -41,18 +46,83 @@ export function createDashboardGridAdapter<TData>(
     currentOptions.onWidgetResize?.(id, { width: rect.width, height: rect.height });
   };
 
-  grid.on("change", commitLayout);
-  grid.on("dragstop", commitLayout);
-  grid.on("resizestop", commitLayout);
+  const runSync = (nextOptions: DashboardGridAdapterOptions<TData>) => {
+    grid.updateOptions(mapDashboardGridOptions(nextOptions));
+    grid.column(nextOptions.columns ?? 12, "move");
+    syncGridWidgets(grid, element, nextOptions.widgets, nextOptions);
+  };
+
+  const cancelFrame = (frame: number | undefined) => {
+    if (frame !== undefined) {
+      window.cancelAnimationFrame(frame);
+    }
+  };
+
+  const scheduleDeferredSync = () => {
+    cancelFrame(deferredSyncFrame);
+    deferredSyncFrame = window.requestAnimationFrame(() => {
+      deferredSyncFrame = undefined;
+      if (isInteracting) {
+        pendingSync = true;
+        return;
+      }
+      runSync(currentOptions);
+    });
+  };
+
+  const flushInteraction = () => {
+    finishInteractionFrame = undefined;
+    isInteracting = false;
+
+    const shouldCommit = pendingCommit;
+    const shouldSync = pendingSync;
+    pendingCommit = false;
+    pendingSync = false;
+
+    if (shouldCommit) {
+      commitLayout();
+    }
+    if (shouldSync) {
+      scheduleDeferredSync();
+    }
+  };
+
+  const startInteraction = () => {
+    isInteracting = true;
+    cancelFrame(finishInteractionFrame);
+    finishInteractionFrame = undefined;
+  };
+
+  const stopInteraction = () => {
+    pendingCommit = true;
+    cancelFrame(finishInteractionFrame);
+    finishInteractionFrame = window.requestAnimationFrame(flushInteraction);
+  };
+
+  const changeHandler = () => {
+    if (isInteracting) {
+      pendingCommit = true;
+      return;
+    }
+    commitLayout();
+  };
+
+  grid.on("change", changeHandler);
+  grid.on("dragstart", startInteraction);
+  grid.on("resizestart", startInteraction);
+  grid.on("dragstop", stopInteraction);
+  grid.on("resizestop", stopInteraction);
   grid.on("resize", resizeHandler);
 
   const adapter: DashboardGridAdapter<TData> = {
     grid,
     sync(nextOptions) {
       currentOptions = nextOptions;
-      grid.updateOptions(mapDashboardGridOptions(nextOptions));
-      grid.column(nextOptions.columns ?? 12, "move");
-      syncGridWidgets(grid, element, nextOptions.widgets, nextOptions);
+      if (isInteracting) {
+        pendingSync = true;
+        return;
+      }
+      runSync(nextOptions);
     },
     refresh() {
       grid.compact("compact", true);
@@ -62,6 +132,8 @@ export function createDashboardGridAdapter<TData>(
       commitLayout();
     },
     destroy() {
+      cancelFrame(finishInteractionFrame);
+      cancelFrame(deferredSyncFrame);
       grid.offAll();
       grid.destroy(false);
     },

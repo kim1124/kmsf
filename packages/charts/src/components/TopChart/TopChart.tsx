@@ -41,6 +41,7 @@ export function TopChart(props: TopChartProps) {
       },
       series,
       tooltip: props.tooltip,
+      tooltipTrigger: isCartesian ? "axis" : "item",
       xAxis: isCartesian
         ? normalizeAxisOption(props.xAxis, buildCategoryAxis(normalized.categories, rotateLabels ? 45 : 0))
         : undefined,

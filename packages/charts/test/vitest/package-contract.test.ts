@@ -58,7 +58,7 @@ describe("package harness contract", () => {
   it("documents chart acceptance gates for every public chart", () => {
     const matrix = readText(join(packageRoot, "docs/07-acceptance-matrix.md"));
 
-    for (const chartName of ["TrendChart", "TopChart", "SankeyChart", "WordCloud", "GuageChart", "SunbustChart"]) {
+    for (const chartName of ["GenericChart", "TrendChart", "TopChart", "SankeyChart", "WordCloud", "GaugeChart", "SunburstChart"]) {
       expect(matrix).toContain(chartName);
     }
 

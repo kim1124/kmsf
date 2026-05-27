@@ -1,24 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  GaugeChart,
-  GuageChart,
-  SunburstChart,
-  SunbustChart,
-  createTopRows,
-  createTrendRows,
-} from "../../src";
+import * as charts from "../../src";
 
 describe("public component aliases", () => {
-  it("keeps misspelled exports while exposing conventional chart names", () => {
-    expect(GaugeChart).toBe(GuageChart);
-    expect(SunburstChart).toBe(SunbustChart);
+  it("exports the generic type-driven chart component", () => {
+    expect(charts.GenericChart).toBeTypeOf("function");
+  });
+
+  it("exposes conventional chart names without misspelled compatibility exports", () => {
+    expect(charts.GaugeChart).toBeTypeOf("function");
+    expect(charts.SunburstChart).toBeTypeOf("function");
+    expect("GuageChart" in charts).toBe(false);
+    expect("SunbustChart" in charts).toBe(false);
   });
 });
 
 describe("createTrendRows", () => {
   it("builds TrendChart tuple rows from object input", () => {
-    const rows = createTrendRows([
+    const rows = charts.createTrendRows([
       { x: "2026-04-26 10:00:00", values: [100, 200] },
       { x: "2026-04-26 11:00:00", value: 300 },
     ]);
@@ -32,7 +31,7 @@ describe("createTrendRows", () => {
 
 describe("createTopRows", () => {
   it("builds TopChart tuple rows from object input", () => {
-    const rows = createTopRows([
+    const rows = charts.createTopRows([
       { name: "A", value: 100 },
       { name: "B", values: [200, 20] },
     ]);
