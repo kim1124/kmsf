@@ -7,22 +7,20 @@
 ```text
 kmsf/
 ├── apps/
-│   ├── kmsf/                 # 현재 메인 Next.js 16 App Router 앱
-│   ├── docs/                 # 내부 문서 앱 placeholder
-│   └── playground/           # 내부 실험 앱 placeholder
+│   └── kmsf/                 # 현재 메인 Next.js 16 App Router 앱
 ├── examples/
 │   └── basic-dashboard/      # 패키지 소비 검증용 예제 앱
 ├── packages/
-│   ├── create-kmsf/           # CLI placeholder
-│   ├── generator-core/        # 생성 로직 placeholder
+│   ├── create-kmsf/           # KMSF scaffold CLI
+│   ├── generator-core/        # 생성 로직 패키지
 │   ├── charts/                # package name: @kmsf/charts
 │   ├── data-table/            # package name: @kmsf/data-table
 │   └── gridstack/             # package name: @kmsf/gridstack
 ├── templates/
-│   ├── next-app-base/         # base template placeholder
-│   ├── next-app-auth/         # auth template placeholder
-│   ├── next-monorepo/         # monorepo template placeholder
-│   └── backend-base/          # backend template placeholder
+│   ├── next-app-base/         # create-kmsf 기본 Next.js 템플릿 원본
+│   ├── next-app-auth/         # auth 관련 참고/후속 템플릿 후보
+│   ├── next-monorepo/         # monorepo 템플릿 후보
+│   └── backend-base/          # backend 템플릿 후보
 ├── docs/
 ├── reports/                   # 루트 작업 보고서
 ├── .agents/skills/
@@ -64,12 +62,12 @@ kmsf/
 
 ### 템플릿
 
-- `templates/next-app-base`
-- `templates/next-app-auth`
-- `templates/next-monorepo`
-- `templates/backend-base`
+- `templates/next-app-base`: `apps/kmsf`에서 동기화되는 기본 scaffold 원본
+- `templates/next-app-auth`: auth 관련 참고/후속 템플릿 후보
+- `templates/next-monorepo`: monorepo 템플릿 후보
+- `templates/backend-base`: backend 템플릿 후보
 
-현재는 모두 placeholder 상태이며, `create-kmsf` 구현 시 실제 템플릿 소스로 채워질 예정이다.
+현재 `create-kmsf` catalog는 `next-app-base`만 사용한다. 나머지 템플릿 후보는 실제 catalog에 추가되기 전까지 production scaffold 경로가 아니다.
 
 ## 루트 명령
 
@@ -97,8 +95,8 @@ cp apps/kmsf/.env.example apps/kmsf/.env.local
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_API_KEY=your_supabase_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_secret_key
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
