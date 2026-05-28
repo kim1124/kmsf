@@ -2,34 +2,49 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const supabaseMocks = vi.hoisted(() => {
   const maybeSingle = vi.fn();
+  const upsert = vi.fn();
+  const updateEq = vi.fn();
+  const update = vi.fn(() => ({ eq: updateEq }));
   const eq = vi.fn(() => ({ maybeSingle }));
   const select = vi.fn(() => ({ eq }));
-  const from = vi.fn(() => ({ select }));
+  const from = vi.fn(() => ({ select, update, upsert }));
   const rpc = vi.fn();
+  const hasServiceRole = vi.fn(() => false);
 
   return {
+    admin: { from },
     client: { from, rpc },
     eq,
     from,
+    hasServiceRole,
     maybeSingle,
     rpc,
     select,
+    update,
+    updateEq,
+    upsert,
   };
 });
 
 vi.mock("@/lib/supabase/admin", () => ({
-  createSupabaseAdminClient: vi.fn(),
+  createSupabaseAdminClient: vi.fn(() => supabaseMocks.admin),
 }));
 
 vi.mock("@/lib/supabase/env", () => ({
-  hasSupabaseServiceRoleKey: () => false,
+  hasSupabaseServiceRoleKey: () => supabaseMocks.hasServiceRole(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => supabaseMocks.client),
 }));
 
-import { findManagerLoginEmail, isManagerUsernameTaken } from "./manager";
+import {
+  buildManagerRecord,
+  ensureManagerProfile,
+  findManagerLoginEmail,
+  isManagerUsernameTaken,
+  touchManagerLastSignedIn,
+} from "./manager";
 
 describe("manager Supabase helpers", () => {
   beforeEach(() => {
@@ -38,6 +53,57 @@ describe("manager Supabase helpers", () => {
     supabaseMocks.eq.mockClear();
     supabaseMocks.maybeSingle.mockReset();
     supabaseMocks.rpc.mockReset();
+    supabaseMocks.hasServiceRole.mockReturnValue(false);
+    supabaseMocks.update.mockClear();
+    supabaseMocks.updateEq.mockReset();
+    supabaseMocks.upsert.mockReset();
+  });
+
+  it("builds manager records with last sign-in metadata", () => {
+    expect(
+      buildManagerRecord({
+        email: "admin@example.com",
+        id: "manager-1",
+        username: "admin01",
+      }),
+    ).toMatchObject({
+      email: "admin@example.com",
+      id: "manager-1",
+      last_signed_in_at: null,
+      username: "admin01",
+    });
+  });
+
+  it("updates manager last sign-in timestamp using the admin client", async () => {
+    supabaseMocks.hasServiceRole.mockReturnValue(true);
+    supabaseMocks.updateEq.mockResolvedValue({ error: null });
+
+    await touchManagerLastSignedIn("manager-1");
+
+    expect(supabaseMocks.from).toHaveBeenCalledWith("manager");
+    expect(supabaseMocks.update).toHaveBeenCalledWith({
+      last_signed_in_at: expect.any(String),
+      updated_at: expect.any(String),
+    });
+    expect(supabaseMocks.updateEq).toHaveBeenCalledWith("id", "manager-1");
+  });
+
+  it("does not rewrite created_at during profile sync", async () => {
+    supabaseMocks.hasServiceRole.mockReturnValue(true);
+    supabaseMocks.upsert.mockResolvedValue({ error: null });
+
+    await ensureManagerProfile({
+      email: "admin@example.com",
+      id: "manager-1",
+      username: "admin01",
+    });
+
+    expect(supabaseMocks.upsert).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        created_at: expect.any(String),
+      }),
+      { onConflict: "id" },
+    );
   });
 
   it("falls back to manager table lookup when username RPC is missing", async () => {

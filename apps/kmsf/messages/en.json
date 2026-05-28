@@ -79,8 +79,10 @@
       "name": "ID",
       "email": "E-mail",
       "role": "Role",
-      "auth": "Auth mode"
+      "auth": "Session auth mode",
+      "provider": "Active auth provider"
     },
+    "providerFallback": "Supabase checks failed {attempts} times. The app is running with Local JSON auth.",
     "authModes": {
       "demo": "Demo",
       "password": "ID / Password",
@@ -133,19 +135,52 @@
     }
   },
   "initialSetup": {
-    "title": "Initial Admin Setup",
-    "description": "No account has been registered yet, so create the first administrator account.",
+    "title": "KMSF Initial Setup",
+    "description": "Configure the project auth mode and first administrator account.",
     "username": "ID",
+    "displayName": "Name",
     "email": "E-mail",
     "password": "Password",
     "passwordConfirm": "Confirm password",
-    "submit": "Create Admin Account",
+    "previous": "Previous",
+    "next": "Next",
+    "steps": {
+      "provider": {
+        "title": "Initial setup",
+        "description": "Choose the auth and data storage mode this KMSF project should use.",
+        "fallbackNotice": "Supabase checks failed {attempts} times. Setup will continue with Local DB.",
+        "supabase": {
+          "title": "Supabase setup",
+          "description": "Use Supabase Auth and the manager table to manage accounts and sessions.",
+          "unavailable": "Supabase environment variables or Auth connectivity could not be verified, so setup will use Local DB."
+        },
+        "local": {
+          "title": "Local DB setup",
+          "description": "Use a lowdb-backed JSON DB under the server .local directory for Supabase fallback, development, and offline verification accounts."
+        },
+        "serverDb": {
+          "title": "Server DB integration",
+          "description": "ODBC and installed server DB integrations are planned only. Initial setup does not select or persist them yet; they remain a later adapter.",
+          "badge": "Planned"
+        }
+      },
+      "admin": {
+        "title": "Admin account",
+        "description": "Enter the first account that will manage KMSF.",
+        "level": "Admin Level 3"
+      },
+      "processing": {
+        "title": "Running setup",
+        "description": "Initial setup is running..."
+      }
+    },
     "errors": {
       "auth": "We could not create the initial administrator account.",
       "security": "The security token is invalid. Refresh the page and try again."
     },
     "tooltips": {
       "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "displayName": "The administrator name shown in settings and profile menus.",
       "email": "Enter a valid E-mail address.",
       "password": "Use 6-32 characters with letters, numbers, and special characters.",
       "passwordConfirm": "Re-enter the same password once more."
@@ -154,6 +189,9 @@
       "username": {
         "invalid": "The ID must be 6-32 letters, numbers, or an email-style value.",
         "duplicate": "This ID is already in use."
+      },
+      "displayName": {
+        "invalid": "The name must be 2-40 characters long."
       },
       "email": {
         "invalid": "Enter a valid E-mail address.",

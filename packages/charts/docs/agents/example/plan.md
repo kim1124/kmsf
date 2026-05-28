@@ -147,6 +147,96 @@ Improve the chart example page so every sample renders with clear chart identity
 - Trend legend marker is a filled circle.
 - GridStack widget resize no longer throws `Cannot read properties of undefined (reading 'w')`.
 
+## 2026-05-28 Example Card Gallery And Remount Plan
+
+### Goal
+
+Improve the example page into a chart-type scoped example gallery so developers can compare 3 to 5 practical variants for the selected chart without keeping inactive chart type instances, editor state, or docs search state in memory.
+
+### Required Remount Rule
+
+1. Clicking the currently selected chart type is a no-op.
+2. Clicking a different chart type changes `activeType` and remounts the center content area keyed by `activeType`.
+3. Clicking a different chart type remounts the right docs aside and mobile docs sheet content keyed by `activeType`.
+4. Chart cards, ECharts canvases, data/options editors, content search input, docs search input, and live timers must live below those keyed boundaries.
+5. Do not keep hidden chart examples mounted for inactive chart types.
+6. Do not keep inactive docs content mounted for the previously selected chart type.
+7. The expected main example canvas count is only the number of visible example cards for the current chart type.
+
+### Confirmed Implementation Direction
+
+1. Keep `chartSamples` as the left aside menu source.
+2. Add a chart-type keyed example group model for the center content.
+   - Render only the selected chart type's group.
+   - Provide 3 to 5 Card-based examples for renderable chart types.
+   - Keep disabled/resource-dependent chart types as explicit placeholder examples until their rendering prerequisites are added.
+3. Add a common `ChartExampleCard` component.
+   - Use shadcn-style `Card` and `Badge`.
+   - Keep option/data editor state inside each Card so unmount fully disposes it.
+   - Use per-card validation messages for invalid data or options.
+4. Add a content-level search input.
+   - Search only the current chart type's example cards.
+   - Reset search only when the selected chart type changes.
+5. Add live series count controls where the data model supports it.
+   - Minimum 1 and maximum 10.
+   - Trend examples map value columns `1..n` to generated series.
+   - TOP examples keep TOP 50 rows and only add series variants where the chart type can express multiple series clearly.
+6. Move live timers below the selected content boundary.
+   - Trend live examples tick every 1 second.
+   - TOP and flow live examples tick every 10 seconds.
+   - Timers are created only for the selected chart group and are cleared on unmount.
+7. Preserve the separate GridStack page.
+   - Do not convert GridStack dashboard examples into the Card gallery.
+   - Keep create/delete/resize Playwright coverage and console diagnostics as hard gates.
+
+### Task Plan
+
+1. Add RED coverage for same-type no-op and type-change remount behavior.
+   - Verify repeated selection of the same chart type keeps the current content/docs state.
+   - Verify content search, option editor error state, docs search, and canvas count reset after selecting a different chart type.
+2. Add RED coverage for example group metadata.
+   - Renderable chart types must have 3 to 5 examples.
+   - Every example must have a stable id, title, tags, mode, summary, and builder.
+   - Series count capable examples must clamp to 1 through 10.
+3. Add `example/src/data/chart-examples.ts`.
+   - Keep builders pure and deterministic.
+   - Reuse existing sample helpers where possible.
+   - Avoid adding runtime package exports for example-only data.
+4. Refactor `example/src/App.tsx` into selected boundaries.
+   - Parent owns only `activeType` and navigation collapsed state.
+   - `ChartExampleContent` owns content search, group clock, and visible cards.
+   - `ChartDocsPanel` owns docs search and is keyed by `activeType`.
+5. Add `example/src/components/ChartExampleCard.tsx`.
+   - Encapsulate chart rendering, data/options editors, tags, validation, and per-card controls.
+   - Keep each Card independent so one invalid option does not affect other cards.
+6. Update styles for vertical Card gallery.
+   - Use existing KMSF example styling tokens.
+   - Maintain stable chart viewport dimensions.
+   - Prevent nested card-in-card layout.
+7. Extend Playwright coverage.
+   - Search filters example cards.
+   - Option edits apply immediately.
+   - Live series count updates without browser diagnostics.
+   - GridStack create/delete/resize still passes.
+8. Run verification.
+   - Focused Vitest for example group and builder behavior.
+   - Focused Playwright for example gallery and type-change remount behavior.
+   - `npm --workspace=@kmsf/charts run verify:full`.
+9. Update `packages/charts/reports/YYYY-MM-DD.md`.
+
+### Acceptance Criteria
+
+- Selecting a different chart type unmounts the previous center content and docs content.
+- Selecting the same chart type again is ignored and does not reset content/docs state.
+- Previous data editor, option editor, validation error, content search, and docs search state do not remain after selection.
+- Only visible cards for the selected chart type have chart canvases.
+- Renderable chart types expose 3 to 5 examples.
+- Example cards use shadcn-style Card and Badge primitives.
+- Search filters examples within the current chart type only.
+- Series count controls stay within 1 to 10.
+- Browser console warning, error, and pageerror diagnostics remain empty.
+- GridStack dashboard page remains available and passes create/delete/resize checks.
+
 ## Split Rule
 
 If this file grows beyond 500 lines, move detailed steps into `plans/00_example-plan.md`.

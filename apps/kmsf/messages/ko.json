@@ -79,8 +79,10 @@
       "name": "ID",
       "email": "E-mail",
       "role": "권한",
-      "auth": "인증 방식"
+      "auth": "세션 인증 방식",
+      "provider": "현재 동작 인증"
     },
+    "providerFallback": "Supabase 확인 {attempts}회 실패 후 로컬 JSON 인증으로 동작 중입니다.",
     "authModes": {
       "demo": "데모",
       "password": "ID / 비밀번호",
@@ -133,19 +135,52 @@
     }
   },
   "initialSetup": {
-    "title": "초기 관리자 설정",
-    "description": "등록된 계정이 없어 최초 관리자 계정을 생성합니다.",
+    "title": "KMSF 초기 설정",
+    "description": "프로젝트 인증 방식과 최초 관리자 계정을 설정합니다.",
     "username": "ID",
+    "displayName": "이름",
     "email": "E-mail",
     "password": "비밀번호",
     "passwordConfirm": "비밀번호 확인",
-    "submit": "관리자 계정 생성",
+    "previous": "이전",
+    "next": "다음",
+    "steps": {
+      "provider": {
+        "title": "초기 설정",
+        "description": "KMSF 프로젝트가 사용할 인증과 데이터 저장 방식을 선택합니다.",
+        "fallbackNotice": "Supabase 확인 {attempts}회 실패 후 Local DB 설정으로 진행됩니다.",
+        "supabase": {
+          "title": "Supabase 설정",
+          "description": "Supabase Auth와 manager 테이블을 사용해 계정과 세션을 관리합니다.",
+          "unavailable": "Supabase 환경 변수 또는 Auth 연결을 확인할 수 없어 Local DB로 설정됩니다."
+        },
+        "local": {
+          "title": "Local DB 설정",
+          "description": "lowdb 기반 JSON DB를 서버 .local 디렉터리에 생성해 Supabase 미연동, 개발, 오프라인 검증 계정을 관리합니다."
+        },
+        "serverDb": {
+          "title": "서버 DB 연동",
+          "description": "ODBC와 설치형 DB 연동은 계획 항목입니다. 현재 초기 설정에서는 선택하거나 저장하지 않고, 후속 어댑터로 분리합니다.",
+          "badge": "준비 중"
+        }
+      },
+      "admin": {
+        "title": "Admin 관리 계정",
+        "description": "KMSF를 처음 관리할 계정 정보를 입력합니다.",
+        "level": "관리자 Level 3"
+      },
+      "processing": {
+        "title": "초기 설정 진행",
+        "description": "초기 설정을 진행하는 중입니다..."
+      }
+    },
     "errors": {
       "auth": "초기 관리자 계정을 생성할 수 없습니다.",
       "security": "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요."
     },
     "tooltips": {
       "username": "6자~32자의 영문, 숫자 또는 이메일 형식으로 입력해 주세요.",
+      "displayName": "설정 화면과 프로필 메뉴에 표시할 관리자 이름입니다.",
       "email": "올바른 E-mail 주소를 입력해 주세요.",
       "password": "6자~32자의 영문, 숫자, 특수문자를 모두 포함해 입력해 주세요.",
       "passwordConfirm": "비밀번호를 한 번 더 동일하게 입력해 주세요."
@@ -154,6 +189,9 @@
       "username": {
         "invalid": "ID는 6자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다.",
         "duplicate": "이미 사용 중인 ID입니다."
+      },
+      "displayName": {
+        "invalid": "이름은 2자~40자로 입력해 주세요."
       },
       "email": {
         "invalid": "올바른 E-mail 주소를 입력해 주세요.",

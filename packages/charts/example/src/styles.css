@@ -212,8 +212,68 @@ pre {
 .chart-example-main {
   display: grid;
   gap: 16px;
+  align-content: start;
   min-width: 0;
   padding: 18px;
+}
+
+.example-search {
+  align-items: center;
+  border: 1px solid var(--kmsf-color-border);
+  border-radius: var(--kmsf-radius-md);
+  background: var(--kmsf-color-surface);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 10px 12px;
+}
+
+.chart-example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.chart-example-card {
+  border-radius: var(--kmsf-radius-md);
+  min-width: 0;
+}
+
+.chart-example-card__header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--kmsf-color-border);
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.chart-example-card__heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chart-example-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.chart-example-card__content {
+  display: grid;
+  gap: 12px;
+}
+
+.chart-example-card__toolbar {
+  margin: 0;
+}
+
+.chart-example-card .chart-viewport {
+  height: 360px;
+  min-height: 360px;
 }
 
 .chart-stage {
@@ -287,6 +347,19 @@ pre {
   border-radius: var(--kmsf-radius-md);
   background: var(--kmsf-color-surface);
   padding: 10px;
+}
+
+.series-count-control {
+  align-items: center;
+  display: inline-grid;
+  gap: 6px;
+  grid-template-columns: auto 72px;
+}
+
+.series-count-control span {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .sample-tabs {
@@ -707,6 +780,15 @@ pre {
   margin: 0;
 }
 
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 @media (max-width: 1120px) {
   .docs-layout {
     grid-template-columns: auto minmax(0, 1fr);
@@ -765,5 +847,13 @@ pre {
 
   .chart-stage {
     height: 420px;
+  }
+
+  .chart-example-card__header {
+    flex-direction: column;
+  }
+
+  .chart-example-card__tags {
+    justify-content: flex-start;
   }
 }

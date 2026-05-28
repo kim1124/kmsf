@@ -1,49 +1,76 @@
 import { cache } from "react";
 
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
+import type { AppRole } from "@/lib/auth/roles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ManagerProfile = {
-  id: string;
-  username: string;
-  email: string;
   avatar_url: string | null;
+  display_name: string | null;
+  email: string;
+  id: string;
+  last_signed_in_at: string | null;
+  level: number | null;
+  role: AppRole | null;
+  status: "active" | "suspended" | null;
+  username: string;
 };
 
 export function buildManagerRecord(input: {
-  id: string;
-  username: string;
-  email: string;
   avatarUrl?: string | null;
+  displayName?: string | null;
+  email: string;
+  id: string;
+  lastSignedInAt?: string | null;
+  level?: number;
+  role?: AppRole;
+  status?: "active" | "suspended";
+  username: string;
 }) {
   const timestamp = new Date().toISOString();
+  const role = input.role ?? "member";
 
   return {
-    id: input.id,
-    username: input.username,
-    email: input.email,
     avatar_url: input.avatarUrl ?? null,
+    display_name: input.displayName ?? input.username,
+    email: input.email,
+    id: input.id,
+    last_signed_in_at: input.lastSignedInAt ?? null,
+    level: input.level ?? (role === "admin" ? 3 : 1),
+    role,
+    status: input.status ?? "active",
+    username: input.username,
     created_at: timestamp,
     updated_at: timestamp,
   };
 }
 
 export async function ensureManagerProfile(input: {
+  avatarUrl?: string | null;
+  displayName?: string | null;
+  email: string;
   id: string;
   username: string;
-  email: string;
-  avatarUrl?: string | null;
 }) {
   if (!hasSupabaseServiceRoleKey()) {
     return;
   }
 
+  const timestamp = new Date().toISOString();
+  const profileRecord = {
+    avatar_url: input.avatarUrl ?? null,
+    display_name: input.displayName ?? input.username,
+    email: input.email,
+    id: input.id,
+    username: input.username,
+    updated_at: timestamp,
+  };
   const admin = createSupabaseAdminClient();
   const { error } = await admin
     .from("manager")
-    .upsert(buildManagerRecord(input), { onConflict: "id" });
+    .upsert(profileRecord, { onConflict: "id" });
 
   if (error) {
     console.error("ensureManagerProfile failed", {
@@ -54,8 +81,34 @@ export async function ensureManagerProfile(input: {
   }
 }
 
+export async function touchManagerLastSignedIn(id: string) {
+  if (!hasSupabaseServiceRoleKey()) {
+    return;
+  }
+
+  const timestamp = new Date().toISOString();
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin
+    .from("manager")
+    .update({
+      last_signed_in_at: timestamp,
+      updated_at: timestamp,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("touchManagerLastSignedIn failed", {
+      code: error.code,
+      message: error.message,
+      userId: id,
+    });
+  }
+}
+
 export const isInitialSetupRequired = cache(async () => {
-  if (isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (runtimeProvider.provider === "local-json") {
     const { hasLocalJsonAccounts } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
@@ -100,7 +153,7 @@ export const getManagerProfile = cache(async (userId: string) => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("manager")
-    .select("id, username, email, avatar_url")
+    .select("id, username, email, avatar_url, display_name, role, level, status, last_signed_in_at")
     .eq("id", userId)
     .maybeSingle<ManagerProfile>();
 

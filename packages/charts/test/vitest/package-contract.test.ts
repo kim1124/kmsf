@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+const packagesRoot = dirname(packageRoot);
+const repoRoot = dirname(packagesRoot);
 
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
@@ -120,6 +122,30 @@ describe("package harness contract", () => {
     for (const planFile of listFiles(join(packageRoot, "docs/agents")).filter((file) => file.endsWith("/plan.md"))) {
       const lineCount = readText(planFile).split(/\r?\n/).length;
       expect(lineCount, relative(packageRoot, planFile)).toBeLessThanOrEqual(500);
+    }
+  });
+
+  it("keeps package instruction routing centralized in the repo root", () => {
+    const rootAgents = readText(join(repoRoot, "AGENTS.md"));
+    expect(rootAgents).toContain("`apps/*`, `packages/*`, `examples/*`, `templates/*` 하위 프로젝트에 모두 적용");
+    expect(rootAgents).toContain("하위 `AGENTS.md`는 공통 규칙을 반복하지 않고");
+    expect(rootAgents).toContain("Repo Skill Routing");
+    expect(rootAgents).toContain(".agents/skills/delivery");
+    expect(rootAgents).toContain("`code-review`");
+    expect(rootAgents).toContain("`code-health`");
+    expect(rootAgents).toContain("`test-gate`");
+    expect(rootAgents).toContain("package 변경은 각 package의 `AGENTS.md`와 `test/AGENTS.md`");
+    expect(existsSync(join(packagesRoot, "AGENTS.md"))).toBe(false);
+
+    const packageAgentFiles = readdirSync(packagesRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(packagesRoot, entry.name, "AGENTS.md"));
+
+    for (const file of packageAgentFiles) {
+      const content = readText(file);
+      expect(content, relative(repoRoot, file)).toContain("repo root `AGENTS.md`");
+      expect(content, relative(repoRoot, file)).toContain("`packages/*` 하위 프로젝트에도 공통 적용");
+      expect(content, relative(repoRoot, file)).not.toContain("## Process Routing");
     }
   });
 });

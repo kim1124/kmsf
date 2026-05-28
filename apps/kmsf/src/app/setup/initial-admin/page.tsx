@@ -5,6 +5,7 @@ import { InitialAdminForm } from "@/app/setup/initial-admin/_components/initial-
 import { getAppLocale } from "@/i18n/current-locale";
 import { formatAppSessionExpiryRoute } from "@/lib/auth/app-session";
 import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCsrfToken } from "@/lib/security/csrf";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
@@ -20,6 +21,7 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
   const locale = await getAppLocale();
   const t = await getTranslations({ locale, namespace: "initialSetup" });
   const csrfToken = await getCsrfToken();
+  const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (user) {
     if (!(await isRequestAppSessionActive())) {
@@ -34,51 +36,71 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
   }
 
   return (
-    <main className="flex flex-col h-[100dvh] items-center bg-background px-4 py-12 overflow-y-auto">
-      <section className="my-auto w-full max-w-md rounded-[var(--kmsf-radius-auth)] border border-border bg-surface p-8 text-foreground shadow-[var(--kmsf-shadow-panel)] dark:shadow-none">
-        <div className="text-center">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{t("title")}</h1>
-          <p className="mt-3 text-sm leading-6 text-foreground/70">{t("description")}</p>
-        </div>
-
-        <InitialAdminForm
-          csrfToken={csrfToken}
-          labels={{
-            username: t("username"),
-            email: t("email"),
-            password: t("password"),
-            passwordConfirm: t("passwordConfirm"),
-            submit: t("submit"),
-          }}
-          messages={{
-            authFailed: t("errors.auth"),
-            securityFailed: t("errors.security"),
-            fieldErrors: {
-              username: {
-                invalid: t("fieldErrors.username.invalid"),
-                duplicate: t("fieldErrors.username.duplicate"),
-              },
-              email: {
-                invalid: t("fieldErrors.email.invalid"),
-                duplicate: t("fieldErrors.email.duplicate"),
-              },
-              password: {
-                invalid: t("fieldErrors.password.invalid"),
-              },
-              passwordConfirm: {
-                invalid: t("fieldErrors.passwordConfirm.invalid"),
-                mismatch: t("fieldErrors.passwordConfirm.mismatch"),
-              },
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center overflow-y-auto bg-background px-4 pb-16 pt-10 text-foreground">
+      <InitialAdminForm
+        csrfToken={csrfToken}
+        runtimeProvider={runtimeProvider}
+        labels={{
+          adminDescription: t("steps.admin.description"),
+          adminLevel: t("steps.admin.level"),
+          adminTitle: t("steps.admin.title"),
+          username: t("username"),
+          displayName: t("displayName"),
+          email: t("email"),
+          fallbackNotice: t("steps.provider.fallbackNotice", {
+            attempts: runtimeProvider.attempts,
+          }),
+          localDescription: t("steps.provider.local.description"),
+          localTitle: t("steps.provider.local.title"),
+          next: t("next"),
+          password: t("password"),
+          passwordConfirm: t("passwordConfirm"),
+          previous: t("previous"),
+          processingDescription: t("steps.processing.description"),
+          processingTitle: t("steps.processing.title"),
+          providerDescription: t("steps.provider.description"),
+          providerTitle: t("steps.provider.title"),
+          serverDbBadge: t("steps.provider.serverDb.badge"),
+          serverDbDescription: t("steps.provider.serverDb.description"),
+          serverDbTitle: t("steps.provider.serverDb.title"),
+          supabaseDescription: t("steps.provider.supabase.description"),
+          supabaseTitle: t("steps.provider.supabase.title"),
+          supabaseUnavailable: t("steps.provider.supabase.unavailable"),
+          title: t("title"),
+          description: t("description"),
+        }}
+        messages={{
+          authFailed: t("errors.auth"),
+          securityFailed: t("errors.security"),
+          fieldErrors: {
+            username: {
+              invalid: t("fieldErrors.username.invalid"),
+              duplicate: t("fieldErrors.username.duplicate"),
             },
-          }}
-          tooltips={{
-            username: t("tooltips.username"),
-            email: t("tooltips.email"),
-            password: t("tooltips.password"),
-            passwordConfirm: t("tooltips.passwordConfirm"),
-          }}
-        />
-      </section>
+            displayName: {
+              invalid: t("fieldErrors.displayName.invalid"),
+            },
+            email: {
+              invalid: t("fieldErrors.email.invalid"),
+              duplicate: t("fieldErrors.email.duplicate"),
+            },
+            password: {
+              invalid: t("fieldErrors.password.invalid"),
+            },
+            passwordConfirm: {
+              invalid: t("fieldErrors.passwordConfirm.invalid"),
+              mismatch: t("fieldErrors.passwordConfirm.mismatch"),
+            },
+          },
+        }}
+        tooltips={{
+          username: t("tooltips.username"),
+          displayName: t("tooltips.displayName"),
+          email: t("tooltips.email"),
+          password: t("tooltips.password"),
+          passwordConfirm: t("tooltips.passwordConfirm"),
+        }}
+      />
     </main>
   );
 }

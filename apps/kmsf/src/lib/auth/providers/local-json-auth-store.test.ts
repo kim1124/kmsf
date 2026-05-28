@@ -9,6 +9,10 @@ import {
   deleteLocalJsonAccount,
   findLocalJsonAccountById,
   hasLocalJsonAccounts,
+  listLocalJsonAccounts,
+  resetLocalJsonAuthStore,
+  updateLocalJsonAccount,
+  verifyLocalJsonAccountPassword,
   verifyLocalJsonCredentials,
 } from "./local-json-auth-store";
 
@@ -95,6 +99,19 @@ describe("local-json auth store", () => {
     ).rejects.toMatchObject({ code: "duplicate_email" });
   });
 
+  it("supports local-json account lists within the focused test data cap", async () => {
+    for (let index = 0; index < 10; index += 1) {
+      await createLocalJsonAccount({
+        username: `member${String(index).padStart(3, "0")}`,
+        email: `member${String(index).padStart(3, "0")}@local.test`,
+        password: "Member01!",
+        role: index === 0 ? "admin" : "member",
+      });
+    }
+
+    await expect(listLocalJsonAccounts()).resolves.toHaveLength(10);
+  });
+
   it("verifies username or email credentials", async () => {
     const account = await createLocalJsonAccount({
       username: "member01",
@@ -106,6 +123,111 @@ describe("local-json auth store", () => {
     await expect(verifyLocalJsonCredentials("member01", "Member01!")).resolves.toEqual(account);
     await expect(verifyLocalJsonCredentials("member01@local.test", "Member01!")).resolves.toEqual(account);
     await expect(verifyLocalJsonCredentials("member01", "Wrong01!")).resolves.toBeNull();
+  });
+
+  it("lists account directory metadata and records the last successful sign-in time", async () => {
+    await createLocalJsonAccount({
+      displayName: "관리자",
+      username: "admin01",
+      email: "admin01@local.test",
+      password: "Admin01!",
+      role: "admin",
+    });
+
+    await expect(listLocalJsonAccounts()).resolves.toMatchObject([
+      {
+        displayName: "관리자",
+        email: "admin01@local.test",
+        lastSignedInAt: null,
+        level: 3,
+        role: "admin",
+        username: "admin01",
+      },
+    ]);
+
+    await verifyLocalJsonCredentials("admin01", "Admin01!");
+    const accounts = await listLocalJsonAccounts();
+
+    expect(accounts[0].lastSignedInAt).toEqual(expect.any(String));
+  });
+
+  it("verifies a local-json account password by id without touching last sign-in time", async () => {
+    const account = await createLocalJsonAccount({
+      username: "admin01",
+      email: "admin01@local.test",
+      password: "Admin01!",
+      role: "admin",
+    });
+
+    await expect(verifyLocalJsonAccountPassword(account.id, "Admin01!")).resolves.toBe(true);
+    await expect(verifyLocalJsonAccountPassword(account.id, "Wrong01!")).resolves.toBe(false);
+
+    const [stored] = await listLocalJsonAccounts();
+    expect(stored.lastSignedInAt).toBeNull();
+  });
+
+  it("resets all local-json accounts", async () => {
+    await createLocalJsonAccount({
+      username: "admin01",
+      email: "admin01@local.test",
+      password: "Admin01!",
+      role: "admin",
+    });
+
+    await resetLocalJsonAuthStore();
+
+    await expect(hasLocalJsonAccounts()).resolves.toBe(false);
+    await expect(listLocalJsonAccounts()).resolves.toEqual([]);
+  });
+
+  it("updates account profile data without changing the password hash when no password is provided", async () => {
+    const account = await createLocalJsonAccount({
+      username: "member01",
+      email: "member01@local.test",
+      password: "Member01!",
+      role: "member",
+    });
+    const before = await readFile(dbPath, "utf8");
+
+    const updated = await updateLocalJsonAccount(account.id, {
+      username: "member02",
+      email: "member02@local.test",
+    });
+    const after = await readFile(dbPath, "utf8");
+
+    expect(updated).toMatchObject({
+      id: account.id,
+      username: "member02",
+      email: "member02@local.test",
+    });
+    expect(after).toContain("member02@local.test");
+    expect(JSON.parse(after).accounts[0].passwordHash).toBe(JSON.parse(before).accounts[0].passwordHash);
+    await expect(verifyLocalJsonCredentials("member02", "Member01!")).resolves.toEqual(updated);
+  });
+
+  it("overwrites the stored password hash when a new password is provided", async () => {
+    const account = await createLocalJsonAccount({
+      username: "member01",
+      email: "member01@local.test",
+      password: "Member01!",
+      role: "member",
+    });
+    const before = JSON.parse(await readFile(dbPath, "utf8"));
+
+    await updateLocalJsonAccount(account.id, {
+      password: "Member02!",
+    });
+    const raw = await readFile(dbPath, "utf8");
+    const after = JSON.parse(raw);
+
+    expect(raw).not.toContain("Member01!");
+    expect(raw).not.toContain("Member02!");
+    expect(after.accounts[0].passwordHash).not.toBe(before.accounts[0].passwordHash);
+    await expect(verifyLocalJsonCredentials("member01", "Member01!")).resolves.toBeNull();
+    await expect(verifyLocalJsonCredentials("member01", "Member02!")).resolves.toMatchObject({
+      id: account.id,
+      username: "member01",
+    });
   });
 
   it("preserves concurrent account creations", async () => {

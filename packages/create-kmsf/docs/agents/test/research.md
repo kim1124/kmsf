@@ -8,10 +8,10 @@
 
 ## Scope
 
-`test`와 `test-reports`는 CLI unit/integration/package smoke 검증과 작업 보고를 담당한다.
+`test`와 `reports`는 CLI unit/integration/package smoke 검증과 작업 보고를 담당한다.
 
 ## Stable Rules
 
 - CLI behavior는 Vitest로 검증한다.
 - npm package surface는 pack dry-run 또는 local tarball smoke로 확인한다.
-- 검증 실패와 sandbox 제한은 test-reports에 남긴다.
+- 검증 실패와 sandbox 제한은 `packages/create-kmsf/reports/YYYY-MM-DD.md`에 남긴다.

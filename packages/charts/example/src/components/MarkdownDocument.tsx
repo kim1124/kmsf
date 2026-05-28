@@ -4,12 +4,21 @@ interface MarkdownDocumentProps {
   markdown: string;
 }
 
-function renderInlineCode(text: string) {
-  const parts = text.split(/(`[^`]+`)/g);
+function renderInlineText(text: string) {
+  const parts = text.split(/(`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
 
   return parts.map((part, index) => {
     if (part.startsWith("`") && part.endsWith("`")) {
       return <code key={`${part}-${index}`}>{part.slice(1, -1)}</code>;
+    }
+
+    const linkMatch = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
+    if (linkMatch) {
+      return (
+        <a href={linkMatch[2]} key={`${part}-${index}`} rel="noreferrer" target="_blank">
+          {linkMatch[1]}
+        </a>
+      );
     }
 
     return part;
@@ -71,14 +80,14 @@ export function MarkdownDocument({ markdown }: MarkdownDocumentProps) {
       blocks.push(
         <ul key={`list-${index}`}>
           {items.map((item) => (
-            <li key={item}>{renderInlineCode(item)}</li>
+            <li key={item}>{renderInlineText(item)}</li>
           ))}
         </ul>,
       );
       continue;
     }
 
-    blocks.push(<p key={`p-${index}`}>{renderInlineCode(line)}</p>);
+    blocks.push(<p key={`p-${index}`}>{renderInlineText(line)}</p>);
     index += 1;
   }
 

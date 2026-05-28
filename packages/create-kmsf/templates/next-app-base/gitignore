@@ -10,7 +10,7 @@ build/
 coverage/
 playwright-report/
 test-results/
-test-reports/
+reports/artifacts/
 
 # env files (do NOT commit secrets)
 .env

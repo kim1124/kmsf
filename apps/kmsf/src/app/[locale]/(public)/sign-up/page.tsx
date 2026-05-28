@@ -7,10 +7,9 @@ import { GoogleMark } from "@/components/auth/_components/google-mark";
 import { Button } from "@/components/ui/button";
 import { formatAppSessionExpiryRoute } from "@/lib/auth/app-session";
 import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCsrfToken } from "@/lib/security/csrf";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
 import { signInWithGoogleAction } from "@/app/[locale]/(public)/sign-in/actions";
 
@@ -22,12 +21,12 @@ type SignUpPageProps = {
 export default async function SignUpPage({ params, searchParams }: SignUpPageProps) {
   const { locale } = await params;
   await searchParams;
-  const localJsonEnabled = isLocalJsonAuthEnabled();
+  const runtimeProvider = await resolveRuntimeAuthProvider();
   const setupRequired = await isInitialSetupRequired();
   const user = await getCurrentUser();
   const t = await getTranslations({ locale, namespace: "signUp" });
   const csrfToken = await getCsrfToken();
-  const supabaseReady = !localJsonEnabled && isSupabaseConfigured();
+  const supabaseReady = runtimeProvider.provider === "supabase";
 
   if (user) {
     if (!(await isRequestAppSessionActive())) {

@@ -7,8 +7,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { getThemeCookie } from "@/lib/auth/demo-session";
 import { formatAppSessionExpiryRoute } from "@/lib/auth/app-session";
 import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
+import { canAccessRoute, type ProtectedRouteId } from "@/lib/auth/access-policy";
 import { getAppLocale } from "@/i18n/current-locale";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCsrfToken } from "@/lib/security/csrf";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
@@ -20,7 +20,7 @@ type ProtectedLayoutProps = {
 export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const locale = await getAppLocale();
   const t = await getTranslations({ locale, namespace: "navigation" });
-  const setupRequired = isLocalJsonAuthEnabled() ? false : await isInitialSetupRequired();
+  const setupRequired = await isInitialSetupRequired();
   const user = await getCurrentUser();
   const theme = await getThemeCookie();
   const csrfToken = await getCsrfToken();
@@ -39,30 +39,40 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
     redirect("/sign-in");
   }
 
-  const navItems = [
+  const navItems: Array<{
+    caption: string;
+    href: string;
+    icon: ReactNode;
+    label: string;
+    routeId: ProtectedRouteId;
+  }> = [
     {
       href: "/dashboard",
       icon: <LayoutDashboard className="h-4 w-4" />,
       label: t("dashboard"),
       caption: t("dashboardCaption"),
+      routeId: "dashboard",
     },
     {
       href: "/data-table-sample",
       icon: <TableProperties className="h-4 w-4" />,
       label: t("tableSample"),
       caption: t("tableSampleCaption"),
+      routeId: "data-table-sample",
     },
     {
       href: "/chart-sample",
       icon: <BarChart3 className="h-4 w-4" />,
       label: t("chartSample"),
       caption: t("chartSampleCaption"),
+      routeId: "chart-sample",
     },
     {
       href: "/settings",
       icon: <Settings className="h-4 w-4" />,
       label: t("settings"),
       caption: t("settingsCaption"),
+      routeId: "settings",
     },
   ];
 
@@ -72,7 +82,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
       initialTheme={theme}
       initialServerTime={initialServerTime}
       locale={locale}
-      navItems={navItems}
+      navItems={navItems.filter((item) => canAccessRoute(user, item.routeId))}
       user={user}
     >
       {children}

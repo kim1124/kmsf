@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 
 import { touchAppSessionCookie } from "@/lib/auth/app-session.server";
 import { setLocalJsonSessionCookie } from "@/lib/auth/local-session.server";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
+import { createSupabaseAccountWithManager } from "@/lib/supabase/account-admin";
 import {
   accountSchema,
   createEmptyAccountFieldErrors,
@@ -22,10 +22,10 @@ import {
 } from "@/lib/auth/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  buildManagerRecord,
   findManagerLoginEmail,
   isAuthEmailTaken,
   isManagerUsernameTaken,
+  touchManagerLastSignedIn,
 } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
 import { getAppUrl, hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
@@ -95,7 +95,9 @@ export async function signInAction(
     return buildSignInState(fields, { authError: "security" });
   }
 
-  if (parsed.success && isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (parsed.success && runtimeProvider.provider === "local-json") {
     const { verifyLocalJsonCredentials } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
@@ -124,13 +126,17 @@ export async function signInAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
   });
 
   if (error) {
     return buildSignInState(fields, { authError: "auth" });
+  }
+
+  if (data.user) {
+    await touchManagerLastSignedIn(data.user.id);
   }
 
   await touchAppSessionCookie();
@@ -142,7 +148,9 @@ export async function signInWithGoogleAction(formData: FormData) {
     redirect(`/sign-in?error=security`);
   }
 
-  if (!isSupabaseConfigured()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (!isSupabaseConfigured() || runtimeProvider.provider === "local-json") {
     redirect(`/sign-in?error=oauth`);
   }
 
@@ -184,7 +192,9 @@ export async function signUpAction(
     return buildSignUpState(fields, { authError: "security" });
   }
 
-  if (parsed.success && isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (parsed.success && runtimeProvider.provider === "local-json") {
     const { createLocalJsonAccount, LocalJsonAuthStoreError } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
@@ -249,46 +259,16 @@ export async function signUpAction(
   let shouldSignIn = false;
 
   if (hasSupabaseServiceRoleKey()) {
-    const admin = createSupabaseAdminClient();
-    const { data: createData, error: createError } = await admin.auth.admin.createUser({
+    const { error: createError, user } = await createSupabaseAccountWithManager({
       email: normalizedEmail,
       password: parsed.data.password,
-      email_confirm: true,
-      user_metadata: {
-        username: parsed.data.username,
-        role: "member",
-      },
-      app_metadata: {
-        role: "member",
-      },
+      role: "member",
+      username: parsed.data.username,
     });
 
     error = createError;
     shouldSignIn = !createError;
-
-    if (!createError && createData.user) {
-      const { error: managerError } = await admin.from("manager").upsert(
-        buildManagerRecord({
-          id: createData.user.id,
-          username: parsed.data.username,
-          email: normalizedEmail,
-        }),
-        { onConflict: "id" },
-      );
-
-      if (managerError) {
-        console.error("signUpAction manager sync failed", {
-          code: managerError.code,
-          message: managerError.message,
-          userId: createData.user.id,
-        });
-        error = {
-          code: managerError.code ?? undefined,
-          message: managerError.message,
-        };
-        shouldSignIn = false;
-      }
-    }
+    shouldSignIn = Boolean(user);
   } else {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -296,7 +276,6 @@ export async function signUpAction(
       options: {
         data: {
           username: parsed.data.username,
-          role: "member",
         },
         emailRedirectTo: `${getAppUrl()}/auth/callback?next=/dashboard`,
       },
@@ -340,13 +319,17 @@ export async function signUpAction(
     redirect(`/sign-in?success=confirm-email`);
   }
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email: normalizedEmail,
     password: parsed.data.password,
   });
 
   if (signInError) {
     redirect(`/sign-in?error=auth`);
+  }
+
+  if (signInData.user) {
+    await touchManagerLastSignedIn(signInData.user.id);
   }
 
   await touchAppSessionCookie();

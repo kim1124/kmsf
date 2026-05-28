@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+import { completeInitialSetupWizard } from "./utils/initial-setup";
+
 test.skip(
-  process.env.KMSF_AUTH_PROVIDER !== "local-json",
-  "local-json auth flow requires KMSF_AUTH_PROVIDER=local-json",
+  Boolean(process.env.KMSF_AUTH_PROVIDER && process.env.KMSF_AUTH_PROVIDER !== "local-json"),
+  "local-json auth flow requires local-json or runtime fallback auth",
 );
 
 test("local-json sign-up, sign-in, settings, and account deletion", async ({ page }) => {
@@ -13,6 +15,22 @@ test("local-json sign-up, sign-in, settings, and account deletion", async ({ pag
 
   await page.goto("/sign-up");
   await page.waitForLoadState("networkidle");
+
+  if (page.url().includes("/setup/initial-admin")) {
+    await completeInitialSetupWizard(page, {
+      displayName: `관리자 ${runId.slice(-4)}`,
+      email: `owner_${runId}@local.test`,
+      password: "Admin00@!",
+      username: `owner${runId.slice(-8)}`,
+    });
+    await page.waitForURL("**/dashboard", { timeout: 20_000 });
+    await page.getByRole("button", { name: "프로필 메뉴" }).click();
+    await page.getByRole("button", { name: "로그아웃", exact: true }).click();
+    await page.waitForURL("**/sign-in", { timeout: 20_000 });
+    await page.goto("/sign-up");
+    await page.waitForLoadState("networkidle");
+  }
+
   await page.locator("#sign-up-username").fill(username);
   await page.locator("#sign-up-email").fill(email);
   await page.locator("#sign-up-password").fill(password);
@@ -24,9 +42,12 @@ test("local-json sign-up, sign-in, settings, and account deletion", async ({ pag
 
   await page.goto("/settings");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByText("로컬 JSON", { exact: true })).toBeVisible();
+  await expect(page.getByText("세션 인증 방식", { exact: true })).toBeVisible();
+  await expect(page.getByText("현재 동작 인증", { exact: true })).toBeVisible();
+  await expect(page.getByText("Local DB", { exact: true }).first()).toBeVisible();
 
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
+  await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
   await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
   await page.locator("#delete-account-confirmation").fill("DELETE");
   await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();

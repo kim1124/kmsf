@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { touchAppSessionCookie } from "@/lib/auth/app-session.server";
-import { ensureManagerProfile } from "@/lib/supabase/manager";
+import { ensureManagerProfile, touchManagerLastSignedIn } from "@/lib/supabase/manager";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -29,11 +29,16 @@ export async function GET(request: Request) {
         typeof user.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : null;
 
       await ensureManagerProfile({
+        avatarUrl,
+        displayName:
+          typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name
+            ? user.user_metadata.full_name
+            : username,
+        email: user.email,
         id: user.id,
         username,
-        email: user.email,
-        avatarUrl,
       });
+      await touchManagerLastSignedIn(user.id);
 
       await touchAppSessionCookie();
     }

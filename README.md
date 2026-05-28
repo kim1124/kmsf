@@ -24,8 +24,8 @@ kmsf/
 │   ├── next-monorepo/         # monorepo template placeholder
 │   └── backend-base/          # backend template placeholder
 ├── docs/
-├── test-reports/              # 일자별 보고서 + 테스트 아티팩트
-├── .codex/skills/
+├── reports/                   # 루트 작업 보고서
+├── .agents/skills/
 └── package.json               # root workspace orchestration
 ```
 
@@ -33,12 +33,12 @@ kmsf/
 
 ## 실행 규칙
 
-- 저장소 공통 계약: [AGENTS.md](/Users/kim1124/개발/kmsf/AGENTS.md)
-- 메인 앱 계약: [apps/kmsf/AGENTS.md](/Users/kim1124/개발/kmsf/apps/kmsf/AGENTS.md)
-- 메인 앱 소스 규칙: [apps/kmsf/src/AGENTS.md](/Users/kim1124/개발/kmsf/apps/kmsf/src/AGENTS.md)
-- 메인 앱 테스트 규칙: [apps/kmsf/tests/AGENTS.md](/Users/kim1124/개발/kmsf/apps/kmsf/tests/AGENTS.md)
-- 패키지 소비 예제 계약: [examples/basic-dashboard/AGENTS.md](/Users/kim1124/개발/kmsf/examples/basic-dashboard/AGENTS.md)
-- 저장소 전용 skill: [.codex/skills/kmsf-delivery/SKILL.md](/Users/kim1124/개발/kmsf/.codex/skills/kmsf-delivery/SKILL.md)
+- 저장소 공통 계약: [AGENTS.md](/Users/kim1124/Dev/kmsf/AGENTS.md)
+- 메인 앱 계약: [apps/kmsf/AGENTS.md](/Users/kim1124/Dev/kmsf/apps/kmsf/AGENTS.md)
+- 메인 앱 소스 규칙: [apps/kmsf/src/AGENTS.md](/Users/kim1124/Dev/kmsf/apps/kmsf/src/AGENTS.md)
+- 메인 앱 테스트 규칙: [apps/kmsf/tests/AGENTS.md](/Users/kim1124/Dev/kmsf/apps/kmsf/tests/AGENTS.md)
+- 패키지 소비 예제 계약: [examples/basic-dashboard/AGENTS.md](/Users/kim1124/Dev/kmsf/examples/basic-dashboard/AGENTS.md)
+- 저장소 전용 skill: [.agents/skills/delivery/SKILL.md](/Users/kim1124/Dev/kmsf/.agents/skills/delivery/SKILL.md)
 
 ## 워크스페이스
 
@@ -102,7 +102,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-인증 provider, Supabase Google OAuth, local-json ID/PW provider 설정은 [인증 가이드](/Users/kim1124/개발/kmsf/docs/auth-guide.md)를 참고한다.
+인증 provider, Supabase Google OAuth, local-json ID/PW provider 설정은 [인증 가이드](/Users/kim1124/Dev/kmsf/docs/auth-guide.md)를 참고한다.
 
 ## 검증 기준
 
@@ -121,12 +121,12 @@ NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 
 ## 보고 규칙
 
-- 작업 보고서는 `test-reports/YYYY-MM-DD.md` 형식으로 기록한다.
+- 작업 보고서는 작업 scope의 `reports/YYYY-MM-DD.md` 형식으로 기록한다.
 - 같은 날짜의 요청 결과는 하나의 파일에 이어서 누적한다.
-- 브라우저/테스트 산출물도 저장소 루트 `test-reports/` 아래에 둔다.
-- 기존 `docs/reports/*`는 과거 기록 보관용이며, 신규 보고의 기준 경로는 아니다.
+- 브라우저/테스트 산출물은 해당 workspace의 `reports/artifacts/` 아래에 둔다.
+- package 작업 보고서는 `packages/<package>/reports/YYYY-MM-DD.md`에 둔다.
 
 ## 참고 문서
 
-- 운영 문서: [docs/codex/README.md](/Users/kim1124/개발/kmsf/docs/codex/README.md)
-- 오늘 작업 보고서: [2026-04-23.md](/Users/kim1124/개발/kmsf/test-reports/2026-04-23.md)
+- 운영 문서: [docs/codex/README.md](/Users/kim1124/Dev/kmsf/docs/codex/README.md)
+- 작업 보고서: [reports/2026-04-23.md](/Users/kim1124/Dev/kmsf/reports/2026-04-23.md)

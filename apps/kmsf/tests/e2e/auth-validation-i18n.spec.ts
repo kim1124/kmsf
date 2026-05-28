@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { clickInitialSetupNext } from "./utils/initial-setup";
+
 const baseURL = "http://127.0.0.1:3000";
 
 async function expectTranslatedValidation(
@@ -29,6 +31,10 @@ async function expectTranslatedValidation(
 
   await page.goto(`${baseURL}/sign-in`);
   await page.waitForLoadState("networkidle");
+
+  if (page.url().includes("/setup/initial-admin")) {
+    await clickInitialSetupNext(page);
+  }
 
   const usernameSelector = page.url().includes("/setup/initial-admin")
     ? "#initial-admin-username"
