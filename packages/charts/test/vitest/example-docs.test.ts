@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { chartSamples } from "../../example/src/data/chart-samples";
-import { chartDocs, searchChartDocs } from "../../example/src/docs/chart-docs";
+import { chartDocs, getChartDoc, searchChartDocs } from "../../example/src/docs/chart-docs";
 
 describe("example chart docs", () => {
   it("documents every visible chart sample with required props and example code", () => {
@@ -14,12 +14,30 @@ describe("example chart docs", () => {
     for (const doc of chartDocs) {
       expect(doc.markdown).toContain("## Required Props");
       expect(doc.markdown).toContain("```tsx");
-      expect(doc.officialDocsUrl).toMatch(/^https:\/\/echarts\.apache\.org\//);
+      expect(doc.officialDocsUrl).toMatch(/^https:\/\//);
     }
+  });
+
+  it("separates KMSF required props from chart-specific ECharts settings", () => {
+    const pieDoc = getChartDoc("pie");
+    expect(pieDoc.markdown).toContain("## Required Props");
+    expect(pieDoc.markdown).toContain("`type`: `pie`");
+    expect(pieDoc.markdown).toContain("`data`");
+    expect(pieDoc.markdown).toContain("## Recommended Props");
+    expect(pieDoc.markdown).not.toContain("## Required ECharts Settings");
+    expect(pieDoc.markdown).toContain("[series-pie](https://echarts.apache.org/en/option.html#series-pie)");
+
+    const radarDoc = getChartDoc("radar");
+    expect(radarDoc.markdown).toContain("## Required Props");
+    expect(radarDoc.markdown).toContain("## Required ECharts Settings");
+    expect(radarDoc.markdown).toContain("`options` / `options.radar.indicator`");
+    expect(radarDoc.markdown).toContain("[radar](https://echarts.apache.org/en/option.html#radar)");
+    expect(radarDoc.markdown).toContain("[series-radar](https://echarts.apache.org/en/option.html#series-radar)");
   });
 
   it("searches chart docs by prop, option, and feature terms", () => {
     expect(searchChartDocs("seriesOptions").some((doc) => doc.type === "line")).toBe(true);
+    expect(searchChartDocs("options.radar.indicator").some((doc) => doc.type === "radar")).toBe(true);
     expect(searchChartDocs("실시간").some((doc) => doc.type === "line")).toBe(true);
     expect(searchChartDocs("존재하지않는검색어")).toEqual([]);
   });

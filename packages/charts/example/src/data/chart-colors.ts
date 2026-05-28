@@ -27,6 +27,26 @@ export type TopItem = {
   value: unknown;
 };
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function appendTupleMetadata(row: unknown[], metadata: Record<string, unknown>): unknown[] {
+  const lastValue = row[row.length - 1];
+
+  if (isPlainObject(lastValue)) {
+    return [
+      ...row.slice(0, -1),
+      {
+        ...lastValue,
+        ...metadata,
+      },
+    ];
+  }
+
+  return [...row, metadata];
+}
+
 export function getExamplePalette(offset = 0): string[] {
   if (offset === 0) {
     return [...examplePalette];
@@ -63,7 +83,7 @@ export function applyTopRowPalette(data: unknown, type: KmsfChartType, offset = 
   if (type === "wordCloud") {
     return data.map((row, index) =>
       Array.isArray(row)
-        ? [...row.slice(0, 2), { textStyle: { color: getExampleColor(index, offset) } }]
+        ? appendTupleMetadata(row, { textStyle: { color: getExampleColor(index, offset) } })
         : row,
     );
   }
@@ -74,7 +94,7 @@ export function applyTopRowPalette(data: unknown, type: KmsfChartType, offset = 
 
   return data.map((row, index) =>
     Array.isArray(row)
-      ? [...row.slice(0, 2), { itemStyle: { color: getExampleColor(index, offset) } }]
+      ? appendTupleMetadata(row, { itemStyle: { color: getExampleColor(index, offset) } })
       : row,
   );
 }

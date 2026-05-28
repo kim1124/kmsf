@@ -11,9 +11,9 @@ KMSF는 현재 두 가지 인증 provider를 제공한다.
 | 인증 Provider | 용도 | 선택 값 |
 | --- | --- | --- |
 | Supabase | 기본 권장 인증. E-mail/PW, Google OAuth, Supabase Auth 세션 사용 | unset 또는 `KMSF_AUTH_PROVIDER=supabase` |
-| local-json | 커스터마이징 가능한 ID/PW starter provider. 로컬 JSON 파일에 계정 저장 | `KMSF_AUTH_PROVIDER=local-json` |
+| local-json | 커스터마이징 가능한 ID/PW starter provider. `lowdb` 기반 로컬 JSON DB에 계정 저장 | `KMSF_AUTH_PROVIDER=local-json` |
 
-Supabase가 기본값이다. `KMSF_AUTH_PROVIDER`를 비워두거나 알 수 없는 값으로 두면 Supabase 경로를 사용한다.
+Supabase가 기본값이다. 다만 런타임에서 Supabase 환경 변수 또는 Auth health check를 확인할 수 없으면 `local-json`으로 fallback한다.
 
 ## 공통 환경 변수
 
@@ -96,7 +96,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 ## local-json ID/PW 인증 Provider 설정
 
-`local-json` provider는 KMSF 사용자가 직접 인증 모듈을 이해하고 커스터마이징할 수 있도록 제공되는 starter provider다.
+`local-json` provider는 KMSF 사용자가 직접 인증 모듈을 이해하고 커스터마이징할 수 있도록 제공되는 starter provider다. 기본 로컬 DB 모듈은 npm 패키지 `lowdb`이며, 현재 요구 범위에서는 `better-sqlite3` 같은 SQLite 네이티브 의존성을 추가하지 않는다.
 
 환경 변수:
 
@@ -135,9 +135,11 @@ cp templates/next-app-auth/.local/auth.db.example.json apps/kmsf/.local/auth.db.
 기본 구현은 다음을 제공한다.
 
 - ID 또는 E-mail 기반 로그인
-- `scrypt` 기반 password hash
+- Node.js `scrypt` 기반 단방향 password hash
 - local session cookie 서명
-- 계정 생성/삭제
+- 계정 생성/수정/삭제
+
+비밀번호는 복호화 가능한 AES 방식으로 저장하지 않는다. 관리자 비밀번호는 화면에 다시 채우지 않고, 수정 시 새 비밀번호가 입력된 경우에만 기존 password hash를 새 hash로 덮어쓴다.
 
 기본 구현에 포함되지 않는 항목:
 
@@ -147,6 +149,7 @@ cp templates/next-app-auth/.local/auth.db.example.json apps/kmsf/.local/auth.db.
 - 관리자 감사 로그
 - MFA
 - 외부 OAuth 연결
+- ODBC 또는 설치형 서버 DB 어댑터
 
 운영 서비스에서 local-json을 사용할 경우 위 항목을 프로젝트 요구사항에 맞게 확장해야 한다. 완전한 managed auth가 필요하면 Supabase provider를 우선 권장한다.
 

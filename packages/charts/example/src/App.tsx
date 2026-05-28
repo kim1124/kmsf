@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { EChartsOption, SeriesOption } from "echarts";
+import type { SeriesOption } from "echarts";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -12,16 +12,12 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Cloud,
-  FileJson,
-  FileText,
   Gauge,
   GitBranch,
   Grid2X2,
   Library,
   Network,
-  Palette,
   PanelRight,
-  RefreshCw,
   Search,
   Sun,
   TableCellsSplit,
@@ -36,25 +32,18 @@ import { GenericChart } from "../../src";
 import type { GenericChartDataFormat, KmsfChartType } from "../../src";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
-import { Textarea } from "./components/ui/textarea";
+import { ChartExampleCard } from "./components/ChartExampleCard";
 import { MarkdownDocument } from "./components/MarkdownDocument";
 import { applyTopRowPalette, getSeriesPaletteOverride } from "./data/chart-colors";
-import { chartSamples, getUsageCode } from "./data/chart-samples";
+import { chartSamples } from "./data/chart-samples";
 import type { ChartSample, SampleClock } from "./data/chart-samples";
-import { parseEditableChartData, parseEditableOptions } from "./data/live-editing";
+import { chartExampleGroups } from "./data/chart-examples";
+import type { ChartExampleDefinition } from "./data/chart-examples";
 import { getChartDoc, searchChartDocs } from "./docs/chart-docs";
-
-interface OptionState {
-  accentIndex: number;
-  legend: boolean;
-  tooltip: boolean;
-}
 
 interface DashboardChartData {
   dataFormat?: GenericChartDataFormat;
@@ -87,38 +76,6 @@ const chartIconByType: Partial<Record<KmsfChartType, LucideIcon>> = {
 
 function getChartIcon(type: KmsfChartType): LucideIcon {
   return chartIconByType[type] ?? Activity;
-}
-
-function mergePlainObjects<TValue extends Record<string, unknown>>(base: TValue, override?: Record<string, unknown>): TValue {
-  if (!override) {
-    return base;
-  }
-
-  const result: Record<string, unknown> = { ...base };
-
-  for (const [key, value] of Object.entries(override)) {
-    const current = result[key];
-
-    if (
-      current &&
-      value &&
-      typeof current === "object" &&
-      typeof value === "object" &&
-      !Array.isArray(current) &&
-      !Array.isArray(value)
-    ) {
-      result[key] = mergePlainObjects(current as Record<string, unknown>, value as Record<string, unknown>);
-      continue;
-    }
-
-    result[key] = value;
-  }
-
-  return result as TValue;
-}
-
-function stringifyJson(value: unknown): string {
-  return JSON.stringify(value ?? {}, null, 2);
 }
 
 function useHashRoute() {
@@ -193,21 +150,6 @@ function mergeSeriesOptions(sample: ChartSample): Partial<SeriesOption> | Array<
   }
 
   return sample.seriesOptions ?? {};
-}
-
-function buildOptionSummary(input: {
-  options?: EChartsOption;
-  seriesOptions: Partial<SeriesOption> | Array<Partial<SeriesOption>>;
-  state: OptionState;
-  themeOverrides: { palette: string[] };
-}) {
-  return {
-    legend: input.state.legend,
-    options: input.options,
-    seriesOptions: input.seriesOptions,
-    themeOverrides: input.themeOverrides,
-    tooltip: input.state.tooltip,
-  };
 }
 
 function groupedSamples() {
@@ -287,6 +229,81 @@ function ChartNavigation({
   );
 }
 
+function useSelectedExampleClock(examples: ChartExampleDefinition[]) {
+  const [trendTick, setTrendTick] = useState(0);
+  const [topTick, setTopTick] = useState(0);
+  const [flowTick, setFlowTick] = useState(0);
+  const needsTrend = examples.some((example) => example.mode === "live" && example.tags.includes("Trend"));
+  const needsSlowUpdate = examples.some((example) => example.mode === "live" && !example.tags.includes("Trend"));
+
+  useEffect(() => {
+    if (!needsTrend) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => setTrendTick((value) => value + 1), 1000);
+
+    return () => window.clearInterval(interval);
+  }, [needsTrend]);
+
+  useEffect(() => {
+    if (!needsSlowUpdate) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      setTopTick((value) => value + 1);
+      setFlowTick((value) => value + 1);
+    }, 10_000);
+
+    return () => window.clearInterval(interval);
+  }, [needsSlowUpdate]);
+
+  return useMemo<SampleClock>(() => ({ flowTick, topTick, trendTick }), [flowTick, topTick, trendTick]);
+}
+
+function ChartExampleContent({ type }: { type: KmsfChartType }) {
+  const [query, setQuery] = useState("");
+  const examples = chartExampleGroups[type] ?? [];
+  const clock = useSelectedExampleClock(examples);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleExamples = useMemo(
+    () =>
+      normalizedQuery
+        ? examples.filter((example) => {
+            const haystack = [example.title, example.summary, example.type, ...example.tags].join(" ").toLowerCase();
+
+            return haystack.includes(normalizedQuery);
+          })
+        : examples,
+    [examples, normalizedQuery],
+  );
+
+  return (
+    <main aria-label="차트 예제" className="chart-example-main">
+      <div className="example-search">
+        <Search aria-hidden="true" size={16} />
+        <Input
+          aria-label="예제 검색"
+          placeholder="예제 검색"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+
+      {visibleExamples.length ? (
+        <div className="chart-example-list">
+          {visibleExamples.map((example) => (
+            <ChartExampleCard clock={clock} example={example} key={example.id} />
+          ))}
+        </div>
+      ) : (
+        <div className="chart-placeholder">검색 결과가 없습니다.</div>
+      )}
+    </main>
+  );
+}
+
 function ChartDocsPanel({ activeType }: { activeType: KmsfChartType }) {
   const [query, setQuery] = useState("");
   const selectedDoc = getChartDoc(activeType);
@@ -345,121 +362,8 @@ function MobileDocsButton({ activeType }: { activeType: KmsfChartType }) {
 function ChartWorkspacePage() {
   const [activeType, setActiveType] = useState<KmsfChartType>("line");
   const [isNavigationCollapsed, setIsNavigationCollapsed] = useState(false);
-  const [manualRefreshVersion, setManualRefreshVersion] = useState(0);
-  const [optionState, setOptionState] = useState<OptionState>({
-    accentIndex: 0,
-    legend: true,
-    tooltip: true,
-  });
-  const [dataText, setDataText] = useState("");
-  const [dataDirty, setDataDirty] = useState(false);
-  const [manualData, setManualData] = useState<unknown>();
-  const [dataError, setDataError] = useState<string | null>(null);
-  const [optionsText, setOptionsText] = useState("");
-  const [optionDirty, setOptionDirty] = useState(false);
-  const [manualOptions, setManualOptions] = useState<EChartsOption>({});
-  const [optionError, setOptionError] = useState<string | null>(null);
-  const clock = useSampleClock();
-  const sampleClock = useMemo<SampleClock>(
-    () => ({
-      flowTick: clock.flowTick + manualRefreshVersion * 13,
-      topTick: clock.topTick + manualRefreshVersion * 13,
-      trendTick: clock.trendTick + manualRefreshVersion * 13,
-    }),
-    [clock, manualRefreshVersion],
-  );
-  const activeSample = chartSamples.find((sample) => sample.type === activeType) ?? chartSamples[0]!;
-  const generatedData = useMemo(() => activeSample.buildData(sampleClock), [activeSample, sampleClock]);
-  const coloredGeneratedData = useMemo(
-    () => applyTopRowPalette(generatedData, activeSample.type, optionState.accentIndex),
-    [activeSample.type, generatedData, optionState.accentIndex],
-  );
-  const sampleData = dataDirty && !dataError ? manualData : coloredGeneratedData;
-  const sampleSeries = useMemo(() => activeSample.buildSeries?.(sampleClock), [activeSample, sampleClock]);
-  const generatedOptions = useMemo(() => activeSample.buildOptions?.(sampleClock), [activeSample, sampleClock]);
-  const sampleOptions = useMemo(
-    () => mergePlainObjects((generatedOptions ?? {}) as Record<string, unknown>, manualOptions as Record<string, unknown>) as EChartsOption,
-    [generatedOptions, manualOptions],
-  );
-  const seriesOptions = useMemo(() => mergeSeriesOptions(activeSample), [activeSample]);
-  const themeOverrides = useMemo(
-    () => ({ palette: getSeriesPaletteOverride(optionState.accentIndex) }),
-    [optionState.accentIndex],
-  );
-  const usageCode = useMemo(() => getUsageCode(activeSample), [activeSample]);
-  const optionSummary = useMemo(
-    () => buildOptionSummary({ options: sampleOptions, seriesOptions, state: optionState, themeOverrides }),
-    [optionState, sampleOptions, seriesOptions, themeOverrides],
-  );
-  const sampleSummary = useMemo(
-    () => ({
-      data: sampleData,
-      dataFormat: activeSample.dataFormat ?? "auto",
-      options: sampleOptions,
-      series: sampleSeries,
-      seriesOptions,
-      type: activeSample.type,
-    }),
-    [activeSample, sampleData, sampleOptions, sampleSeries, seriesOptions],
-  );
-  const validationMessage = optionError ?? dataError;
-
-  useEffect(() => {
-    setDataDirty(false);
-    setManualData(undefined);
-    setDataError(null);
-    setOptionDirty(false);
-    setManualOptions({});
-    setOptionError(null);
-  }, [activeType]);
-
-  useEffect(() => {
-    if (!dataDirty) {
-      setDataText(stringifyJson(coloredGeneratedData));
-    }
-  }, [coloredGeneratedData, dataDirty]);
-
-  useEffect(() => {
-    if (!optionDirty) {
-      setOptionsText(stringifyJson(generatedOptions ?? {}));
-    }
-  }, [generatedOptions, optionDirty]);
-
-  const handleDataTextChange = (value: string) => {
-    setDataDirty(true);
-    setDataText(value);
-
-    const result = parseEditableChartData(value, activeSample.dataFormat);
-
-    if (result.ok) {
-      setManualData(result.value);
-      setDataError(null);
-      return;
-    }
-
-    setDataError(result.error);
-  };
-
-  const handleOptionsTextChange = (value: string) => {
-    setOptionDirty(true);
-    setOptionsText(value);
-
-    const result = parseEditableOptions(value);
-
-    if (result.ok) {
-      setManualOptions(result.value);
-      setOptionError(null);
-      return;
-    }
-
-    setOptionError(result.error);
-  };
-
-  const refreshAllData = () => {
-    setDataDirty(false);
-    setManualData(undefined);
-    setDataError(null);
-    setManualRefreshVersion((value) => value + 1);
+  const selectChartType = (type: KmsfChartType) => {
+    setActiveType((current) => (current === type ? current : type));
   };
 
   return (
@@ -476,7 +380,7 @@ function ChartWorkspacePage() {
               Gridstack
             </a>
           </Button>
-          <MobileDocsButton activeType={activeType} />
+          <MobileDocsButton activeType={activeType} key={`mobile-docs-${activeType}`} />
         </div>
       </header>
 
@@ -485,101 +389,12 @@ function ChartWorkspacePage() {
           activeType={activeType}
           collapsed={isNavigationCollapsed}
           onCollapseToggle={() => setIsNavigationCollapsed((value) => !value)}
-          onSelectType={setActiveType}
+          onSelectType={selectChartType}
         />
 
-        <main aria-label="차트 예제" className="chart-example-main">
-          <Card className="chart-stage" data-testid="chart-stage">
-            <CardHeader className="chart-stage__header">
-              <div>
-                <CardTitle>{activeSample.type}</CardTitle>
-                <CardDescription>{activeSample.disabledReason ?? activeSample.summary}</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="chart-stage__content">
-              <div className="chart-viewport">
-                {validationMessage ? <div className="chart-validation-message">{validationMessage}</div> : null}
-                {activeSample.disabledReason ? (
-                  <div className="chart-placeholder">{activeSample.disabledReason}</div>
-                ) : (
-                  <GenericChart
-                    data={sampleData}
-                    dataFormat={activeSample.dataFormat}
-                    height="100%"
-                    legend={optionState.legend}
-                    options={sampleOptions}
-                    series={sampleSeries}
-                    seriesOptions={seriesOptions}
-                    themeOverrides={themeOverrides}
-                    tooltip={optionState.tooltip}
-                    type={activeSample.type}
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <ChartExampleContent key={`content-${activeType}`} type={activeType} />
 
-          <section aria-label="차트 옵션 컨트롤" className="option-toolbar">
-            <Button variant="outline" onClick={() => setOptionState((state) => ({ ...state, legend: !state.legend }))}>
-              <FileText aria-hidden="true" size={16} />
-              범례 토글
-            </Button>
-            <Button variant="outline" onClick={() => setOptionState((state) => ({ ...state, tooltip: !state.tooltip }))}>
-              <PanelRight aria-hidden="true" size={16} />
-              툴팁 토글
-            </Button>
-            <Button variant="outline" onClick={refreshAllData}>
-              <RefreshCw aria-hidden="true" size={16} />
-              전체 데이터 갱신
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setOptionState((state) => ({ ...state, accentIndex: (state.accentIndex + 1) % 10 }))}
-            >
-              <Palette aria-hidden="true" size={16} />
-              색상 변경
-            </Button>
-          </section>
-
-          <Tabs className="sample-tabs" defaultValue="data">
-            <TabsList aria-label="샘플 정보">
-              <TabsTrigger value="data">Data</TabsTrigger>
-              <TabsTrigger value="options">Options</TabsTrigger>
-              <TabsTrigger value="code">Usage</TabsTrigger>
-            </TabsList>
-            <TabsContent value="data">
-              <label className="editor-label" htmlFor="chart-data-editor">
-                <FileJson aria-hidden="true" size={15} />
-                데이터 JSON 편집
-              </label>
-              <Textarea
-                aria-label="데이터 JSON 편집"
-                id="chart-data-editor"
-                value={dataText}
-                onChange={(event) => handleDataTextChange(event.target.value)}
-              />
-              <pre data-testid="sample-data">{JSON.stringify(sampleSummary, null, 2)}</pre>
-            </TabsContent>
-            <TabsContent value="options">
-              <label className="editor-label" htmlFor="chart-options-editor">
-                <FileJson aria-hidden="true" size={15} />
-                옵션 JSON 편집
-              </label>
-              <Textarea
-                aria-label="옵션 JSON 편집"
-                id="chart-options-editor"
-                value={optionsText}
-                onChange={(event) => handleOptionsTextChange(event.target.value)}
-              />
-              <pre data-testid="option-summary">{JSON.stringify(optionSummary, null, 2)}</pre>
-            </TabsContent>
-            <TabsContent value="code">
-              <pre data-testid="sample-code">{usageCode}</pre>
-            </TabsContent>
-          </Tabs>
-        </main>
-
-        <ChartDocsPanel activeType={activeType} />
+        <ChartDocsPanel activeType={activeType} key={`docs-${activeType}`} />
       </div>
     </div>
   );

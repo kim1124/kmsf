@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { completeInitialSetupWizard } from "./utils/initial-setup";
+
 test("language toggle switches dashboard copy without changing the route", async ({
   page,
 }) => {
@@ -9,11 +11,12 @@ test("language toggle switches dashboard copy without changing the route", async
   await page.waitForLoadState("networkidle");
 
   if (page.url().includes("/setup/initial-admin")) {
-    await page.locator("#initial-admin-username").fill(`owner${runId.slice(-6)}`);
-    await page.locator("#initial-admin-email").fill(`owner_${runId}@mailinator.com`);
-    await page.locator("#initial-admin-password").fill("admin00@!");
-    await page.locator("#initial-admin-password-confirm").fill("admin00@!");
-    await page.getByRole("button", { name: "관리자 계정 생성", exact: true }).click();
+    await completeInitialSetupWizard(page, {
+      displayName: `관리자 ${runId.slice(-4)}`,
+      email: `owner_${runId}@mailinator.com`,
+      password: "admin00@!",
+      username: `owner${runId.slice(-6)}`,
+    });
     await page.waitForURL("**/dashboard", { timeout: 20_000 });
   } else if (page.url().includes("/sign-in")) {
     await page.goto("http://127.0.0.1:3000/sign-up");

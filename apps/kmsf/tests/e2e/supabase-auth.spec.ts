@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { completeInitialSetupWizard } from "./utils/initial-setup";
+
 async function expectMainPages(page: import("@playwright/test").Page, prefix: string) {
   for (const [path, heading] of [
     ["/dashboard", "대시보드"],
@@ -32,11 +34,10 @@ async function createInitialAdminIfRequired(
     return null;
   }
 
-  await page.locator("#initial-admin-username").fill(input.username);
-  await page.locator("#initial-admin-email").fill(input.email);
-  await page.locator("#initial-admin-password").fill(input.password);
-  await page.locator("#initial-admin-password-confirm").fill(input.password);
-  await page.getByRole("button", { name: "관리자 계정 생성", exact: true }).click();
+  await completeInitialSetupWizard(page, {
+    displayName: input.username,
+    ...input,
+  });
   await page.waitForURL("**/dashboard", { timeout: 20000 });
 
   return input.username;
@@ -81,6 +82,7 @@ async function signInWithUsername(
 
 async function deleteCurrentAccount(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
+  await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
   await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
   await page.locator("#delete-account-confirmation").fill("DELETE");
   await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();

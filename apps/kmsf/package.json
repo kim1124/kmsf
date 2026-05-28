@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
+    "dev:e2e": "next dev --hostname 127.0.0.1 --port 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:e2e": "env -u NO_COLOR playwright test",
-    "test:e2e:headed": "env -u NO_COLOR playwright test --headed",
+    "test:e2e": "KMSF_AUTH_PROVIDER=${KMSF_AUTH_PROVIDER:-local-json} KMSF_LOCAL_AUTH_DB_PATH=${KMSF_LOCAL_AUTH_DB_PATH:-/private/tmp/kmsf-e2e-auth.db.json} KMSF_SETUP_CONFIG_FILE=${KMSF_SETUP_CONFIG_FILE:-setup.codex-e2e.json} env -u NO_COLOR playwright test",
+    "test:e2e:headed": "KMSF_AUTH_PROVIDER=${KMSF_AUTH_PROVIDER:-local-json} KMSF_LOCAL_AUTH_DB_PATH=${KMSF_LOCAL_AUTH_DB_PATH:-/private/tmp/kmsf-e2e-auth.db.json} KMSF_SETUP_CONFIG_FILE=${KMSF_SETUP_CONFIG_FILE:-setup.codex-e2e.json} env -u NO_COLOR playwright test --headed",
     "test:reset-auth": "node scripts/reset-auth-state.mjs",
     "verify": "npm run lint && npm run test:run && npm run build",
     "verify:full": "npm run verify && npm run test:e2e -- tests/e2e/layout-shell.spec.ts tests/e2e/language-toggle.spec.ts tests/e2e/auth-validation-i18n.spec.ts"

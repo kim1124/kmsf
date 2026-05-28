@@ -10,10 +10,9 @@ import { SignInForm } from "@/components/auth/_components/sign-in-form";
 import { Button } from "@/components/ui/button";
 import { formatAppSessionExpiryRoute } from "@/lib/auth/app-session";
 import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCsrfToken } from "@/lib/security/csrf";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
 
 type SignInPageProps = {
@@ -27,11 +26,11 @@ export default async function SignInPage({
 }: SignInPageProps) {
   const { locale } = await params;
   const { error, success } = await searchParams;
-  const localJsonEnabled = isLocalJsonAuthEnabled();
+  const runtimeProvider = await resolveRuntimeAuthProvider();
   const setupRequired = await isInitialSetupRequired();
   const user = await getCurrentUser();
   const t = await getTranslations({ locale, namespace: "auth" });
-  const supabaseReady = !localJsonEnabled && isSupabaseConfigured();
+  const supabaseReady = runtimeProvider.provider === "supabase";
   const csrfToken = await getCsrfToken();
 
   if (user) {

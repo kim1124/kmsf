@@ -1,8 +1,9 @@
 import { cache } from "react";
 
 import { getLocalJsonSessionUserId } from "@/lib/auth/local-session.server";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
-import { normalizeRole, type AppRole } from "@/lib/auth/roles";
+import { resolveSupabaseAuthorization } from "@/lib/auth/authorization";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
+import type { AppRole } from "@/lib/auth/roles";
 import { ensureManagerProfile, getManagerProfile } from "@/lib/supabase/manager";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -10,7 +11,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export type AppSessionUser = {
   id: string;
   email: string;
+  username: string;
   displayName: string;
+  level: number;
   role: AppRole;
   avatarInitials: string;
   avatarDataUrl: string | null;
@@ -28,7 +31,9 @@ function getInitials(value: string) {
 }
 
 export const getCurrentUser = cache(async (): Promise<AppSessionUser | null> => {
-  if (isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (runtimeProvider.provider === "local-json") {
     const { findLocalJsonAccountById } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
@@ -42,9 +47,11 @@ export const getCurrentUser = cache(async (): Promise<AppSessionUser | null> => 
     return {
       id: localUser.id,
       email: localUser.email,
-      displayName: localUser.username,
+      username: localUser.username,
+      displayName: localUser.displayName,
+      level: localUser.level,
       role: localUser.role,
-      avatarInitials: getInitials(localUser.username),
+      avatarInitials: getInitials(localUser.displayName),
       avatarDataUrl: null,
       authMode: "local-json",
       isAuthenticated: true,
@@ -63,15 +70,6 @@ export const getCurrentUser = cache(async (): Promise<AppSessionUser | null> => 
   if (!user?.email) {
     return null;
   }
-
-  const role =
-    normalizeRole(
-      typeof user.app_metadata?.role === "string"
-        ? user.app_metadata.role
-        : typeof user.user_metadata?.role === "string"
-          ? user.user_metadata.role
-          : null,
-    ) ?? "member";
 
   const displayName =
     typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name
@@ -93,24 +91,37 @@ export const getCurrentUser = cache(async (): Promise<AppSessionUser | null> => 
       : "supabase";
 
   await ensureManagerProfile({
+    avatarUrl: metadataAvatarUrl,
+    displayName,
+    email: user.email,
     id: user.id,
     username: metadataUsername,
-    email: user.email,
-    avatarUrl: metadataAvatarUrl,
   });
 
   const managerProfile = await getManagerProfile(user.id);
+  const authorization = resolveSupabaseAuthorization({
+    appMetadata: user.app_metadata,
+    manager: managerProfile,
+  });
+
+  if (authorization.status !== "active") {
+    return null;
+  }
+
   const username = managerProfile?.username ?? displayName;
   const email = managerProfile?.email ?? user.email;
+  const resolvedDisplayName = managerProfile?.display_name ?? displayName;
   const avatarUrl =
     managerProfile?.avatar_url ?? metadataAvatarUrl;
 
   return {
     id: user.id,
     email,
-    displayName: username,
-    role,
-    avatarInitials: getInitials(username),
+    username,
+    displayName: resolvedDisplayName,
+    level: authorization.level,
+    role: authorization.role,
+    avatarInitials: getInitials(resolvedDisplayName || username),
     avatarDataUrl: avatarUrl,
     authMode,
     isAuthenticated: true,

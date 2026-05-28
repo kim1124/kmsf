@@ -57,6 +57,4 @@ playwright-report/
 test-results/
 **/test/playwright/html-report/
 **/test/playwright/results/
-test-reports/**
-!test-reports/
-!test-reports/*.md
+**/reports/artifacts/

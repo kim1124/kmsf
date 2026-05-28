@@ -4,26 +4,39 @@ import { redirect } from "next/navigation";
 
 import { clearAppSessionCookie } from "@/lib/auth/app-session.server";
 import { clearLocalJsonSessionCookie } from "@/lib/auth/local-session.server";
+import { isLevel3Admin } from "@/lib/auth/access-policy";
 import { getGoogleIdentityState } from "@/lib/auth/google-identity";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
+import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import { getCurrentUser } from "@/lib/auth/session";
+import {
+  formatSystemResetErrorRoute,
+  formatSystemResetSuccessRoute,
+  isSystemResetConfirmationValid,
+} from "@/lib/auth/system-reset";
 import {
   profileSchema,
   sanitizeEmailInput,
   sanitizeUsernameInput,
 } from "@/lib/auth/validation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  resetSupabaseFactorySystem,
+  verifySupabaseAccountPassword,
+} from "@/lib/supabase/account-admin";
 import { updateManagerProfile } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
 import { getAppUrl, hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { clearProjectSetupConfig } from "@/lib/setup/project-setup-config";
 
 export async function signOutAction(formData: FormData) {
   if (!(await verifyCsrfToken(formData))) {
     redirect(`/settings?accountError=security`);
   }
 
-  if (!isLocalJsonAuthEnabled() && isSupabaseConfigured()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (runtimeProvider.provider === "supabase" && isSupabaseConfigured()) {
     const supabase = await createSupabaseServerClient();
     await supabase.auth.signOut();
   }
@@ -31,6 +44,88 @@ export async function signOutAction(formData: FormData) {
   await clearLocalJsonSessionCookie();
   await clearAppSessionCookie();
   redirect(`/sign-in`);
+}
+
+export async function resetSystemAction(formData: FormData) {
+  if (!(await verifyCsrfToken(formData))) {
+    redirect(formatSystemResetErrorRoute("security"));
+  }
+
+  const password = String(formData.get("password") ?? "");
+  const confirmation = String(formData.get("confirmation") ?? "");
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser || !isLevel3Admin(currentUser)) {
+    redirect(formatSystemResetErrorRoute("unauthorized"));
+  }
+
+  if (!isSystemResetConfirmationValid(confirmation)) {
+    redirect(formatSystemResetErrorRoute("confirmation"));
+  }
+
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (runtimeProvider.provider === "local-json") {
+    const { resetLocalJsonAuthStore, verifyLocalJsonAccountPassword } = await import(
+      "@/lib/auth/providers/local-json-auth-store"
+    );
+    const passwordValid = await verifyLocalJsonAccountPassword(currentUser.id, password);
+
+    if (!passwordValid) {
+      console.error("resetSystemAction local-json password verification failed", {
+        userId: currentUser.id,
+      });
+      redirect(formatSystemResetErrorRoute("auth"));
+    }
+
+    try {
+      await resetLocalJsonAuthStore();
+      await clearProjectSetupConfig();
+      await clearLocalJsonSessionCookie();
+      await clearAppSessionCookie();
+    } catch (error) {
+      console.error("resetSystemAction local-json reset failed", { error });
+      redirect(formatSystemResetErrorRoute("reset"));
+    }
+
+    redirect(formatSystemResetSuccessRoute());
+  }
+
+  if (!isSupabaseConfigured() || !hasSupabaseServiceRoleKey()) {
+    redirect(formatSystemResetErrorRoute("service-role"));
+  }
+
+  let passwordValid = false;
+
+  try {
+    passwordValid = await verifySupabaseAccountPassword(currentUser.email, password);
+  } catch (error) {
+    console.error("resetSystemAction Supabase password verification failed", {
+      error,
+      userId: currentUser.id,
+    });
+    redirect(formatSystemResetErrorRoute("auth"));
+  }
+
+  if (!passwordValid) {
+    console.error("resetSystemAction Supabase password verification rejected", {
+      userId: currentUser.id,
+    });
+    redirect(formatSystemResetErrorRoute("auth"));
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+    await resetSupabaseFactorySystem();
+    await clearLocalJsonSessionCookie();
+    await clearAppSessionCookie();
+  } catch (error) {
+    console.error("resetSystemAction Supabase reset failed", { error, userId: currentUser.id });
+    redirect(formatSystemResetErrorRoute("reset"));
+  }
+
+  redirect(formatSystemResetSuccessRoute());
 }
 
 export async function updateProfileAction(formData: FormData) {
@@ -46,7 +141,7 @@ export async function updateProfileAction(formData: FormData) {
     passwordConfirm: formData.get("passwordConfirm"),
   });
 
-  if (!parsed.success || !isSupabaseConfigured()) {
+  if (!parsed.success) {
     return { error: "validation" };
   }
 
@@ -54,6 +149,35 @@ export async function updateProfileAction(formData: FormData) {
 
   if (!currentUser) {
     return { error: "unauthorized" };
+  }
+
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (runtimeProvider.provider === "local-json") {
+    const { updateLocalJsonAccount, LocalJsonAuthStoreError } = await import(
+      "@/lib/auth/providers/local-json-auth-store"
+    );
+
+    try {
+      const updated = await updateLocalJsonAccount(currentUser.id, {
+        username: parsed.data.username,
+        email: parsed.data.email,
+        password: parsed.data.password || undefined,
+      });
+
+      return updated ? { success: true } : { error: "unauthorized" };
+    } catch (error) {
+      if (error instanceof LocalJsonAuthStoreError) {
+        return { error: "duplicate" };
+      }
+
+      console.error("updateProfileAction local-json failed", { error });
+      return { error: "auth" };
+    }
+  }
+
+  if (!isSupabaseConfigured()) {
+    return { error: "validation" };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -95,7 +219,9 @@ export async function deleteAccountAction(formData: FormData) {
     redirect(`/settings?accountError=validation`);
   }
 
-  if (isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (runtimeProvider.provider === "local-json") {
     const { deleteLocalJsonAccount } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
@@ -163,7 +289,9 @@ export async function linkGoogleIdentityAction(formData: FormData) {
     redirect(`/settings?googleError=security`);
   }
 
-  if (!isSupabaseConfigured() || isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (!isSupabaseConfigured() || runtimeProvider.provider === "local-json") {
     redirect(`/settings?googleError=unavailable`);
   }
 
@@ -187,7 +315,9 @@ export async function unlinkGoogleIdentityAction(formData: FormData) {
     redirect(`/settings?googleError=security`);
   }
 
-  if (!isSupabaseConfigured() || isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+
+  if (!isSupabaseConfigured() || runtimeProvider.provider === "local-json") {
     redirect(`/settings?googleError=unavailable`);
   }
 

@@ -27,19 +27,33 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
-export function buildTrendRows(tick: number) {
+export function buildTrendRows(tick: number, seriesCount = 1) {
   return Array.from({ length: 40 }, (_, index) => {
     const second = tick + index + 1;
+    const values = Array.from({ length: Math.max(1, seriesCount) }, (_, seriesIndex) => {
+      return 900 + ((second * (37 + seriesIndex * 11) + seriesIndex * 83) % 520);
+    });
 
     return [
       `2026-05-26 10:${pad(Math.floor(second / 60))}:${pad(second % 60)}`,
-      900 + ((second * 37) % 520),
+      ...values,
     ];
   });
 }
 
 export function buildTopRows(tick: number) {
   return topNames.map((name, index) => [name, 80 + ((tick * (index + 3) * 11 + index * 47) % 180)]);
+}
+
+export function buildTopRowsWithSeries(tick: number, seriesCount = 1) {
+  return buildTopRows(tick).map(([name, value], rowIndex) => {
+    const numericValue = Number(value);
+    const values = Array.from({ length: Math.max(1, seriesCount) }, (_, seriesIndex) => {
+      return numericValue + (((rowIndex + 1) * (seriesIndex + 3)) % 40);
+    });
+
+    return [name, ...values];
+  });
 }
 
 function buildScatterRows(tick: number) {
@@ -129,11 +143,11 @@ export const chartSamples: ChartSample[] = [
     buildOptions: () => ({
       radar: {
         indicator: [
-          { name: "UX", max: 110 },
-          { name: "API", max: 110 },
-          { name: "Perf", max: 110 },
-          { name: "Docs", max: 110 },
-          { name: "A11y", max: 110 },
+          { name: "UX", max: 100 },
+          { name: "API", max: 100 },
+          { name: "Perf", max: 100 },
+          { name: "Docs", max: 100 },
+          { name: "A11y", max: 100 },
         ],
       },
     }),

@@ -7,13 +7,18 @@ import { useState, useRef, useEffect } from "react";
 
 import type { NavItem } from "@/components/layout/app-shell";
 import { isNavItemActive } from "@/components/layout/app-shell.utils";
+import { ProfileMenu } from "@/components/layout/_components/profile-menu";
+import type { AppSessionUser } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 
 type SidebarDrawerProps = {
+  csrfToken: string;
   items: NavItem[];
+  locale: string;
+  user: AppSessionUser;
 };
 
-export function SidebarDrawer({ items }: SidebarDrawerProps) {
+export function SidebarDrawer({ csrfToken, items, locale, user }: SidebarDrawerProps) {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLElement>(null);
@@ -92,6 +97,16 @@ export function SidebarDrawer({ items }: SidebarDrawerProps) {
             );
           })}
         </nav>
+
+        <div className="mt-4 flex w-full justify-center border-t border-border pt-3">
+          <ProfileMenu
+            csrfToken={csrfToken}
+            locale={locale}
+            popoverAlign="end"
+            popoverSide="right"
+            user={user}
+          />
+        </div>
       </div>
     </aside>
   );

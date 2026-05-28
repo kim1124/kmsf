@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { completeInitialSetupWizard } from "./utils/initial-setup";
+
 type AuthScenarioAccount = {
   email: string;
   password: string;
@@ -78,8 +80,10 @@ async function createInitialAdminIfRequired(
     return false;
   }
 
-  await fillAccountForm(page, "initial-admin", account);
-  await page.getByRole("button", { name: "관리자 계정 생성", exact: true }).click();
+  await completeInitialSetupWizard(page, {
+    displayName: account.username,
+    ...account,
+  });
   await page.waitForURL("**/dashboard", { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
   await expectNoBrowserIssues("initial-admin-created");
@@ -147,6 +151,7 @@ async function deleteCurrentAccount(
   expectNoBrowserIssues: (checkpoint: string) => Promise<void>,
 ) {
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
+  await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
   await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
   await page.locator("#delete-account-confirmation").fill("DELETE");
   await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();

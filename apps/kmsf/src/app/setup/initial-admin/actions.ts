@@ -4,38 +4,57 @@ import { redirect } from "next/navigation";
 
 import { touchAppSessionCookie } from "@/lib/auth/app-session.server";
 import { setLocalJsonSessionCookie } from "@/lib/auth/local-session.server";
-import { isLocalJsonAuthEnabled } from "@/lib/auth/providers/auth-provider";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  resetRuntimeAuthProviderCache,
+  resolveRuntimeAuthProvider,
+} from "@/lib/auth/providers/runtime-auth-provider";
+import { createSupabaseAccountWithManager } from "@/lib/supabase/account-admin";
 import {
   accountSchema,
   createEmptyAccountFieldErrors,
   getAccountFieldErrors,
   sanitizeEmailInput,
   sanitizeUsernameInput,
+  sanitizeVisibleInput,
   type AccountFieldErrors,
   type AccountFields,
 } from "@/lib/auth/validation";
+import type { AuthProviderKind } from "@/lib/auth/providers/auth-provider";
 import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
 import {
-  buildManagerRecord,
   isAuthEmailTaken,
   isManagerUsernameTaken,
   isInitialSetupRequired,
+  touchManagerLastSignedIn,
 } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { writeProjectSetupConfig } from "@/lib/setup/project-setup-config";
+
+type InitialSetupAuthProvider = AuthProviderKind;
+
+type InitialAdminFields = AccountFields & {
+  authProvider: InitialSetupAuthProvider;
+  displayName: string;
+};
+
+type InitialAdminFieldErrors = AccountFieldErrors & {
+  displayName: string | null;
+};
 
 export type InitialAdminFormState = {
   authError: "auth.failed" | "security.invalid" | null;
-  fields: AccountFields;
-  fieldErrors: AccountFieldErrors;
+  fields: InitialAdminFields;
+  fieldErrors: InitialAdminFieldErrors;
 };
 
+const ADMIN_LEVEL = 3;
+
 function buildState(
-  fields: AccountFields,
+  fields: InitialAdminFields,
   options?: {
     authError?: InitialAdminFormState["authError"];
-    fieldErrors?: Partial<AccountFieldErrors>;
+    fieldErrors?: Partial<InitialAdminFieldErrors>;
   },
 ): InitialAdminFormState {
   return {
@@ -43,9 +62,18 @@ function buildState(
     fields,
     fieldErrors: {
       ...createEmptyAccountFieldErrors(),
+      displayName: null,
       ...options?.fieldErrors,
     },
   };
+}
+
+function normalizeInitialSetupAuthProvider(value: FormDataEntryValue | null): InitialSetupAuthProvider {
+  return value === "supabase" ? "supabase" : "local-json";
+}
+
+function isInvalidDisplayName(value: string) {
+  return value.length < 2 || value.length > 40;
 }
 
 export async function createInitialAdminAction(
@@ -53,6 +81,8 @@ export async function createInitialAdminAction(
   formData: FormData,
 ) {
   const fields = {
+    authProvider: normalizeInitialSetupAuthProvider(formData.get("authProvider")),
+    displayName: sanitizeVisibleInput(String(formData.get("displayName") ?? "")),
     username: sanitizeUsernameInput(String(formData.get("username") ?? "")),
     email: sanitizeEmailInput(String(formData.get("email") ?? "")),
     password: String(formData.get("password") ?? ""),
@@ -64,10 +94,14 @@ export async function createInitialAdminAction(
   }
 
   const parsed = accountSchema.safeParse(fields);
+  const displayNameInvalid = isInvalidDisplayName(fields.displayName);
 
-  if (!parsed.success) {
+  if (!parsed.success || displayNameInvalid) {
     return buildState(fields, {
-      fieldErrors: getAccountFieldErrors(parsed.error),
+      fieldErrors: {
+        ...(!parsed.success ? getAccountFieldErrors(parsed.error) : undefined),
+        displayName: displayNameInvalid ? "displayName.invalid" : null,
+      },
     });
   }
 
@@ -77,16 +111,26 @@ export async function createInitialAdminAction(
     redirect("/sign-in");
   }
 
-  if (isLocalJsonAuthEnabled()) {
+  const runtimeProvider = await resolveRuntimeAuthProvider();
+  const effectiveProvider =
+    fields.authProvider === "supabase" && runtimeProvider.provider === "supabase"
+      ? "supabase"
+      : "local-json";
+
+  if (effectiveProvider === "local-json") {
     const { createLocalJsonAccount, LocalJsonAuthStoreError } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
     let account: Awaited<ReturnType<typeof createLocalJsonAccount>>;
 
     try {
+      await writeProjectSetupConfig("local-json");
+      resetRuntimeAuthProviderCache();
       account = await createLocalJsonAccount({
+        displayName: fields.displayName,
         username: parsed.data.username,
         email: parsed.data.email,
+        level: ADMIN_LEVEL,
         password: parsed.data.password,
         role: "admin",
       });
@@ -134,52 +178,25 @@ export async function createInitialAdminAction(
     | null = null;
 
   if (hasSupabaseServiceRoleKey()) {
-    const admin = createSupabaseAdminClient();
-    const { data: createData, error: createError } = await admin.auth.admin.createUser({
+    const { error: createError } = await createSupabaseAccountWithManager({
+      displayName: fields.displayName,
       email: normalizedEmail,
+      emailConfirm: true,
+      level: ADMIN_LEVEL,
       password: parsed.data.password,
-      email_confirm: true,
-      user_metadata: {
-        username: parsed.data.username,
-        role: "admin",
-      },
-      app_metadata: {
-        role: "admin",
-      },
+      role: "admin",
+      username: parsed.data.username,
     });
 
     error = createError;
-
-    if (!createError && createData.user) {
-      const { error: managerError } = await admin.from("manager").upsert(
-        buildManagerRecord({
-          id: createData.user.id,
-          username: parsed.data.username,
-          email: normalizedEmail,
-        }),
-        { onConflict: "id" },
-      );
-
-      if (managerError) {
-        console.error("createInitialAdminAction manager sync failed", {
-          code: managerError.code,
-          message: managerError.message,
-          userId: createData.user.id,
-        });
-        error = {
-          code: managerError.code ?? undefined,
-          message: managerError.message,
-        };
-      }
-    }
   } else {
     const { error: signUpError } = await supabase.auth.signUp({
       email: normalizedEmail,
       password: parsed.data.password,
       options: {
         data: {
+          full_name: fields.displayName,
           username: parsed.data.username,
-          role: "admin",
         },
       },
     });
@@ -217,13 +234,24 @@ export async function createInitialAdminAction(
     return buildState(fields, { authError: "auth.failed" });
   }
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
+  try {
+    await writeProjectSetupConfig("supabase");
+    resetRuntimeAuthProviderCache();
+  } catch (error) {
+    console.error("createInitialAdminAction setup config write failed", { error });
+  }
+
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email: normalizedEmail,
     password: parsed.data.password,
   });
 
   if (signInError) {
     redirect("/sign-in?success=confirm-email");
+  }
+
+  if (signInData.user) {
+    await touchManagerLastSignedIn(signInData.user.id);
   }
 
   await touchAppSessionCookie();

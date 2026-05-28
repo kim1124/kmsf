@@ -6,10 +6,11 @@ const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  outputDir: "./test-reports/playwright",
+  outputDir: "./reports/artifacts/playwright",
   fullyParallel: false,
   retries: isCI ? 1 : 0,
   timeout: 60_000,
+  workers: 1,
   use: {
     baseURL,
     trace: "on-first-retry",

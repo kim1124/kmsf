@@ -34,15 +34,23 @@ type ProfileMenuProps = {
   locale: string;
   user: AppSessionUser;
   csrfToken: string;
+  popoverAlign?: "center" | "end" | "start";
+  popoverSide?: "bottom" | "left" | "right" | "top";
 };
 
-export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
+export function ProfileMenu({
+  locale,
+  user,
+  csrfToken,
+  popoverAlign = "end",
+  popoverSide = "bottom",
+}: ProfileMenuProps) {
   const [avatarPreview, setAvatarPreview] = useState(user.avatarDataUrl ?? "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formValues, setFormValues] = useState({
-    username: user.displayName ?? "",
+    username: user.username ?? "",
     email: user.email ?? "",
     password: "",
     passwordConfirm: "",
@@ -192,7 +200,13 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
           </button>
         </PopoverTrigger>
 
-        <PopoverContent align="end" sideOffset={8} className="w-[24rem] p-0 overflow-hidden shadow-xl">
+        <PopoverContent
+          align={popoverAlign}
+          className="w-[24rem] overflow-hidden p-0 shadow-xl"
+          data-testid="profile-menu-popover"
+          side={popoverSide}
+          sideOffset={12}
+        >
           <div className="flex w-full">
             {/* 좌측: 유저 프로필 영역 */}
             <div className="flex flex-1 flex-col items-center justify-center border-r border-border p-4 bg-surface/30">
@@ -260,6 +274,9 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                           ref={fileInputRef}
                           type="file"
                         />
+                        <p className="mt-3 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-foreground/70">
+                          Level {user.level}
+                        </p>
                       </div>
 
                       <FieldWithTooltip
@@ -271,6 +288,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                         maxLength={32}
                         name="username"
                         tooltip="프로젝트에 표시될 닉네임을 입력하세요."
+                        tooltipTrigger="icon"
                       />
 
                       <FieldWithTooltip
@@ -281,6 +299,7 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                         label="E-mail"
                         name="email"
                         tooltip="자주 사용하는 이메일을 입력하세요."
+                        tooltipTrigger="icon"
                         type="text"
                       />
 
@@ -292,8 +311,9 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                         label="새 비밀번호 (선택)"
                         maxLength={32}
                         name="password"
-                        placeholder="****"
-                        tooltip="비밀번호를 변경하려면 4자 이상 입력하세요."
+                        placeholder="변경 시 입력"
+                        tooltip="기존 비밀번호는 표시하지 않습니다. 변경할 때만 새 비밀번호를 입력하세요."
+                        tooltipTrigger="icon"
                         type="password"
                       />
 
@@ -305,8 +325,9 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                         label="PW 확인 (선택)"
                         maxLength={32}
                         name="passwordConfirm"
-                        placeholder="****"
+                        placeholder="변경 시 입력"
                         tooltip="위와 동일한 비밀번호를 입력해주세요."
+                        tooltipTrigger="icon"
                         type="password"
                       />
 
@@ -324,6 +345,20 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                         </Button>
                       </div>
                     </form>
+                    <div className="mt-4 border-t border-border pt-4 text-center">
+                      <AccountDeleteDialog
+                        csrfToken={csrfToken}
+                        locale={locale}
+                        trigger={
+                          <button
+                            className="text-sm font-medium text-red-600 underline-offset-4 transition-colors hover:text-red-700 hover:underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-200 dark:text-red-400 dark:hover:text-red-300"
+                            type="button"
+                          >
+                            회원 탈퇴
+                          </button>
+                        }
+                      />
+                    </div>
                   </DialogContent>
                 </Dialog>
 
@@ -334,7 +369,6 @@ export function ProfileMenu({ locale, user, csrfToken }: ProfileMenuProps) {
                     로그아웃
                   </Button>
                 </form>
-                <AccountDeleteDialog csrfToken={csrfToken} locale={locale} />
               </div>
             </div>
           </div>

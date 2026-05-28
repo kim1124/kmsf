@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { deleteAccountAction } from "@/app/[locale]/(protected)/actions";
@@ -18,17 +19,20 @@ import { sanitizeConfirmationInput } from "@/lib/auth/validation";
 type AccountDeleteDialogProps = {
   locale: string;
   csrfToken: string;
+  trigger?: ReactNode;
 };
 
-export function AccountDeleteDialog({ locale, csrfToken }: AccountDeleteDialogProps) {
+export function AccountDeleteDialog({ locale, csrfToken, trigger }: AccountDeleteDialogProps) {
   const [confirmation, setConfirmation] = useState("");
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full" type="button" variant="destructive">
-          회원 탈퇴
-        </Button>
+        {trigger ?? (
+          <Button className="w-full" type="button" variant="destructive">
+            회원 탈퇴
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

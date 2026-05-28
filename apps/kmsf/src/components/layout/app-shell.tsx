@@ -46,7 +46,7 @@ export function AppShell({
   return (
     <div className="flex h-screen max-h-screen overflow-hidden bg-background text-foreground">
       <SessionMonitor />
-      <SidebarDrawer items={navItems} />
+      <SidebarDrawer csrfToken={csrfToken} items={navItems} locale={locale} user={user} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center border-b border-border bg-surface px-4 md:px-6">
           <div className="flex w-full items-center justify-between gap-4">
@@ -63,7 +63,9 @@ export function AppShell({
               <LanguageToggle locale={locale as "ko" | "en"} />
               <ThemeToggle initialTheme={initialTheme} />
               <NotificationPopover />
-              <ProfileMenu csrfToken={csrfToken} locale={locale} user={user} />
+              <div className="md:hidden">
+                <ProfileMenu csrfToken={csrfToken} locale={locale} user={user} />
+              </div>
             </div>
           </div>
         </header>

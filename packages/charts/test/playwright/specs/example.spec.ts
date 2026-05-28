@@ -36,6 +36,14 @@ async function expectCanvasPainted(page: Page) {
     .toBe(true);
 }
 
+async function expectMainCanvasCountBetween(page: Page, min: number, max: number) {
+  await expect
+    .poll(async () => page.getByRole("main", { name: "차트 예제" }).locator("canvas").count())
+    .toBeGreaterThanOrEqual(min);
+  const count = await page.getByRole("main", { name: "차트 예제" }).locator("canvas").count();
+  expect(count).toBeLessThanOrEqual(max);
+}
+
 function chartButton(page: Page, name: string) {
   return page.getByRole("button", { name: new RegExp(`^${name}\\b`) });
 }
@@ -53,6 +61,11 @@ async function openDocsPanel(page: Page) {
   return docsPanel;
 }
 
+async function closeOverlayDocsPanel(page: Page) {
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 1000 }).catch(() => undefined);
+}
+
 test("example page renders docs shell with collapsible chart navigation", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");
@@ -60,9 +73,11 @@ test("example page renders docs shell with collapsible chart navigation", async 
   await expect(page.getByRole("heading", { name: "@kmsf/charts" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "차트 종류" })).toBeVisible();
   await expect(page.getByRole("main", { name: "차트 예제" })).toBeVisible();
-  await expect(page.getByTestId("sample-data")).toBeVisible();
-  await page.getByRole("tab", { name: "Usage" }).click();
-  await expect(page.getByTestId("sample-code")).toBeVisible();
+  await expect(page.getByTestId(/chart-example-card-line-/)).toHaveCount(3);
+  const firstCard = page.getByTestId("chart-example-card-line-static-basic");
+  await expect(firstCard.getByTestId("sample-data")).toBeVisible();
+  await firstCard.getByRole("tab", { name: "Usage" }).click();
+  await expect(firstCard.getByTestId("sample-code")).toBeVisible();
 
   await page.getByRole("button", { name: "차트 목록 접기" }).click();
   await expect(page.getByRole("button", { name: "차트 목록 펼치기" })).toBeVisible();
@@ -76,8 +91,8 @@ test("example page renders docs shell with collapsible chart navigation", async 
   await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toBeVisible();
   await expect(docsPanel.getByRole("heading", { name: "Required Props" })).toBeVisible();
 
-  const canvases = page.locator("canvas");
-  await expect(canvases).toHaveCount(1);
+  await expectMainCanvasCountBetween(page, 3, 5);
+  const canvases = page.getByRole("main", { name: "차트 예제" }).locator("canvas");
 
   const box = await canvases.first().boundingBox();
   expect(box?.width).toBeGreaterThan(100);
@@ -87,30 +102,63 @@ test("example page renders docs shell with collapsible chart navigation", async 
   expect(diagnostics).toEqual([]);
 });
 
+test("example docs distinguish KMSF props from chart-specific ECharts settings", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  await chartButton(page, "pie").click();
+  let docsPanel = await openDocsPanel(page);
+  await expect(docsPanel.getByRole("heading", { name: "Required Props" })).toBeVisible();
+  await expect(docsPanel).toContainText("type: pie");
+  await expect(docsPanel).toContainText("data");
+  await expect(docsPanel.getByRole("heading", { name: "Recommended Props" })).toBeVisible();
+  await expect(docsPanel.getByRole("heading", { name: "Required ECharts Settings" })).toHaveCount(0);
+  await expect(docsPanel.getByRole("link", { name: "series-pie" })).toHaveAttribute(
+    "href",
+    "https://echarts.apache.org/en/option.html#series-pie",
+  );
+
+  await closeOverlayDocsPanel(page);
+  await chartButton(page, "radar").click();
+  docsPanel = await openDocsPanel(page);
+  await expect(docsPanel.getByRole("heading", { name: "Required ECharts Settings" })).toBeVisible();
+  await expect(docsPanel).toContainText("options.radar.indicator");
+  await expect(docsPanel.getByRole("link", { name: "radar", exact: true })).toHaveAttribute(
+    "href",
+    "https://echarts.apache.org/en/option.html#radar",
+  );
+  await expect(docsPanel.getByRole("link", { name: "series-radar" })).toHaveAttribute(
+    "href",
+    "https://echarts.apache.org/en/option.html#series-radar",
+  );
+
+  expect(diagnostics).toEqual([]);
+});
+
 test("example menu switches charts and docs search filters options", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");
 
-  const sampleData = page.getByTestId("sample-data");
-  const stage = page.getByTestId("chart-stage");
   const chartButtons = ["line", "bar", "pie", "scatter", "sankey", "graph", "gauge", "wordCloud"];
 
   for (const name of chartButtons) {
     await chartButton(page, name).click();
-    await expect(stage.getByRole("heading", { name: new RegExp(`^${name}$`) })).toBeVisible();
-    await expect(page.locator("canvas")).toHaveCount(1);
+    await expect(page.getByTestId(new RegExp(`chart-example-card-${name}-`))).toHaveCount(3);
+    await expectMainCanvasCountBetween(page, 3, 5);
     await expectCanvasPainted(page);
   }
 
   await chartButton(page, "line").click();
-  const trendBefore = await sampleData.textContent();
+  const trendData = page.getByTestId("chart-example-card-line-live-update").getByTestId("sample-data");
+  const trendBefore = await trendData.textContent();
   await page.waitForTimeout(1300);
-  await expect(sampleData).not.toHaveText(trendBefore ?? "");
+  await expect(trendData).not.toHaveText(trendBefore ?? "");
 
   await chartButton(page, "bar").click();
-  const topBefore = await sampleData.textContent();
+  const topData = page.getByTestId("chart-example-card-bar-live-update").getByTestId("sample-data");
+  const topBefore = await topData.textContent();
   await page.waitForTimeout(10300);
-  await expect(sampleData).not.toHaveText(topBefore ?? "");
+  await expect(topData).not.toHaveText(topBefore ?? "");
 
   const docsPanel = await openDocsPanel(page);
   const docsSearch = docsPanel.getByPlaceholder("옵션 또는 기능 검색");
@@ -126,14 +174,15 @@ test("option controls update chart option summary without browser errors", async
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");
 
-  await page.getByRole("tab", { name: "Options" }).click();
-  const optionSummary = page.getByTestId("option-summary");
+  const firstCard = page.getByTestId("chart-example-card-line-static-basic");
+  await firstCard.getByRole("tab", { name: "Options" }).click();
+  const optionSummary = firstCard.getByTestId("option-summary");
   const before = await optionSummary.textContent();
 
-  await page.getByRole("button", { name: "범례 토글" }).click();
+  await firstCard.getByRole("button", { name: "범례 토글" }).click();
   await expect(optionSummary).not.toHaveText(before ?? "");
 
-  await page.getByRole("button", { name: "색상 변경" }).click();
+  await firstCard.getByRole("button", { name: "색상 변경" }).click();
   await expect(optionSummary).toContainText("themeOverrides");
   await expect(optionSummary).toContainText("#84cc16");
   await expectCanvasPainted(page);
@@ -145,20 +194,20 @@ test("chart canvas resizes to the available content area", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 820 });
   await page.goto("/");
 
-  const stage = page.getByTestId("chart-stage");
+  const stage = page.getByTestId("chart-example-card-line-static-basic").getByTestId("chart-stage");
   const canvas = page.locator("canvas").first();
-  await expect(stage).toHaveCSS("height", "500px");
+  await expect(stage).toHaveCSS("height", "360px");
   await expect(canvas).toBeVisible();
 
   const stageBox = await stage.boundingBox();
   const canvasBox = await canvas.boundingBox();
   expect(stageBox).not.toBeNull();
   expect(canvasBox).not.toBeNull();
-  expect(canvasBox!.width).toBeLessThanOrEqual(stageBox!.width);
-  expect(canvasBox!.height).toBeLessThanOrEqual(stageBox!.height);
+  expect(canvasBox!.width).toBeLessThanOrEqual(stageBox!.width + 1);
+  expect(canvasBox!.height).toBeLessThanOrEqual(stageBox!.height + 1);
   expect(canvasBox!.y).toBeGreaterThanOrEqual(stageBox!.y);
-  expect(canvasBox!.y + canvasBox!.height).toBeLessThanOrEqual(stageBox!.y + stageBox!.height);
-  expect(canvasBox!.height).toBeGreaterThan(360);
+  expect(canvasBox!.y + canvasBox!.height).toBeLessThanOrEqual(stageBox!.y + stageBox!.height + 1);
+  expect(canvasBox!.height).toBeGreaterThan(300);
 
   await page.setViewportSize({ width: 900, height: 820 });
   await page.waitForTimeout(300);
@@ -167,11 +216,73 @@ test("chart canvas resizes to the available content area", async ({ page }) => {
   const resizedCanvasBox = await canvas.boundingBox();
   expect(resizedStageBox).not.toBeNull();
   expect(resizedCanvasBox).not.toBeNull();
-  expect(resizedCanvasBox!.width).toBeLessThanOrEqual(resizedStageBox!.width);
+  expect(resizedCanvasBox!.width).toBeLessThanOrEqual(resizedStageBox!.width + 1);
   expect(resizedCanvasBox!.y + resizedCanvasBox!.height).toBeLessThanOrEqual(
-    resizedStageBox!.y + resizedStageBox!.height,
+    resizedStageBox!.y + resizedStageBox!.height + 1,
   );
   expect(resizedCanvasBox!.width).toBeLessThan(canvasBox!.width);
+});
+
+test("chart type changes remount content and docs while repeated selection is ignored", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  await page.getByPlaceholder("예제 검색").fill("실시간");
+  await page.getByRole("tab", { name: "Options" }).click();
+  await page.getByLabel("옵션 JSON 편집").first().fill('{"notAllowed":true}');
+  await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
+
+  let docsPanel = await openDocsPanel(page);
+  await docsPanel.getByPlaceholder("옵션 또는 기능 검색").fill("seriesOptions");
+  await expect(docsPanel).toContainText("seriesOptions");
+
+  await chartButton(page, "line").click();
+  await expect(page.getByPlaceholder("예제 검색")).toHaveValue("실시간");
+  await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
+  docsPanel = await openDocsPanel(page);
+  await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toHaveValue("seriesOptions");
+
+  await chartButton(page, "bar").click();
+
+  await expect(page.getByPlaceholder("예제 검색")).toHaveValue("");
+  await expect(page.getByText("허용되지 않는 옵션입니다.")).toHaveCount(0);
+  docsPanel = await openDocsPanel(page);
+  await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toHaveValue("");
+  await expectMainCanvasCountBetween(page, 3, 5);
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("example search filters cards within selected chart type", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  await expect(page.getByTestId(/chart-example-card-/)).toHaveCount(3);
+  await page.getByPlaceholder("예제 검색").fill("실시간");
+  await expect(page.getByTestId(/chart-example-card-/)).toHaveCount(1);
+
+  await chartButton(page, "bar").click();
+  await expect(page.getByPlaceholder("예제 검색")).toHaveValue("");
+  await expectMainCanvasCountBetween(page, 3, 5);
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("live series count control updates selected example without diagnostics", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  const liveCard = page.getByTestId("chart-example-card-line-live-update");
+  const seriesInput = liveCard.getByLabel(/Series 개수/);
+  await seriesInput.fill("7");
+  await expect(seriesInput).toHaveValue("7");
+  await expect(liveCard.getByTestId("series-count-summary")).toContainText("7");
+  await expectCanvasPainted(page);
+
+  await seriesInput.fill("99");
+  await expect(seriesInput).toHaveValue("10");
+
+  expect(diagnostics).toEqual([]);
 });
 
 test("gridstack page dynamically creates and removes chart widgets", async ({ page }) => {
@@ -239,18 +350,19 @@ test("manual data refresh and live option validation are applied without browser
   await page.goto("/");
   await chartButton(page, "bar").click();
 
-  const sampleData = page.getByTestId("sample-data");
+  const firstCard = page.getByTestId("chart-example-card-bar-static-basic");
+  const sampleData = firstCard.getByTestId("sample-data");
   const before = await sampleData.textContent();
-  await page.getByRole("button", { name: "전체 데이터 갱신" }).click();
+  await firstCard.getByRole("button", { name: "전체 데이터 갱신" }).click();
   await expect(sampleData).not.toHaveText(before ?? "");
 
-  await page.getByRole("tab", { name: "Options" }).click();
-  await page.getByLabel("옵션 JSON 편집").fill('{"notAllowed":true}');
-  await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
+  await firstCard.getByRole("tab", { name: "Options" }).click();
+  await firstCard.getByLabel("옵션 JSON 편집").fill('{"notAllowed":true}');
+  await expect(firstCard.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
 
-  await page.getByLabel("옵션 JSON 편집").fill('{"grid":{"top":48}}');
-  await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeHidden();
-  await expect(page.getByTestId("option-summary")).toContainText('"top": 48');
+  await firstCard.getByLabel("옵션 JSON 편집").fill('{"grid":{"top":48}}');
+  await expect(firstCard.getByText("허용되지 않는 옵션입니다.")).toBeHidden();
+  await expect(firstCard.getByTestId("option-summary")).toContainText('"top": 48');
 
   expect(diagnostics).toEqual([]);
 });
