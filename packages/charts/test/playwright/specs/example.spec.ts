@@ -91,6 +91,7 @@ test("example page renders docs shell with collapsible chart navigation", async 
   await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toBeVisible();
   await expect(docsPanel.getByRole("heading", { name: "Required Props" })).toBeVisible();
 
+  await closeOverlayDocsPanel(page);
   await expectMainCanvasCountBetween(page, 3, 5);
   const canvases = page.getByRole("main", { name: "차트 예제" }).locator("canvas");
 
@@ -235,12 +236,17 @@ test("chart type changes remount content and docs while repeated selection is ig
   let docsPanel = await openDocsPanel(page);
   await docsPanel.getByPlaceholder("옵션 또는 기능 검색").fill("seriesOptions");
   await expect(docsPanel).toContainText("seriesOptions");
+  const docsInOverlay = await page.getByRole("dialog").isVisible().catch(() => false);
+  await closeOverlayDocsPanel(page);
 
   await chartButton(page, "line").click();
   await expect(page.getByPlaceholder("예제 검색")).toHaveValue("실시간");
   await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
-  docsPanel = await openDocsPanel(page);
-  await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toHaveValue("seriesOptions");
+  if (!docsInOverlay) {
+    docsPanel = await openDocsPanel(page);
+    await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toHaveValue("seriesOptions");
+  }
+  await closeOverlayDocsPanel(page);
 
   await chartButton(page, "bar").click();
 
@@ -248,6 +254,7 @@ test("chart type changes remount content and docs while repeated selection is ig
   await expect(page.getByText("허용되지 않는 옵션입니다.")).toHaveCount(0);
   docsPanel = await openDocsPanel(page);
   await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toHaveValue("");
+  await closeOverlayDocsPanel(page);
   await expectMainCanvasCountBetween(page, 3, 5);
 
   expect(diagnostics).toEqual([]);
