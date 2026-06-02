@@ -87,6 +87,8 @@ export default async function SignInPage({
           locale={locale}
           messages={{
             authFailed: t("errors.auth"),
+            locked: t.raw("errors.locked"),
+            lockedTitle: t("errors.lockedTitle"),
             securityFailed: t("errors.security"),
             fieldErrors: {
               username: {

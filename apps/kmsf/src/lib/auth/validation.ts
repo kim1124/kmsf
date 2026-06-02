@@ -1,10 +1,11 @@
 import DOMPurify from "isomorphic-dompurify";
 import { z } from "zod";
 
-export const USERNAME_MIN_LENGTH = 6;
+export const USERNAME_MIN_LENGTH = 5;
 export const USERNAME_MAX_LENGTH = 32;
 export const PASSWORD_MIN_LENGTH = 6;
 export const PASSWORD_MAX_LENGTH = 32;
+export const INITIAL_ADMIN_USERNAME = "admin";
 
 const usernamePattern = /^[A-Za-z0-9]+$/;
 const passwordLetterPattern = /[A-Za-z]/;
@@ -135,8 +136,10 @@ function isValidPassword(value: string) {
 export const usernameSchema = z
   .string()
   .trim()
-  .min(USERNAME_MIN_LENGTH, { message: "username.invalid" })
   .max(USERNAME_MAX_LENGTH, { message: "username.invalid" })
+  .refine((value) => value.length >= USERNAME_MIN_LENGTH, {
+    message: "username.invalid",
+  })
   .refine(isValidUsername, { message: "username.invalid" });
 
 export const emailSchema = z

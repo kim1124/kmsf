@@ -46,9 +46,24 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
   await expect(page.getByRole("heading", { name: "Admin 관리 계정" })).toBeVisible();
   await expect(page.getByText("관리자 Level 3")).toBeVisible();
   await expect(page.getByRole("button", { name: "이전", exact: true })).toBeVisible();
+  await expect(page.locator("#initial-admin-username")).toHaveCount(0);
+  await expect(page.locator("#initial-admin-display-name")).toHaveCount(0);
+  await expect(page.locator("#initial-admin-email")).toBeVisible();
+  await expect(page.locator("#initial-admin-password")).toBeVisible();
+  await expect(page.locator("#initial-admin-password-confirm")).toBeVisible();
 
-  await page.locator("#initial-admin-username").fill(e2eAdminAccount.username);
-  await page.locator("#initial-admin-display-name").fill(e2eAdminAccount.displayName);
+  const [emailBox, passwordBox, confirmBox] = await Promise.all([
+    page.locator("#initial-admin-email").boundingBox(),
+    page.locator("#initial-admin-password").boundingBox(),
+    page.locator("#initial-admin-password-confirm").boundingBox(),
+  ]);
+
+  expect(emailBox).toBeTruthy();
+  expect(passwordBox).toBeTruthy();
+  expect(confirmBox).toBeTruthy();
+  expect(emailBox!.y).toBeLessThan(passwordBox!.y);
+  expect(passwordBox!.y).toBeLessThan(confirmBox!.y);
+
   await page.locator("#initial-admin-email").fill(e2eAdminAccount.email);
   await page.locator("#initial-admin-password").fill(e2eAdminAccount.password);
   await page.locator("#initial-admin-password-confirm").fill(e2eAdminAccount.password);
@@ -71,8 +86,10 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
   await expect(page.getByRole("columnheader", { name: "가입일자" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "최근 접속 시간" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "비고" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: e2eAdminAccount.displayName })).toBeVisible();
+  const adminRow = page.getByRole("row").filter({ hasText: e2eAdminAccount.email });
+  await expect(adminRow.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toHaveCount(
+    2,
+  );
 
   await page.goto("/dashboard");
   await page.waitForLoadState("networkidle");

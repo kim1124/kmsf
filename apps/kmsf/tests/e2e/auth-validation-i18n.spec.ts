@@ -10,8 +10,12 @@ async function expectTranslatedValidation(
 ) {
   const expectedUsernameMessage =
     locale === "ko"
-      ? "ID는 6자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다."
-      : "The ID must be 6-32 letters, numbers, or an email-style value.";
+      ? "ID는 5자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다."
+      : "The ID must be 5-32 letters, numbers, or an email-style value.";
+  const expectedEmailMessage =
+    locale === "ko"
+      ? "올바른 E-mail 주소를 입력해 주세요."
+      : "Enter a valid E-mail address.";
   const expectedPasswordMessage =
     locale === "ko"
       ? "비밀번호는 6자~32자의 영문, 숫자, 특수문자를 모두 포함해야 합니다."
@@ -36,20 +40,25 @@ async function expectTranslatedValidation(
     await clickInitialSetupNext(page);
   }
 
-  const usernameSelector = page.url().includes("/setup/initial-admin")
-    ? "#initial-admin-username"
-    : "#login-username";
-  const passwordSelector = page.url().includes("/setup/initial-admin")
-    ? "#initial-admin-password"
-    : "#login-password";
+  const isInitialSetupPage = page.url().includes("/setup/initial-admin");
+  const passwordSelector = isInitialSetupPage ? "#initial-admin-password" : "#login-password";
 
-  await page.locator(usernameSelector).fill("kim");
+  if (isInitialSetupPage) {
+    await page.locator("#initial-admin-email").fill("kim");
+  } else {
+    await page.locator("#login-username").fill("kim");
+  }
   await page.locator(passwordSelector).fill("1234");
   await page.locator("body").click();
 
-  await expect(page.getByText(expectedUsernameMessage, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(isInitialSetupPage ? expectedEmailMessage : expectedUsernameMessage, {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(page.getByText(expectedPasswordMessage, { exact: true })).toBeVisible();
   await expect(page.getByText("username.invalid")).toHaveCount(0);
+  await expect(page.getByText("email.invalid")).toHaveCount(0);
   await expect(page.getByText("password.invalid")).toHaveCount(0);
 }
 

@@ -29,7 +29,7 @@ function TooltipContent({
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
         className={cn(
-          "z-50 rounded-xl border border-border bg-surface px-3 py-2 text-xs text-foreground shadow-xl",
+          "z-50 rounded-[var(--kmsf-radius-md)] border border-border bg-accent px-4 py-2.5 text-sm text-black shadow-[var(--kmsf-shadow-overlay)]",
           className,
         )}
         data-slot="tooltip-content"

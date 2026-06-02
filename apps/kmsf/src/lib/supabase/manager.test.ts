@@ -42,6 +42,7 @@ import {
   buildManagerRecord,
   ensureManagerProfile,
   findManagerLoginEmail,
+  findManagerLoginIdentity,
   isManagerUsernameTaken,
   touchManagerLastSignedIn,
 } from "./manager";
@@ -104,6 +105,26 @@ describe("manager Supabase helpers", () => {
       }),
       { onConflict: "id" },
     );
+  });
+
+  it("returns a stable manager identity for account-scoped login guards", async () => {
+    supabaseMocks.hasServiceRole.mockReturnValue(true);
+    supabaseMocks.maybeSingle.mockResolvedValue({
+      data: {
+        email: "member01@example.com",
+        id: "00000000-0000-0000-0000-000000000001",
+        username: "member01",
+      },
+      error: null,
+    });
+
+    await expect(findManagerLoginIdentity("member01")).resolves.toEqual({
+      email: "member01@example.com",
+      id: "00000000-0000-0000-0000-000000000001",
+      username: "member01",
+    });
+    expect(supabaseMocks.select).toHaveBeenCalledWith("id, email, username");
+    expect(supabaseMocks.eq).toHaveBeenCalledWith("username", "member01");
   });
 
   it("falls back to manager table lookup when username RPC is missing", async () => {

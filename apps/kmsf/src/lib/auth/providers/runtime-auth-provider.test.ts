@@ -14,7 +14,7 @@ describe("runtime auth provider resolution", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "publishable-key";
     delete process.env.SUPABASE_API_KEY;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 
     try {
       const resolveRuntimeAuthProvider = createRuntimeAuthProviderResolver({
@@ -25,6 +25,7 @@ describe("runtime auth provider resolution", () => {
         resolveRuntimeAuthProvider({
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "publishable-key",
+          SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
         }),
       ).resolves.toMatchObject({
         provider: "supabase",
@@ -45,7 +46,7 @@ describe("runtime auth provider resolution", () => {
     }
   });
 
-  it("keeps Supabase when the Supabase probe succeeds", async () => {
+  it("falls back to local-json when the Supabase service role key is missing", async () => {
     const probeSupabase = vi.fn(async () => undefined);
     const resolveRuntimeAuthProvider = createRuntimeAuthProviderResolver({
       probeSupabase,
@@ -55,6 +56,27 @@ describe("runtime auth provider resolution", () => {
     const result = await resolveRuntimeAuthProvider({
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    });
+
+    expect(result).toEqual({
+      provider: "local-json",
+      reason: "missing-supabase-service-role",
+      attempts: 0,
+    });
+    expect(probeSupabase).not.toHaveBeenCalled();
+  });
+
+  it("keeps Supabase when the Supabase probe succeeds with a service role key", async () => {
+    const probeSupabase = vi.fn(async () => undefined);
+    const resolveRuntimeAuthProvider = createRuntimeAuthProviderResolver({
+      probeSupabase,
+      readSetupConfig: async () => null,
+    });
+
+    const result = await resolveRuntimeAuthProvider({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
     });
 
     expect(result).toEqual({
@@ -77,6 +99,7 @@ describe("runtime auth provider resolution", () => {
     const result = await resolveRuntimeAuthProvider({
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
     });
 
     expect(result).toEqual({
@@ -143,6 +166,7 @@ describe("runtime auth provider resolution", () => {
     const env = {
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
     };
 
     await expect(resolveRuntimeAuthProvider(env)).resolves.toMatchObject({

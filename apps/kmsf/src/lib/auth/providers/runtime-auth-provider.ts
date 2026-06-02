@@ -7,6 +7,7 @@ type AuthProviderEnv = Partial<NodeJS.ProcessEnv>;
 export type RuntimeAuthProviderReason =
   | "explicit-local-json"
   | "missing-supabase-credentials"
+  | "missing-supabase-service-role"
   | "stored-local-json"
   | "supabase-ready"
   | "supabase-unavailable";
@@ -87,6 +88,14 @@ export function createRuntimeAuthProviderResolver(
       return {
         provider: "local-json",
         reason: "missing-supabase-credentials",
+        attempts: 0,
+      };
+    }
+
+    if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+      return {
+        provider: "local-json",
+        reason: "missing-supabase-service-role",
         attempts: 0,
       };
     }

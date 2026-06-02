@@ -11,10 +11,8 @@ test("header brand, footer clock, and active navigation behave correctly", async
 
   if (page.url().includes("/setup/initial-admin")) {
     await completeInitialSetupWizard(page, {
-      displayName: `관리자 ${runId.slice(-4)}`,
       email: `owner_${runId}@mailinator.com`,
       password: "admin00@!",
-      username: `owner${runId.slice(-6)}`,
     });
     await page.waitForURL("**/dashboard", { timeout: 20_000 });
   } else if (page.url().includes("/sign-in")) {

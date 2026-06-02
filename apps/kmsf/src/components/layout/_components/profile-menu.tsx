@@ -60,7 +60,7 @@ export function ProfileMenu({
   const profileFieldErrors =
     locale === "en"
       ? {
-          usernameInvalid: "The ID must be 6-32 letters, numbers, or an email-style value.",
+          usernameInvalid: "The ID must be 5-32 letters, numbers, or an email-style value.",
           emailInvalid: "Enter a valid E-mail address.",
           passwordInvalid:
             "The password must be 6-32 characters and include letters, numbers, and special characters.",
@@ -69,7 +69,7 @@ export function ProfileMenu({
           passwordConfirmMismatch: "The passwords do not match.",
         }
       : {
-          usernameInvalid: "ID는 6자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다.",
+          usernameInvalid: "ID는 5자~32자의 영문, 숫자 또는 이메일 형식이어야 합니다.",
           emailInvalid: "올바른 E-mail 주소를 입력해 주세요.",
           passwordInvalid:
             "비밀번호는 6자~32자의 영문, 숫자, 특수문자를 모두 포함해야 합니다.",

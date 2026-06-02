@@ -25,6 +25,7 @@ if (!allowDestructiveReset) {
 const summary = {
   localJsonRemoved: false,
   managerRowsRemoved: 0,
+  setupConfigRemoved: false,
   supabaseUsersRemoved: 0,
   supabaseSkipped: false,
 };
@@ -39,6 +40,20 @@ async function resetLocalJsonAuthDb() {
 
   await rm(dbPath, { force: true });
   summary.localJsonRemoved = true;
+}
+
+async function resetProjectSetupConfig() {
+  const fileName = process.env.KMSF_SETUP_CONFIG_FILE;
+  const safeFileName =
+    fileName && /^[A-Za-z0-9._-]+$/.test(fileName) ? fileName : "setup.config.json";
+  const configPath = join(process.cwd(), ".local", safeFileName);
+
+  if (!existsSync(configPath)) {
+    return;
+  }
+
+  await rm(configPath, { force: true });
+  summary.setupConfigRemoved = true;
 }
 
 function getSupabaseAdminClient() {
@@ -118,6 +133,7 @@ async function resetSupabaseUsers(admin) {
 
 async function main() {
   await resetLocalJsonAuthDb();
+  await resetProjectSetupConfig();
 
   const admin = getSupabaseAdminClient();
 

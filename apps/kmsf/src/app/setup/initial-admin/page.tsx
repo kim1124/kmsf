@@ -44,8 +44,6 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
           adminDescription: t("steps.admin.description"),
           adminLevel: t("steps.admin.level"),
           adminTitle: t("steps.admin.title"),
-          username: t("username"),
-          displayName: t("displayName"),
           email: t("email"),
           fallbackNotice: t("steps.provider.fallbackNotice", {
             attempts: runtimeProvider.attempts,
@@ -73,13 +71,6 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
           authFailed: t("errors.auth"),
           securityFailed: t("errors.security"),
           fieldErrors: {
-            username: {
-              invalid: t("fieldErrors.username.invalid"),
-              duplicate: t("fieldErrors.username.duplicate"),
-            },
-            displayName: {
-              invalid: t("fieldErrors.displayName.invalid"),
-            },
             email: {
               invalid: t("fieldErrors.email.invalid"),
               duplicate: t("fieldErrors.email.duplicate"),
@@ -94,8 +85,6 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
           },
         }}
         tooltips={{
-          username: t("tooltips.username"),
-          displayName: t("tooltips.displayName"),
           email: t("tooltips.email"),
           password: t("tooltips.password"),
           passwordConfirm: t("tooltips.passwordConfirm"),
