@@ -14,11 +14,9 @@ import type { AuthProviderKind } from "@/lib/auth/providers/auth-provider";
 import type { RuntimeAuthProviderResult } from "@/lib/auth/providers/runtime-auth-provider";
 import {
   createEmptyAccountFieldErrors,
-  createEmptyAccountFields,
   getLiveAccountFieldErrors,
+  INITIAL_ADMIN_USERNAME,
   sanitizeEmailInput,
-  sanitizeUsernameInput,
-  sanitizeVisibleInput,
   type AccountFieldErrors,
   type AccountFields,
 } from "@/lib/auth/validation";
@@ -26,13 +24,11 @@ import { cn } from "@/lib/utils";
 
 type SetupStep = "provider" | "admin" | "processing";
 
-type InitialAdminFields = AccountFields & {
-  displayName: string;
-};
-
-type InitialAdminFieldErrors = AccountFieldErrors & {
-  displayName: string | null;
-};
+type InitialAdminFormValues = Pick<AccountFields, "email" | "password" | "passwordConfirm">;
+type InitialAdminClientFieldErrors = Pick<
+  AccountFieldErrors,
+  "email" | "password" | "passwordConfirm"
+>;
 
 type InitialAdminFormProps = {
   csrfToken: string;
@@ -54,8 +50,6 @@ type InitialAdminFormProps = {
     adminTitle: string;
     adminDescription: string;
     adminLevel: string;
-    username: string;
-    displayName: string;
     email: string;
     password: string;
     passwordConfirm: string;
@@ -65,8 +59,6 @@ type InitialAdminFormProps = {
     processingDescription: string;
   };
   tooltips: {
-    username: string;
-    displayName: string;
     email: string;
     password: string;
     passwordConfirm: string;
@@ -75,13 +67,6 @@ type InitialAdminFormProps = {
     authFailed: string;
     securityFailed: string;
     fieldErrors: {
-      username: {
-        invalid: string;
-        duplicate: string;
-      };
-      displayName: {
-        invalid: string;
-      };
       email: {
         invalid: string;
         duplicate: string;
@@ -97,37 +82,50 @@ type InitialAdminFormProps = {
   };
 };
 
-const emptyInitialAdminFields: InitialAdminFields = {
-  ...createEmptyAccountFields(),
-  displayName: "",
+const INITIAL_ADMIN_DISPLAY_NAME = "admin";
+
+const emptyInitialAdminFormValues: InitialAdminFormValues = {
+  email: "",
+  password: "",
+  passwordConfirm: "",
 };
 
-const emptyInitialAdminFieldErrors: InitialAdminFieldErrors = {
-  ...createEmptyAccountFieldErrors(),
-  displayName: null,
+const emptyInitialAdminClientErrors: InitialAdminClientFieldErrors = {
+  email: null,
+  password: null,
+  passwordConfirm: null,
 };
 
 const initialState: InitialAdminFormState = {
   authError: null,
   fields: {
-    ...emptyInitialAdminFields,
+    username: INITIAL_ADMIN_USERNAME,
+    displayName: INITIAL_ADMIN_DISPLAY_NAME,
+    ...emptyInitialAdminFormValues,
     authProvider: "local-json",
   },
-  fieldErrors: emptyInitialAdminFieldErrors,
+  fieldErrors: {
+    ...createEmptyAccountFieldErrors(),
+    displayName: null,
+  },
 };
 
-function isDisplayNameInvalid(value: string) {
-  return value.length < 2 || value.length > 40;
-}
+function getInitialAdminFieldErrors(
+  fields: InitialAdminFormValues,
+): InitialAdminClientFieldErrors {
+  const fieldErrors = getLiveAccountFieldErrors({
+    username: INITIAL_ADMIN_USERNAME,
+    ...fields,
+  });
 
-function getInitialAdminFieldErrors(fields: InitialAdminFields): InitialAdminFieldErrors {
   return {
-    ...getLiveAccountFieldErrors(fields),
-    displayName: isDisplayNameInvalid(fields.displayName) ? "displayName.invalid" : null,
+    email: fieldErrors.email,
+    password: fieldErrors.password,
+    passwordConfirm: fieldErrors.passwordConfirm,
   };
 }
 
-function hasFieldError(fieldErrors: InitialAdminFieldErrors) {
+function hasFieldError(fieldErrors: object) {
   return Object.values(fieldErrors).some(Boolean);
 }
 
@@ -138,14 +136,6 @@ function getErrorMessage(
 ) {
   if (!code) {
     return null;
-  }
-
-  if (field === "username") {
-    return code === "duplicate.username" ? messages.username.duplicate : messages.username.invalid;
-  }
-
-  if (field === "displayName") {
-    return messages.displayName.invalid;
   }
 
   if (field === "email") {
@@ -224,9 +214,10 @@ export function InitialAdminForm({
   const [selectedProvider, setSelectedProvider] = useState<AuthProviderKind>(
     canUseSupabase ? "supabase" : "local-json",
   );
-  const [formValues, setFormValues] = useState<InitialAdminFields>(emptyInitialAdminFields);
+  const [formValues, setFormValues] =
+    useState<InitialAdminFormValues>(emptyInitialAdminFormValues);
   const [clientErrors, setClientErrors] =
-    useState<InitialAdminFieldErrors>(emptyInitialAdminFieldErrors);
+    useState<InitialAdminClientFieldErrors>(emptyInitialAdminClientErrors);
 
   const accountHasErrors = useMemo(() => hasFieldError(clientErrors), [clientErrors]);
   const serverReturnedErrors = state.authError || hasFieldError(state.fieldErrors);
@@ -242,14 +233,7 @@ export function InitialAdminForm({
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    const nextValue =
-      name === "username"
-        ? sanitizeUsernameInput(value)
-        : name === "displayName"
-          ? sanitizeVisibleInput(value)
-          : name === "email"
-            ? sanitizeEmailInput(value)
-            : value;
+    const nextValue = name === "email" ? sanitizeEmailInput(value) : value;
     const newValues = { ...formValues, [name]: nextValue };
     setFormValues(newValues);
     setClientErrors(getInitialAdminFieldErrors(newValues));
@@ -367,33 +351,7 @@ export function InitialAdminForm({
             </span>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <FieldWithTooltip
-              errorText={
-                getErrorMessage("username", clientErrors.username, messages.fieldErrors) ||
-                getErrorMessage("username", state.fieldErrors.username, messages.fieldErrors)
-              }
-              id="initial-admin-username"
-              label={labels.username}
-              maxLength={32}
-              name="username"
-              onChange={handleChange}
-              tooltip={tooltips.username}
-              value={formValues.username}
-            />
-            <FieldWithTooltip
-              errorText={
-                getErrorMessage("displayName", clientErrors.displayName, messages.fieldErrors) ||
-                getErrorMessage("displayName", state.fieldErrors.displayName, messages.fieldErrors)
-              }
-              id="initial-admin-display-name"
-              label={labels.displayName}
-              maxLength={40}
-              name="displayName"
-              onChange={handleChange}
-              tooltip={tooltips.displayName}
-              value={formValues.displayName}
-            />
+          <div className="mt-6 grid gap-4">
             <FieldWithTooltip
               errorText={
                 getErrorMessage("email", clientErrors.email, messages.fieldErrors) ||
@@ -422,31 +380,29 @@ export function InitialAdminForm({
               type="password"
               value={formValues.password}
             />
-            <div className="md:col-span-2">
-              <FieldWithTooltip
-                errorText={
-                  getErrorMessage(
-                    "passwordConfirm",
-                    clientErrors.passwordConfirm,
-                    messages.fieldErrors,
-                  ) ||
-                  getErrorMessage(
-                    "passwordConfirm",
-                    state.fieldErrors.passwordConfirm,
-                    messages.fieldErrors,
-                  )
-                }
-                id="initial-admin-password-confirm"
-                label={labels.passwordConfirm}
-                maxLength={32}
-                name="passwordConfirm"
-                onChange={handleChange}
-                placeholder="****"
-                tooltip={tooltips.passwordConfirm}
-                type="password"
-                value={formValues.passwordConfirm}
-              />
-            </div>
+            <FieldWithTooltip
+              errorText={
+                getErrorMessage(
+                  "passwordConfirm",
+                  clientErrors.passwordConfirm,
+                  messages.fieldErrors,
+                ) ||
+                getErrorMessage(
+                  "passwordConfirm",
+                  state.fieldErrors.passwordConfirm,
+                  messages.fieldErrors,
+                )
+              }
+              id="initial-admin-password-confirm"
+              label={labels.passwordConfirm}
+              maxLength={32}
+              name="passwordConfirm"
+              onChange={handleChange}
+              placeholder="****"
+              tooltip={tooltips.passwordConfirm}
+              type="password"
+              value={formValues.passwordConfirm}
+            />
           </div>
 
           {state.authError ? (

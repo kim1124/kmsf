@@ -13,9 +13,8 @@ import {
   accountSchema,
   createEmptyAccountFieldErrors,
   getAccountFieldErrors,
+  INITIAL_ADMIN_USERNAME,
   sanitizeEmailInput,
-  sanitizeUsernameInput,
-  sanitizeVisibleInput,
   type AccountFieldErrors,
   type AccountFields,
 } from "@/lib/auth/validation";
@@ -49,6 +48,7 @@ export type InitialAdminFormState = {
 };
 
 const ADMIN_LEVEL = 3;
+const INITIAL_ADMIN_DISPLAY_NAME = "admin";
 
 function buildState(
   fields: InitialAdminFields,
@@ -72,18 +72,14 @@ function normalizeInitialSetupAuthProvider(value: FormDataEntryValue | null): In
   return value === "supabase" ? "supabase" : "local-json";
 }
 
-function isInvalidDisplayName(value: string) {
-  return value.length < 2 || value.length > 40;
-}
-
 export async function createInitialAdminAction(
   _prevState: InitialAdminFormState,
   formData: FormData,
 ) {
   const fields = {
     authProvider: normalizeInitialSetupAuthProvider(formData.get("authProvider")),
-    displayName: sanitizeVisibleInput(String(formData.get("displayName") ?? "")),
-    username: sanitizeUsernameInput(String(formData.get("username") ?? "")),
+    displayName: INITIAL_ADMIN_DISPLAY_NAME,
+    username: INITIAL_ADMIN_USERNAME,
     email: sanitizeEmailInput(String(formData.get("email") ?? "")),
     password: String(formData.get("password") ?? ""),
     passwordConfirm: String(formData.get("passwordConfirm") ?? ""),
@@ -94,14 +90,10 @@ export async function createInitialAdminAction(
   }
 
   const parsed = accountSchema.safeParse(fields);
-  const displayNameInvalid = isInvalidDisplayName(fields.displayName);
 
-  if (!parsed.success || displayNameInvalid) {
+  if (!parsed.success) {
     return buildState(fields, {
-      fieldErrors: {
-        ...(!parsed.success ? getAccountFieldErrors(parsed.error) : undefined),
-        displayName: displayNameInvalid ? "displayName.invalid" : null,
-      },
+      fieldErrors: getAccountFieldErrors(parsed.error),
     });
   }
 
@@ -127,7 +119,7 @@ export async function createInitialAdminAction(
       await writeProjectSetupConfig("local-json");
       resetRuntimeAuthProviderCache();
       account = await createLocalJsonAccount({
-        displayName: fields.displayName,
+        displayName: INITIAL_ADMIN_DISPLAY_NAME,
         username: parsed.data.username,
         email: parsed.data.email,
         level: ADMIN_LEVEL,
@@ -136,10 +128,13 @@ export async function createInitialAdminAction(
       });
     } catch (error) {
       if (error instanceof LocalJsonAuthStoreError) {
+        if (error.code === "duplicate_username") {
+          return buildState(fields, { authError: "auth.failed" });
+        }
+
         return buildState(fields, {
           fieldErrors: {
-            username: error.code === "duplicate_username" ? "duplicate.username" : null,
-            email: error.code === "duplicate_email" ? "duplicate.email" : null,
+            email: "duplicate.email",
           },
         });
       }
@@ -160,9 +155,12 @@ export async function createInitialAdminAction(
   ]);
 
   if (usernameTaken || emailTaken) {
+    if (usernameTaken && !emailTaken) {
+      return buildState(fields, { authError: "auth.failed" });
+    }
+
     return buildState(fields, {
       fieldErrors: {
-        username: usernameTaken ? "duplicate.username" : null,
         email: emailTaken ? "duplicate.email" : null,
       },
     });
@@ -179,7 +177,7 @@ export async function createInitialAdminAction(
 
   if (hasSupabaseServiceRoleKey()) {
     const { error: createError } = await createSupabaseAccountWithManager({
-      displayName: fields.displayName,
+      displayName: INITIAL_ADMIN_DISPLAY_NAME,
       email: normalizedEmail,
       emailConfirm: true,
       level: ADMIN_LEVEL,
@@ -195,7 +193,7 @@ export async function createInitialAdminAction(
       password: parsed.data.password,
       options: {
         data: {
-          full_name: fields.displayName,
+          full_name: INITIAL_ADMIN_DISPLAY_NAME,
           username: parsed.data.username,
         },
       },
@@ -223,9 +221,12 @@ export async function createInitialAdminAction(
         isAuthEmailTaken(normalizedEmail),
       ]);
 
+      if (conflictUsername && !conflictEmail) {
+        return buildState(fields, { authError: "auth.failed" });
+      }
+
       return buildState(fields, {
         fieldErrors: {
-          username: conflictUsername ? "duplicate.username" : null,
           email: conflictEmail ? "duplicate.email" : null,
         },
       });

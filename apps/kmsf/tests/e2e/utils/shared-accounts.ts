@@ -1,6 +1,6 @@
 export const e2eAdminAccount = {
-  displayName: "E2E 관리자",
+  displayName: "admin",
   email: "e2e-admin@local.test",
   password: "Admin00@!",
-  username: "e2eadmin",
+  username: "admin",
 } as const;

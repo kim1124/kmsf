@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { CircleHelp } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ type FieldWithTooltipProps = {
   value?: string;
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
   errorText?: string | null;
-  tooltipTrigger?: "icon" | "input";
+  tooltipTrigger?: "icon";
 };
 
 export function FieldWithTooltip({
@@ -34,9 +35,11 @@ export function FieldWithTooltip({
   value,
   onChange,
   errorText,
-  tooltipTrigger = "input",
+  tooltipTrigger = "icon",
 }: FieldWithTooltipProps) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const errorId = errorText ? `${id}-error` : undefined;
+  const renderIconTrigger = tooltipTrigger === "icon";
   const input = (className?: string) => (
     <Input
       aria-describedby={errorId}
@@ -60,8 +63,8 @@ export function FieldWithTooltip({
         {label}
       </label>
       <TooltipProvider>
-        <Tooltip>
-          {tooltipTrigger === "icon" ? (
+        <Tooltip open={tooltipOpen}>
+          {renderIconTrigger ? (
             <div className="relative">
               {input("pr-10")}
               <TooltipTrigger asChild>
@@ -69,16 +72,17 @@ export function FieldWithTooltip({
                   aria-label={`${label} 도움말`}
                   className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-foreground/45 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring"
                   type="button"
+                  onBlur={() => setTooltipOpen(false)}
+                  onFocus={() => setTooltipOpen(false)}
+                  onPointerEnter={() => setTooltipOpen(true)}
+                  onPointerLeave={() => setTooltipOpen(false)}
+                  onPointerMove={() => setTooltipOpen(true)}
                 >
                   <CircleHelp className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
             </div>
-          ) : (
-            <TooltipTrigger asChild>
-              <span className="block">{input()}</span>
-            </TooltipTrigger>
-          )}
+          ) : null}
           <TooltipContent>{tooltip}</TooltipContent>
         </Tooltip>
       </TooltipProvider>

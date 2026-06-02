@@ -164,24 +164,44 @@ export const getManagerProfile = cache(async (userId: string) => {
   return data;
 });
 
+export type ManagerLoginIdentity = Pick<ManagerProfile, "email" | "id" | "username">;
+
+export async function findManagerLoginIdentity(
+  identifier: string,
+): Promise<ManagerLoginIdentity | null> {
+  const normalized = identifier.trim();
+
+  if (!normalized || !hasSupabaseServiceRoleKey()) {
+    return null;
+  }
+
+  const admin = createSupabaseAdminClient();
+  const column = normalized.includes("@") ? "email" : "username";
+  const value = column === "email" ? normalized.toLowerCase() : normalized;
+  const { data, error } = await admin
+    .from("manager")
+    .select("id, email, username")
+    .eq(column, value)
+    .maybeSingle<ManagerLoginIdentity>();
+
+  if (error || !data?.id || !data.email || !data.username) {
+    return null;
+  }
+
+  return data;
+}
+
 export async function findManagerLoginEmail(identifier: string) {
   const normalized = identifier.trim();
 
-  if (normalized.includes("@")) {
-    return normalized;
+  const loginIdentity = await findManagerLoginIdentity(normalized);
+
+  if (loginIdentity?.email) {
+    return loginIdentity.email;
   }
 
-  if (hasSupabaseServiceRoleKey()) {
-    const admin = createSupabaseAdminClient();
-    const { data, error } = await admin
-      .from("manager")
-      .select("email")
-      .eq("username", normalized)
-      .maybeSingle<{ email: string }>();
-
-    if (!error && data?.email) {
-      return data.email;
-    }
+  if (normalized.includes("@")) {
+    return normalized.toLowerCase();
   }
 
   const supabase = await createSupabaseServerClient();

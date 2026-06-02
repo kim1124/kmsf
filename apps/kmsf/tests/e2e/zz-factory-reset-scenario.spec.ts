@@ -134,8 +134,10 @@ test("level3 admin, member lifecycle, and factory reset work end to end", async 
   await page.goto("/settings?section=accounts");
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("link", { name: "계정 관리" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toBeVisible();
-  await expect(page.getByRole("cell", { name: e2eAdminAccount.displayName, exact: true })).toBeVisible();
+  const adminRow = page.getByRole("row").filter({ hasText: e2eAdminAccount.email });
+  await expect(adminRow.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toHaveCount(
+    2,
+  );
   await expect(page.getByText("Level 3 / 관리자")).toBeVisible();
 
   await signOut(page);
@@ -164,7 +166,9 @@ test("level3 admin, member lifecycle, and factory reset work end to end", async 
   await signIn(page, e2eAdminAccount);
   await page.goto("/settings?section=accounts");
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toBeVisible();
+  await expect(adminRow.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toHaveCount(
+    2,
+  );
   await expect(page.getByRole("cell", { name: updatedMemberAccount.username, exact: true })).toHaveCount(
     0,
   );

@@ -80,10 +80,7 @@ async function createInitialAdminIfRequired(
     return false;
   }
 
-  await completeInitialSetupWizard(page, {
-    displayName: account.username,
-    ...account,
-  });
+  await completeInitialSetupWizard(page, account);
   await page.waitForURL("**/dashboard", { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
   await expectNoBrowserIssues("initial-admin-created");
@@ -168,7 +165,7 @@ test("initial setup, member signup, page navigation, logout, and deletion follow
   const adminAccount = {
     email: `scenario_admin_${runId}@mailinator.com`,
     password: "Admin00@!",
-    username: `owner${runId.slice(-6)}`,
+    username: "admin",
   };
   const memberAccount = {
     email: `scenario_member_${runId}@mailinator.com`,

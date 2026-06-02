@@ -119,15 +119,17 @@
       "validation": "Please check your input.",
       "auth": "The ID or password is incorrect.",
       "oauth": "Google sign-in is available after Supabase setup.",
+      "lockedTitle": "Login blocked",
+      "locked": "Multiple login attempts failed. You cannot sign in for {seconds} seconds.",
       "security": "The security token is invalid. Refresh the page and try again."
     },
     "tooltips": {
-      "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "username": "Use 5-32 letters, numbers, or an email-style ID.",
       "password": "Use 6-32 characters with letters, numbers, and special characters."
     },
     "fieldErrors": {
       "username": {
-        "invalid": "The ID must be 6-32 letters, numbers, or an email-style value."
+        "invalid": "The ID must be 5-32 letters, numbers, or an email-style value."
       },
       "password": {
         "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
@@ -179,7 +181,7 @@
       "security": "The security token is invalid. Refresh the page and try again."
     },
     "tooltips": {
-      "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "username": "Use 5-32 letters, numbers, or an email-style ID.",
       "displayName": "The administrator name shown in settings and profile menus.",
       "email": "Enter a valid E-mail address.",
       "password": "Use 6-32 characters with letters, numbers, and special characters.",
@@ -187,7 +189,7 @@
     },
     "fieldErrors": {
       "username": {
-        "invalid": "The ID must be 6-32 letters, numbers, or an email-style value.",
+        "invalid": "The ID must be 5-32 letters, numbers, or an email-style value.",
         "duplicate": "This ID is already in use."
       },
       "displayName": {
@@ -221,14 +223,14 @@
       "security": "The security token is invalid. Refresh the page and try again."
     },
     "tooltips": {
-      "username": "Use 6-32 letters, numbers, or an email-style ID.",
+      "username": "Use 5-32 letters, numbers, or an email-style ID.",
       "email": "Enter a valid E-mail address.",
       "password": "Use 6-32 characters with letters, numbers, and special characters.",
       "passwordConfirm": "Re-enter the same password once more."
     },
     "fieldErrors": {
       "username": {
-        "invalid": "The ID must be 6-32 letters, numbers, or an email-style value.",
+        "invalid": "The ID must be 5-32 letters, numbers, or an email-style value.",
         "duplicate": "This ID is already in use."
       },
       "email": {

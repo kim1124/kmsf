@@ -6,11 +6,22 @@ import { promisify } from "node:util";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 
+import {
+  buildAccountLoginGuardIdentifier,
+  buildLoginLockedUntil,
+  buildUnknownLoginGuardIdentifier,
+  getLoginLockRemainingSeconds,
+  hashLoginIdentifier,
+  LOGIN_FAILURE_LIMIT,
+  type LoginGuardCheckResult,
+  type LoginGuardEventType,
+  type LoginGuardRecordResult,
+} from "@/lib/auth/login-guard";
 import type { AppRole } from "@/lib/auth/roles";
 
 const scrypt = promisify(scryptCallback);
 
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let dbMutationQueue = Promise.resolve();
 
 export type LocalJsonAuthMode = "local-json";
@@ -45,9 +56,34 @@ type StoredLocalJsonAccount = {
   updatedAt: string;
 };
 
+type StoredLoginAttemptState = {
+  failedCount: number;
+  identifierHash: string;
+  lastFailedAt: string | null;
+  lockedUntil: string | null;
+  provider: LocalJsonAuthMode;
+  updatedAt: string;
+};
+
+type StoredLoginAuditEvent = {
+  accountId: string | null;
+  createdAt: string;
+  eventType: LoginGuardEventType;
+  id: string;
+  identifierHash: string;
+  provider: LocalJsonAuthMode;
+  reason: string | null;
+};
+
+export type LocalJsonLoginAuditEvent = Omit<StoredLoginAuditEvent, "id" | "provider"> & {
+  provider: LocalJsonAuthMode;
+};
+
 type LocalJsonAuthDb = {
   version: number;
   accounts: StoredLocalJsonAccount[];
+  loginAttemptStates: StoredLoginAttemptState[];
+  loginAuditEvents: StoredLoginAuditEvent[];
 };
 
 export class LocalJsonAuthStoreError extends Error {
@@ -68,7 +104,12 @@ function getLocalJsonAuthDbPath() {
 }
 
 function createEmptyDb(): LocalJsonAuthDb {
-  return { version: DB_VERSION, accounts: [] };
+  return {
+    version: DB_VERSION,
+    accounts: [],
+    loginAttemptStates: [],
+    loginAuditEvents: [],
+  };
 }
 
 async function openDb() {
@@ -77,7 +118,12 @@ async function openDb() {
 
   await db.read();
 
-  if (db.data.version !== DB_VERSION || !Array.isArray(db.data.accounts)) {
+  if (
+    db.data.version !== DB_VERSION ||
+    !Array.isArray(db.data.accounts) ||
+    !Array.isArray(db.data.loginAttemptStates) ||
+    !Array.isArray(db.data.loginAuditEvents)
+  ) {
     db.data = createEmptyDb();
   }
 
@@ -111,6 +157,68 @@ function toDirectoryEntry(account: StoredLocalJsonAccount): LocalJsonAccountDire
     lastSignedInAt: account.lastSignedInAt ?? null,
     updatedAt: account.updatedAt,
   };
+}
+
+function findStoredLocalJsonAccountByIdentifier(
+  db: LocalJsonAuthDb,
+  identifier: string,
+) {
+  const normalizedIdentifier = normalizeIdentifier(identifier);
+
+  return db.accounts.find((candidate) => {
+    return (
+      normalizeIdentifier(candidate.username) === normalizedIdentifier ||
+      normalizeIdentifier(candidate.email) === normalizedIdentifier
+    );
+  });
+}
+
+function getLoginAttemptTarget(db: LocalJsonAuthDb, identifier: string) {
+  const account = findStoredLocalJsonAccountByIdentifier(db, identifier);
+  const guardIdentifier = account
+    ? buildAccountLoginGuardIdentifier(account.id)
+    : buildUnknownLoginGuardIdentifier(identifier);
+
+  return {
+    account,
+    identifierHash: hashLoginIdentifier("local-json", guardIdentifier),
+  };
+}
+
+function getAccountLoginIdentifierHash(accountId: string) {
+  return hashLoginIdentifier("local-json", buildAccountLoginGuardIdentifier(accountId));
+}
+
+function toLoginAuditEvent(event: StoredLoginAuditEvent): LocalJsonLoginAuditEvent {
+  return {
+    accountId: event.accountId,
+    createdAt: event.createdAt,
+    eventType: event.eventType,
+    identifierHash: event.identifierHash,
+    provider: event.provider,
+    reason: event.reason,
+  };
+}
+
+function appendLoginAuditEvent(
+  db: LocalJsonAuthDb,
+  input: {
+    accountId?: string | null;
+    eventType: LoginGuardEventType;
+    identifierHash: string;
+    reason?: string | null;
+    timestamp?: string;
+  },
+) {
+  db.loginAuditEvents.push({
+    accountId: input.accountId ?? null,
+    createdAt: input.timestamp ?? new Date().toISOString(),
+    eventType: input.eventType,
+    id: `audit_${randomUUID()}`,
+    identifierHash: input.identifierHash,
+    provider: "local-json",
+    reason: input.reason ?? null,
+  });
 }
 
 async function hashPassword(password: string, salt = randomBytes(16).toString("base64")) {
@@ -290,13 +398,7 @@ export async function listLocalJsonAccounts() {
 export async function verifyLocalJsonCredentials(identifier: string, password: string) {
   return withDbMutation(async () => {
     const db = await readDbFile();
-    const normalizedIdentifier = normalizeIdentifier(identifier);
-    const account = db.accounts.find((candidate) => {
-      return (
-        normalizeIdentifier(candidate.username) === normalizedIdentifier ||
-        normalizeIdentifier(candidate.email) === normalizedIdentifier
-      );
-    });
+    const account = findStoredLocalJsonAccountByIdentifier(db, identifier);
 
     if (!account || !(await verifyPassword(password, account))) {
       return null;
@@ -307,6 +409,125 @@ export async function verifyLocalJsonCredentials(identifier: string, password: s
 
     return toPublicAccount(account);
   });
+}
+
+export async function getLocalJsonLoginLock(
+  identifier: string,
+  now = new Date(),
+): Promise<LoginGuardCheckResult> {
+  const db = await readDb();
+  const { identifierHash } = getLoginAttemptTarget(db, identifier);
+  const state = db.loginAttemptStates.find(
+    (candidate) => candidate.identifierHash === identifierHash,
+  );
+  const remainingSeconds = getLoginLockRemainingSeconds(state?.lockedUntil, now);
+
+  return remainingSeconds > 0
+    ? { remainingSeconds, status: "locked" }
+    : { status: "allowed" };
+}
+
+export async function recordLocalJsonLoginFailure(
+  identifier: string,
+  now = new Date(),
+): Promise<LoginGuardRecordResult> {
+  return withDbMutation(async () => {
+    const db = await readDbFile();
+    const { identifierHash } = getLoginAttemptTarget(db, identifier);
+    const timestamp = now.toISOString();
+    let state = db.loginAttemptStates.find(
+      (candidate) => candidate.identifierHash === identifierHash,
+    );
+
+    if (!state) {
+      state = {
+        failedCount: 0,
+        identifierHash,
+        lastFailedAt: null,
+        lockedUntil: null,
+        provider: "local-json",
+        updatedAt: timestamp,
+      };
+      db.loginAttemptStates.push(state);
+    }
+
+    state.failedCount += 1;
+    state.lastFailedAt = timestamp;
+    state.updatedAt = timestamp;
+
+    if (state.failedCount >= LOGIN_FAILURE_LIMIT) {
+      state.lockedUntil = buildLoginLockedUntil(now);
+      appendLoginAuditEvent(db, {
+        eventType: "locked",
+        identifierHash,
+        reason: "failure_limit",
+        timestamp,
+      });
+      await writeDb(db);
+
+      return {
+        failedCount: state.failedCount,
+        remainingSeconds: getLoginLockRemainingSeconds(state.lockedUntil, now),
+        status: "locked",
+      };
+    }
+
+    appendLoginAuditEvent(db, {
+      eventType: "failed",
+      identifierHash,
+      reason: "invalid_credentials",
+      timestamp,
+    });
+    await writeDb(db);
+
+    return {
+      failedCount: state.failedCount,
+      status: "allowed",
+    };
+  });
+}
+
+export async function recordLocalJsonLoginBlocked(identifier: string, now = new Date()) {
+  await withDbMutation(async () => {
+    const db = await readDbFile();
+
+    appendLoginAuditEvent(db, {
+      eventType: "blocked",
+      identifierHash: getLoginAttemptTarget(db, identifier).identifierHash,
+      reason: "lockout",
+      timestamp: now.toISOString(),
+    });
+    await writeDb(db);
+  });
+}
+
+export async function recordLocalJsonLoginSuccess(
+  _identifier: string,
+  accountId: string,
+  now = new Date(),
+) {
+  await withDbMutation(async () => {
+    const db = await readDbFile();
+    const identifierHash = getAccountLoginIdentifierHash(accountId);
+
+    db.loginAttemptStates = db.loginAttemptStates.filter(
+      (candidate) => candidate.identifierHash !== identifierHash,
+    );
+    appendLoginAuditEvent(db, {
+      accountId,
+      eventType: "success",
+      identifierHash,
+      reason: null,
+      timestamp: now.toISOString(),
+    });
+    await writeDb(db);
+  });
+}
+
+export async function getLocalJsonLoginAuditEvents() {
+  const db = await readDb();
+
+  return db.loginAuditEvents.map(toLoginAuditEvent);
 }
 
 export async function verifyLocalJsonAccountPassword(id: string, password: string) {
@@ -323,6 +544,8 @@ export async function resetLocalJsonAuthStore() {
     await writeDb({
       ...db,
       accounts: [],
+      loginAttemptStates: [],
+      loginAuditEvents: [],
     });
   });
 }

@@ -34,13 +34,10 @@ async function createInitialAdminIfRequired(
     return null;
   }
 
-  await completeInitialSetupWizard(page, {
-    displayName: input.username,
-    ...input,
-  });
+  await completeInitialSetupWizard(page, input);
   await page.waitForURL("**/dashboard", { timeout: 20000 });
 
-  return input.username;
+  return "admin";
 }
 
 async function signUpMember(
@@ -92,7 +89,6 @@ async function deleteCurrentAccount(page: import("@playwright/test").Page) {
 
 test("supabase setup, sign-up, sign-in, page checks, and member deletion", async ({ page }) => {
   const runId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
-  const initialAdminUsername = `owner${runId.slice(-6)}`;
   const adminEmail = `admin_${runId}@mailinator.com`;
   const memberUsername = `kim${runId.slice(-8)}`;
   const memberEmail = `${memberUsername}@mailinator.com`;
@@ -101,7 +97,7 @@ test("supabase setup, sign-up, sign-in, page checks, and member deletion", async
   const createdAdminUsername = await createInitialAdminIfRequired(page, {
     email: adminEmail,
     password: "admin00@!",
-    username: initialAdminUsername,
+    username: "admin",
   });
 
   if (createdAdminUsername) {

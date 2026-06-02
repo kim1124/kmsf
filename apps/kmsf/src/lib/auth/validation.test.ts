@@ -10,9 +10,9 @@ import {
 } from "./validation";
 
 describe("accountSchema", () => {
-  it("rejects usernames shorter than 6 characters", () => {
+  it("rejects usernames shorter than 5 characters", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim12",
+      username: "kim1",
       email: "kim@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
@@ -21,9 +21,31 @@ describe("accountSchema", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("accepts 5 character usernames", () => {
+    const parsed = accountSchema.safeParse({
+      username: "kim12",
+      email: "kim@example.com",
+      password: "Pass12!",
+      passwordConfirm: "Pass12!",
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
   it("accepts email-style usernames", () => {
     const parsed = accountSchema.safeParse({
       username: "kim1124@example.com",
+      email: "kim@example.com",
+      password: "Pass12!",
+      passwordConfirm: "Pass12!",
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it("accepts the reserved initial admin username", () => {
+    const parsed = accountSchema.safeParse({
+      username: "admin",
       email: "kim@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
@@ -82,6 +104,16 @@ describe("signInSchema", () => {
     const parsed = signInSchema.safeParse({
       locale: "ko",
       username: "kim1124",
+      password: "Pass12!",
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it("accepts the reserved initial admin username", () => {
+    const parsed = signInSchema.safeParse({
+      locale: "ko",
+      username: "admin",
       password: "Pass12!",
     });
 

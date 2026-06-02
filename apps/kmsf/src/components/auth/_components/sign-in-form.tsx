@@ -10,6 +10,13 @@ import { FieldWithTooltip } from "@/components/auth/_components/field-with-toolt
 import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   createEmptySignInFieldErrors,
   createEmptySignInFields,
   getLiveSignInFieldErrors,
@@ -30,6 +37,8 @@ type SignInFormProps = {
   };
   messages: {
     authFailed: string;
+    locked: string;
+    lockedTitle: string;
     securityFailed: string;
     fieldErrors: {
       username: {
@@ -46,6 +55,7 @@ const initialState: SignInFormState = {
   authError: null,
   fields: createEmptySignInFields(),
   fieldErrors: createEmptySignInFieldErrors(),
+  lockedRemainingSeconds: null,
 };
 
 function getErrorMessage(
@@ -65,6 +75,12 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
 
   const [formValues, setFormValues] = useState(createEmptySignInFields);
   const [clientErrors, setClientErrors] = useState(createEmptySignInFieldErrors);
+  const [dismissedLockMessage, setDismissedLockMessage] = useState<string | null>(null);
+  const lockedMessage = messages.locked.replace(
+    "{seconds}",
+    String(state.lockedRemainingSeconds ?? 300),
+  );
+  const lockDialogOpen = state.authError === "locked" && dismissedLockMessage !== lockedMessage;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
@@ -78,6 +94,8 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
     <>
       <form
         action={(formData) => {
+          setDismissedLockMessage(null);
+
           if (Object.values(clientErrors).some(Boolean)) {
             return;
           }
@@ -119,7 +137,7 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
         tooltip={tooltips.password}
         type="password"
       />
-      {state.authError ? (
+      {state.authError && state.authError !== "locked" ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200">
           {state.authError === "security" ? messages.securityFailed : messages.authFailed}
         </div>
@@ -130,6 +148,21 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
         </Button>
       </div>
     </form>
+    <Dialog
+      open={lockDialogOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          setDismissedLockMessage(lockedMessage);
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{messages.lockedTitle}</DialogTitle>
+          <DialogDescription>{lockedMessage}</DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
     {isPending && <FullPageLoader text="로그인 중입니다..." />}
     </>
   );

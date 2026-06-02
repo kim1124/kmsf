@@ -1,10 +1,8 @@
 import type { Page } from "@playwright/test";
 
 type InitialSetupAccount = {
-  displayName?: string;
   email: string;
   password: string;
-  username: string;
 };
 
 export async function clickInitialSetupNext(page: Page) {
@@ -23,10 +21,6 @@ export async function completeInitialSetupWizard(
   account: InitialSetupAccount,
 ) {
   await clickInitialSetupNext(page);
-  await page.locator("#initial-admin-username").fill(account.username);
-  await page
-    .locator("#initial-admin-display-name")
-    .fill(account.displayName ?? account.username);
   await page.locator("#initial-admin-email").fill(account.email);
   await page.locator("#initial-admin-password").fill(account.password);
   await page.locator("#initial-admin-password-confirm").fill(account.password);

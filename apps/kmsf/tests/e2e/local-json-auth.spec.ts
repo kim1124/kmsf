@@ -18,10 +18,8 @@ test("local-json sign-up, sign-in, settings, and account deletion", async ({ pag
 
   if (page.url().includes("/setup/initial-admin")) {
     await completeInitialSetupWizard(page, {
-      displayName: `관리자 ${runId.slice(-4)}`,
       email: `owner_${runId}@local.test`,
       password: "Admin00@!",
-      username: `owner${runId.slice(-8)}`,
     });
     await page.waitForURL("**/dashboard", { timeout: 20_000 });
     await page.getByRole("button", { name: "프로필 메뉴" }).click();

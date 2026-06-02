@@ -2,6 +2,12 @@
 
 import { redirect } from "next/navigation";
 
+import {
+  buildAccountLoginGuardIdentifier,
+  buildUnknownLoginGuardIdentifier,
+  getLoginLockRemainingSeconds,
+  hashLoginIdentifier,
+} from "@/lib/auth/login-guard";
 import { touchAppSessionCookie } from "@/lib/auth/app-session.server";
 import { setLocalJsonSessionCookie } from "@/lib/auth/local-session.server";
 import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
@@ -22,7 +28,7 @@ import {
 } from "@/lib/auth/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  findManagerLoginEmail,
+  findManagerLoginIdentity,
   isAuthEmailTaken,
   isManagerUsernameTaken,
   touchManagerLastSignedIn,
@@ -31,9 +37,10 @@ import { verifyCsrfToken } from "@/lib/security/csrf";
 import { getAppUrl, hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type SignInFormState = {
-  authError: "auth" | "security" | null;
+  authError: "auth" | "locked" | "security" | null;
   fields: SignInFields;
   fieldErrors: SignInFieldErrors;
+  lockedRemainingSeconds: number | null;
 };
 
 export type SignUpFormState = {
@@ -47,6 +54,7 @@ function buildSignInState(
   options?: {
     authError?: SignInFormState["authError"];
     fieldErrors?: Partial<SignInFieldErrors>;
+    lockedRemainingSeconds?: number | null;
   },
 ): SignInFormState {
   return {
@@ -56,6 +64,7 @@ function buildSignInState(
       ...createEmptySignInFieldErrors(),
       ...options?.fieldErrors,
     },
+    lockedRemainingSeconds: options?.lockedRemainingSeconds ?? null,
   };
 }
 
@@ -98,15 +107,39 @@ export async function signInAction(
   const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (parsed.success && runtimeProvider.provider === "local-json") {
-    const { verifyLocalJsonCredentials } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
-    );
+    const {
+      getLocalJsonLoginLock,
+      recordLocalJsonLoginBlocked,
+      recordLocalJsonLoginFailure,
+      recordLocalJsonLoginSuccess,
+      verifyLocalJsonCredentials,
+    } = await import("@/lib/auth/providers/local-json-auth-store");
+    const lock = await getLocalJsonLoginLock(parsed.data.username);
+
+    if (lock.status === "locked") {
+      await recordLocalJsonLoginBlocked(parsed.data.username);
+      return buildSignInState(fields, {
+        authError: "locked",
+        lockedRemainingSeconds: lock.remainingSeconds,
+      });
+    }
+
     const account = await verifyLocalJsonCredentials(parsed.data.username, parsed.data.password);
 
     if (!account) {
+      const failure = await recordLocalJsonLoginFailure(parsed.data.username);
+
+      if (failure.status === "locked") {
+        return buildSignInState(fields, {
+          authError: "locked",
+          lockedRemainingSeconds: failure.remainingSeconds,
+        });
+      }
+
       return buildSignInState(fields, { authError: "auth" });
     }
 
+    await recordLocalJsonLoginSuccess(parsed.data.username, account.id);
     await setLocalJsonSessionCookie(account.id);
     await touchAppSessionCookie();
     redirect(`/dashboard`);
@@ -119,23 +152,80 @@ export async function signInAction(
     });
   }
 
-  const email = await findManagerLoginEmail(parsed.data.username);
+  const loginIdentity = await findManagerLoginIdentity(parsed.data.username);
+  const guardIdentifier = loginIdentity
+    ? buildAccountLoginGuardIdentifier(loginIdentity.id)
+    : buildUnknownLoginGuardIdentifier(parsed.data.username);
+  const identifierHash = hashLoginIdentifier("supabase", guardIdentifier);
+  const {
+    checkLoginGuard,
+    recordLoginBlocked,
+    recordLoginFailure,
+    recordLoginSuccess,
+  } = await import("@/lib/supabase/login-guard");
+  const guard = await checkLoginGuard({
+    identifierHash,
+    provider: "supabase",
+  });
 
-  if (!email) {
+  if (guard.locked) {
+    await recordLoginBlocked({
+      identifierHash,
+      provider: "supabase",
+      reason: "lockout",
+    });
+    return buildSignInState(fields, {
+      authError: "locked",
+      lockedRemainingSeconds: getLoginLockRemainingSeconds(guard.lockedUntil.toISOString()),
+    });
+  }
+
+  if (!loginIdentity) {
+    const failure = await recordLoginFailure({
+      identifierHash,
+      provider: "supabase",
+      reason: "unknown_identifier",
+    });
+
+    if (failure.locked) {
+      return buildSignInState(fields, {
+        authError: "locked",
+        lockedRemainingSeconds: getLoginLockRemainingSeconds(failure.lockedUntil.toISOString()),
+      });
+    }
+
     return buildSignInState(fields, { authError: "auth" });
   }
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
+    email: loginIdentity.email,
     password: parsed.data.password,
   });
 
   if (error) {
+    const failure = await recordLoginFailure({
+      identifierHash,
+      provider: "supabase",
+      reason: "invalid_credentials",
+    });
+
+    if (failure.locked) {
+      return buildSignInState(fields, {
+        authError: "locked",
+        lockedRemainingSeconds: getLoginLockRemainingSeconds(failure.lockedUntil.toISOString()),
+      });
+    }
+
     return buildSignInState(fields, { authError: "auth" });
   }
 
   if (data.user) {
+    await recordLoginSuccess({
+      accountId: data.user.id,
+      identifierHash,
+      provider: "supabase",
+    });
     await touchManagerLastSignedIn(data.user.id);
   }
 
