@@ -18,6 +18,7 @@ import {
   Library,
   Network,
   PanelRight,
+  RefreshCw,
   Search,
   Sun,
   TableCellsSplit,
@@ -28,14 +29,17 @@ import type { DashboardWidget } from "@kmsf/gridstack";
 import "gridstack/dist/gridstack.min.css";
 import "@kmsf/gridstack/styles.css";
 
-import { GenericChart } from "../../src";
+import { GenericChart, supportedGenericChartTypes } from "../../src";
 import type { GenericChartDataFormat, KmsfChartType } from "../../src";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { ChartSkeleton } from "./components/ChartSkeleton";
 import { ChartExampleCard } from "./components/ChartExampleCard";
 import { MarkdownDocument } from "./components/MarkdownDocument";
 import { applyTopRowPalette, getSeriesPaletteOverride } from "./data/chart-colors";
@@ -205,7 +209,6 @@ function ChartNavigation({
                     aria-label={`${sample.type} 차트 선택`}
                     aria-pressed={activeType === sample.type}
                     className="chart-menu-button"
-                    disabled={Boolean(sample.disabledReason)}
                     key={sample.type}
                     onClick={() => onSelectType(sample.type)}
                     title={collapsed ? `${sample.type}: ${sample.summary}` : undefined}
@@ -339,6 +342,180 @@ function ChartDocsPanel({ activeType }: { activeType: KmsfChartType }) {
   );
 }
 
+function getPlaygroundDataFormat(type: KmsfChartType): GenericChartDataFormat {
+  if (type === "line" || type === "scatter" || type === "effectScatter") {
+    return "trend";
+  }
+
+  if (type === "bar" || type === "pie" || type === "gauge" || type === "funnel" || type === "treemap" || type === "wordCloud") {
+    return "top";
+  }
+
+  return "native";
+}
+
+function TypePlayground() {
+  const [type, setType] = useState<KmsfChartType>("bar");
+  const [data] = useState(() => [
+    ["Alpha", 120],
+    ["Beta", 96],
+  ]);
+
+  return (
+    <main aria-label="Type Playground" className="type-playground-main">
+      <Card className="type-playground-card">
+        <CardHeader>
+          <CardTitle>Type Playground</CardTitle>
+          <CardDescription>동일한 데이터를 유지하고 chart type만 변경해 렌더링 조건을 확인합니다.</CardDescription>
+        </CardHeader>
+        <CardContent className="type-playground-card__content">
+          <label className="type-playground-control">
+            <span>Chart type</span>
+            <select
+              aria-label="Chart type"
+              value={type}
+              onChange={(event) => setType(event.target.value as KmsfChartType)}
+            >
+              {supportedGenericChartTypes.map((chartType) => (
+                <option key={chartType} value={chartType}>
+                  {chartType}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="chart-viewport type-playground-chart">
+            <GenericChart
+              data={data}
+              dataFormat={getPlaygroundDataFormat(type)}
+              height="100%"
+              key={type}
+              loadingFallback={<ChartSkeleton />}
+              themeOverrides={{ palette: getSeriesPaletteOverride() }}
+              type={type}
+            />
+          </div>
+
+          <pre data-testid="type-playground-data">{JSON.stringify({ data, dataFormat: getPlaygroundDataFormat(type), type }, null, 2)}</pre>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+
+const LARGE_TREND_POINTS = 10_000;
+const LARGE_TOP_ITEMS = 1_000;
+type LargeTrendRow = [string, number];
+type LargeTopRow = [string, number] | [string, number, Record<string, unknown>];
+
+function buildLargeTrendRows(refreshVersion: number): LargeTrendRow[] {
+  return Array.from({ length: LARGE_TREND_POINTS }, (_, index) => {
+    const value = 800 + Math.round(Math.sin((index + refreshVersion * 11) / 28) * 120) + ((index * 13 + refreshVersion * 31) % 90);
+
+    return [`T-${String(index + 1).padStart(5, "0")}`, value];
+  });
+}
+
+function buildLargeTopRows(refreshVersion: number): Array<[string, number]> {
+  return Array.from({ length: LARGE_TOP_ITEMS }, (_, index) => [
+    `Item ${String(index + 1).padStart(4, "0")}`,
+    1000 + ((index * 37 + refreshVersion * 113) % 900),
+  ]);
+}
+
+function LargeDataExamples() {
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const trendRows = useMemo(() => buildLargeTrendRows(refreshVersion), [refreshVersion]);
+  const topRows = useMemo(
+    () => applyTopRowPalette(buildLargeTopRows(refreshVersion), "bar") as LargeTopRow[],
+    [refreshVersion],
+  );
+  const summary = useMemo(
+    () => ({
+      bar: topRows.length,
+      line: trendRows.length,
+      refreshVersion,
+    }),
+    [refreshVersion, topRows.length, trendRows.length],
+  );
+
+  return (
+    <main aria-label="대용량 데이터 테스트" className="large-data-main">
+      <div className="large-data-toolbar">
+        <div>
+          <h2>대용량 데이터 테스트</h2>
+          <p>10,000개 이상 추이 데이터와 1,000개 TOP 데이터를 별도 메뉴에서 렌더링합니다.</p>
+        </div>
+        <Button variant="outline" onClick={() => setRefreshVersion((value) => value + 1)}>
+          <RefreshCw aria-hidden="true" size={16} />
+          전체 데이터 갱신
+        </Button>
+      </div>
+
+      <div className="large-data-grid">
+        <Card className="large-data-card" data-testid="large-data-card-line">
+          <CardHeader className="chart-example-card__header">
+            <div className="chart-example-card__heading">
+              <CardTitle>Line 10,000 points</CardTitle>
+              <CardDescription>추이 차트 장시간 갱신 검증과 같은 데이터 경로를 대용량으로 확인합니다.</CardDescription>
+            </div>
+            <div className="chart-example-card__tags">
+              <Badge>대용량</Badge>
+              <Badge>Trend</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="large-data-card__content">
+            <div className="chart-viewport large-data-chart">
+              <GenericChart
+                data={trendRows}
+                dataFormat="trend"
+                height="100%"
+                legend={false}
+                loadingFallback={<ChartSkeleton />}
+                themeOverrides={{ palette: getSeriesPaletteOverride() }}
+                tooltip
+                type="line"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="large-data-card" data-testid="large-data-card-bar">
+          <CardHeader className="chart-example-card__header">
+            <div className="chart-example-card__heading">
+              <CardTitle>Bar 1,000 items</CardTitle>
+              <CardDescription>TOP 계열의 많은 category, 색상 반복, label contraction을 확인합니다.</CardDescription>
+            </div>
+            <div className="chart-example-card__tags">
+              <Badge>대용량</Badge>
+              <Badge>TOP</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="large-data-card__content">
+            <div className="chart-viewport large-data-chart">
+              <GenericChart
+                data={topRows}
+                dataFormat="top"
+                height="100%"
+                labelContraction
+                legend={false}
+                loadingFallback={<ChartSkeleton />}
+                themeOverrides={{ palette: getSeriesPaletteOverride() }}
+                tooltip
+                type="bar"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <pre className="large-data-summary" data-testid="large-data-summary">
+        {`line: ${summary.line}\nbar: ${summary.bar}\nrefreshVersion: ${summary.refreshVersion}`}
+      </pre>
+    </main>
+  );
+}
+
 function MobileDocsButton({ activeType }: { activeType: KmsfChartType }) {
   return (
     <Sheet>
@@ -384,18 +561,38 @@ function ChartWorkspacePage() {
         </div>
       </header>
 
-      <div className="docs-layout">
-        <ChartNavigation
-          activeType={activeType}
-          collapsed={isNavigationCollapsed}
-          onCollapseToggle={() => setIsNavigationCollapsed((value) => !value)}
-          onSelectType={selectChartType}
-        />
+      <Tabs className="workspace-tabs" defaultValue="examples">
+        <div className="workspace-tabs__bar">
+          <TabsList aria-label="예제 페이지 보기">
+            <TabsTrigger value="examples">Chart Examples</TabsTrigger>
+            <TabsTrigger value="type-playground">Type Playground</TabsTrigger>
+            <TabsTrigger value="large-data">Large Data</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <ChartExampleContent key={`content-${activeType}`} type={activeType} />
+        <TabsContent value="examples">
+          <div className="docs-layout">
+            <ChartNavigation
+              activeType={activeType}
+              collapsed={isNavigationCollapsed}
+              onCollapseToggle={() => setIsNavigationCollapsed((value) => !value)}
+              onSelectType={selectChartType}
+            />
 
-        <ChartDocsPanel activeType={activeType} key={`docs-${activeType}`} />
-      </div>
+            <ChartExampleContent key={`content-${activeType}`} type={activeType} />
+
+            <ChartDocsPanel activeType={activeType} key={`docs-${activeType}`} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="type-playground">
+          <TypePlayground />
+        </TabsContent>
+
+        <TabsContent value="large-data">
+          <LargeDataExamples />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -453,13 +650,16 @@ function DashboardChart({ clock, widget }: { clock: SampleClock; widget: Dashboa
           data={data}
           dataFormat={sample.dataFormat}
           height="100%"
+          loadingFallback={<ChartSkeleton />}
           options={options}
           series={series}
           seriesOptions={seriesOptions}
           themeOverrides={{ palette: getSeriesPaletteOverride() }}
           type={sample.type}
         />
-      ) : null}
+      ) : (
+        <ChartSkeleton />
+      )}
     </div>
   );
 }

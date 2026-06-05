@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { EChartsOption, SeriesOption } from "echarts";
 
+import { ChartFallback } from "../../common/ChartFallback";
 import { KmsfChart } from "../../common/KmsfChart";
+import { applySeriesPalette, getChartPalette } from "../../common/colors";
 import { applySeriesOptions, buildBaseOption } from "../../common/options";
 import { buildThemeOption } from "../../common/theme";
 import type { KmsfBaseChartProps } from "../../common/types";
+import { logChartIssuesOnce, validateChartConfig } from "../../common/validation";
 
 export interface GaugeChartProps extends KmsfBaseChartProps<unknown> {
   max?: number;
@@ -36,8 +39,27 @@ function formatGaugeValue(value: unknown, unit?: string) {
 }
 
 export function GaugeChart(props: GaugeChartProps) {
+  const validation = useMemo(
+    () =>
+      validateChartConfig({
+        data: props.data,
+        label: "GaugeChart",
+        series: props.series,
+        type: "gauge",
+      }),
+    [props.data, props.series],
+  );
+
+  useEffect(() => {
+    logChartIssuesOnce(validation.issues);
+  }, [validation.issues]);
+
   const option = useMemo<EChartsOption>(() => {
-    const normalizedData = normalizeGaugeData(props.data);
+    const palette = getChartPalette({
+      colors: props.colors,
+      themePalette: props.themeOverrides?.palette,
+    });
+    const normalizedData = normalizeGaugeData(validation.valid ? props.data : 0);
     const baseSeries = props.series?.length
       ? props.series
       : [
@@ -47,27 +69,30 @@ export function GaugeChart(props: GaugeChartProps) {
           },
         ];
     const series = applySeriesOptions(
-      baseSeries.map((item) => ({
-        axisLabel: {
-          formatter: (value: unknown) => formatGaugeValue(value, props.unit),
-        },
-        detail: {
-          formatter: (value: unknown) => formatGaugeValue(value, props.unit),
-        },
-        max: props.max ?? 100,
-        min: props.min ?? 0,
-        progress: { show: true },
-        data: item.data ?? normalizedData,
-        ...item,
-        type: "gauge",
-      }) as SeriesOption),
+      applySeriesPalette(
+        baseSeries.map((item) => ({
+          axisLabel: {
+            formatter: (value: unknown) => formatGaugeValue(value, props.unit),
+          },
+          detail: {
+            formatter: (value: unknown) => formatGaugeValue(value, props.unit),
+          },
+          max: props.max ?? 100,
+          min: props.min ?? 0,
+          progress: { show: true },
+          data: item.data ?? normalizedData,
+          ...item,
+          type: "gauge",
+        }) as SeriesOption),
+        palette,
+      ),
       props.seriesOptions,
     );
 
     return buildBaseOption({
       legend: props.legend ?? false,
       options: {
-        ...buildThemeOption(props.theme, props.themeOverrides),
+        ...buildThemeOption(props.theme, { ...props.themeOverrides, palette }),
         ...props.options,
       },
       series,
@@ -76,6 +101,7 @@ export function GaugeChart(props: GaugeChartProps) {
     });
   }, [
     props.data,
+    props.colors,
     props.legend,
     props.max,
     props.min,
@@ -86,12 +112,25 @@ export function GaugeChart(props: GaugeChartProps) {
     props.themeOverrides,
     props.tooltip,
     props.unit,
+    validation.valid,
   ]);
+
+  if (!validation.valid) {
+    return (
+      <ChartFallback
+        className={props.className}
+        height={props.height}
+        message={validation.issues[0]?.message ?? "Invalid chart configuration."}
+        style={props.style}
+      />
+    );
+  }
 
   return (
     <KmsfChart
       className={props.className}
       height={props.height}
+      loadingFallback={props.loadingFallback}
       option={option}
       style={props.style}
       theme={props.theme}

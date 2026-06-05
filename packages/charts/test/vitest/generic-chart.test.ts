@@ -113,4 +113,24 @@ describe("buildGenericChartOption", () => {
       },
     ]);
   });
+
+  it("sets an explicit base zlevel for lines to avoid undefined zrender layers", () => {
+    const option = buildGenericChartOption({
+      data: [{ coords: [[0, 0], [1, 1]] }],
+      options: {
+        xAxis: { type: "value" },
+        yAxis: { type: "value" },
+      },
+      seriesOptions: { coordinateSystem: "cartesian2d" },
+      type: "lines",
+    });
+
+    expect(option.series).toMatchObject([
+      {
+        coordinateSystem: "cartesian2d",
+        type: "lines",
+        zlevel: 0,
+      },
+    ]);
+  });
 });

@@ -1,7 +1,9 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import type { ECharts, EChartsOption, SeriesOption } from "echarts";
 
+import { ChartFallback } from "../../common/ChartFallback";
 import { KmsfChart } from "../../common/KmsfChart";
+import { applySeriesPalette, getChartPalette } from "../../common/colors";
 import { buildTrendSeries, normalizeTrendRows } from "../../common/data-normalizers";
 import {
   applySeriesOptions,
@@ -13,6 +15,7 @@ import {
 } from "../../common/options";
 import { buildThemeOption } from "../../common/theme";
 import type { KmsfBaseChartProps, TrendChartMode, TrendChartRow } from "../../common/types";
+import { logChartIssuesOnce, validateChartConfig } from "../../common/validation";
 
 export interface TrendChartHandle {
   getChart: () => ECharts | null;
@@ -40,15 +43,37 @@ function buildTrendLegendOption(legend: TrendChartProps["legend"]): TrendChartPr
 
 export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function TrendChart(props, ref) {
   const chartRef = useRef<ECharts | null>(null);
-  const normalized = useMemo(() => normalizeTrendRows(props.data), [props.data]);
+  const validation = useMemo(
+    () =>
+      validateChartConfig({
+        data: props.data,
+        label: "TrendChart",
+        requireSeries: true,
+        series: props.series,
+        type: "line",
+      }),
+    [props.data, props.series],
+  );
+
+  useEffect(() => {
+    logChartIssuesOnce(validation.issues);
+  }, [validation.issues]);
+
+  const chartData = validation.valid ? props.data : [];
+  const chartSeries = validation.valid ? props.series : [];
+  const normalized = useMemo(() => normalizeTrendRows(chartData), [chartData]);
 
   const option = useMemo<EChartsOption>(() => {
+    const palette = getChartPalette({
+      colors: props.colors,
+      themePalette: props.themeOverrides?.palette,
+    });
     const baseSeries = buildTrendSeries({
       mode: props.mode ?? "line",
-      series: props.series,
+      series: chartSeries,
       valuesBySeries: normalized.seriesValues,
     });
-    const series = applySeriesOptions(baseSeries, props.seriesOptions);
+    const series = applySeriesOptions(applySeriesPalette(baseSeries, palette), props.seriesOptions);
     const xAxis = normalizeAxisOption(
       props.xAxis,
       buildCategoryAxis(normalized.xAxisData),
@@ -58,7 +83,7 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
     return buildBaseOption({
       legend: buildTrendLegendOption(props.legend),
       options: {
-        ...buildThemeOption(props.theme, props.themeOverrides),
+        ...buildThemeOption(props.theme, { ...props.themeOverrides, palette }),
         animation: false,
         animationDurationUpdate: 0,
         dataZoom: buildTrendDataZoom(),
@@ -71,11 +96,12 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
     });
   }, [
     normalized,
+    props.colors,
     props.legend,
     props.labelContraction,
     props.mode,
     props.options,
-    props.series,
+    chartSeries,
     props.seriesOptions,
     props.theme,
     props.themeOverrides,
@@ -96,7 +122,7 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
       const patchedSeries = normalized.seriesValues.map((seriesValues, seriesIndex) => {
         const nextValues = seriesValues.slice();
         nextValues[rowIndex] = values[seriesIndex] ?? null;
-        const sourceSeries = props.series[seriesIndex] as { id?: string; name?: string } | undefined;
+        const sourceSeries = chartSeries[seriesIndex] as { id?: string; name?: string } | undefined;
 
         return {
           data: nextValues,
@@ -107,12 +133,24 @@ export const TrendChart = forwardRef<TrendChartHandle, TrendChartProps>(function
 
       chart.setOption({ series: patchedSeries }, { lazyUpdate: true });
     },
-  }), [normalized.seriesValues, props.series]);
+  }), [chartSeries, normalized.seriesValues]);
+
+  if (!validation.valid) {
+    return (
+      <ChartFallback
+        className={props.className}
+        height={props.height}
+        message={validation.issues[0]?.message ?? "Invalid chart configuration."}
+        style={props.style}
+      />
+    );
+  }
 
   return (
     <KmsfChart
       className={props.className}
       height={props.height}
+      loadingFallback={props.loadingFallback}
       onChartReady={(chart) => {
         chartRef.current = chart;
       }}

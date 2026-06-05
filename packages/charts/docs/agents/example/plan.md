@@ -161,7 +161,7 @@ Improve the example page into a chart-type scoped example gallery so developers 
 4. Chart cards, ECharts canvases, data/options editors, content search input, docs search input, and live timers must live below those keyed boundaries.
 5. Do not keep hidden chart examples mounted for inactive chart types.
 6. Do not keep inactive docs content mounted for the previously selected chart type.
-7. The expected main example canvas count is only the number of visible example cards for the current chart type.
+7. The expected main example canvas count is the number of visible example cards for the current chart type unless a chart-specific canvas layer allow-list documents the ECharts/zrender reason.
 
 ### Confirmed Implementation Direction
 
@@ -229,7 +229,7 @@ Improve the example page into a chart-type scoped example gallery so developers 
 - Selecting a different chart type unmounts the previous center content and docs content.
 - Selecting the same chart type again is ignored and does not reset content/docs state.
 - Previous data editor, option editor, validation error, content search, and docs search state do not remain after selection.
-- Only visible cards for the selected chart type have chart canvases.
+- Only visible cards for the selected chart type have chart canvases, and each card has exactly one canvas unless a documented multi-layer allow-list applies.
 - Renderable chart types expose 3 to 5 examples.
 - Example cards use shadcn-style Card and Badge primitives.
 - Search filters examples within the current chart type only.

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import * as echarts from "echarts";
 import type { ECharts, EChartsOption } from "echarts";
 
@@ -11,6 +11,7 @@ export interface KmsfChartHandle {
 export interface KmsfChartProps {
   className?: string;
   height?: number | string;
+  loadingFallback?: ReactNode;
   onChartReady?: (chart: ECharts) => void;
   onDataZoom?: (payload: unknown, chart: ECharts) => void;
   option: EChartsOption;
@@ -19,6 +20,7 @@ export interface KmsfChartProps {
 }
 
 export function KmsfChart(props: KmsfChartProps) {
+  const [hasRendered, setHasRendered] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<ECharts | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -35,9 +37,12 @@ export function KmsfChart(props: KmsfChartProps) {
       return undefined;
     }
 
+    setHasRendered(false);
+
     const chart = echarts.init(container, props.theme);
     chartRef.current = chart;
     chart.setOption(optionRef.current, { lazyUpdate: true });
+    setHasRendered(true);
     props.onChartReady?.(chart);
 
     const handleDataZoom = (payload: unknown) => {
@@ -83,14 +88,40 @@ export function KmsfChart(props: KmsfChartProps) {
 
   return (
     <div
+      aria-busy={props.loadingFallback ? !hasRendered : undefined}
       className={props.className}
-      ref={containerRef}
       style={{
         height: props.height ?? 320,
         minHeight: 160,
+        position: "relative",
         width: "100%",
         ...props.style,
       }}
-    />
+    >
+      <div
+        ref={containerRef}
+        style={{
+          height: "100%",
+          minHeight: "inherit",
+          width: "100%",
+        }}
+      />
+      {!hasRendered && props.loadingFallback ? (
+        <div
+          aria-hidden="true"
+          style={{
+            bottom: 0,
+            left: 0,
+            pointerEvents: "none",
+            position: "absolute",
+            right: 0,
+            top: 0,
+            zIndex: 1,
+          }}
+        >
+          {props.loadingFallback}
+        </div>
+      ) : null}
+    </div>
   );
 }

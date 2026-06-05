@@ -15,6 +15,12 @@ import {
   buildValueAxis,
   normalizeAxisOption,
 } from "./options";
+import {
+  applyItemPalette,
+  applySeriesPalette,
+  buildWordCloudTextStyle,
+  getChartPalette,
+} from "./colors";
 import { buildThemeOption } from "./theme";
 import type {
   KmsfAxisOption,
@@ -56,6 +62,7 @@ export type GenericChartDataFormat = "auto" | "native" | "top" | "trend";
 export type GenericChartDataRow = [string | number | Date, ...unknown[]];
 
 export interface BuildGenericChartOptionInput {
+  colors?: string[];
   data: unknown;
   dataFormat?: GenericChartDataFormat;
   labelContraction?: boolean;
@@ -97,6 +104,7 @@ const topPreferredTypes = new Set<KmsfChartType>([
 
 const trendPreferredTypes = new Set<KmsfChartType>(["effectScatter", "line", "scatter"]);
 const axisTopTypes = new Set<KmsfChartType>(["bar", "pictorialBar"]);
+const itemColorTypes = new Set<KmsfChartType>(["funnel", "pie", "treemap"]);
 
 function isTimeLike(value: unknown): boolean {
   return value instanceof Date || (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value));
@@ -298,23 +306,65 @@ function buildTrendSeries(input: BuildGenericChartOptionInput, rows: GenericChar
 function buildNativeSeries(input: BuildGenericChartOptionInput): SeriesOption[] {
   const baseSeries = buildDefaultSeries(input.series, 1);
 
-  return baseSeries.map((seriesItem) => ({
-    ...seriesItem,
-    data: seriesItem.data ?? input.data,
-    type: input.type,
-  }) as SeriesOption);
+  return baseSeries.map((seriesItem) => {
+    const nextSeries: Record<string, unknown> = {
+      ...seriesItem,
+      data: seriesItem.data ?? input.data,
+      type: input.type,
+    };
+
+    if (input.type === "lines" && nextSeries.zlevel === undefined) {
+      nextSeries.zlevel = 0;
+    }
+
+    return nextSeries as SeriesOption;
+  });
+}
+
+function applyGenericPalette(
+  type: KmsfChartType,
+  series: SeriesOption[],
+  palette: string[],
+): SeriesOption[] {
+  if (type === "wordCloud") {
+    return series.map((item) => ({
+      ...item,
+      textStyle: {
+        ...((item as SeriesOption & { textStyle?: Record<string, unknown> }).textStyle ?? {}),
+        ...buildWordCloudTextStyle(palette),
+      },
+    }) as SeriesOption);
+  }
+
+  if (itemColorTypes.has(type)) {
+    return series.map((item) => {
+      const source = item as SeriesOption & { data?: unknown };
+
+      return {
+        ...item,
+        data: Array.isArray(source.data) ? applyItemPalette(source.data, palette) : source.data,
+      } as SeriesOption;
+    });
+  }
+
+  return applySeriesPalette(series, palette);
 }
 
 export function buildGenericChartOption(input: BuildGenericChartOptionInput): EChartsOption {
   const rows = getTupleRows(input.data);
   const format = resolveGenericDataFormat(input.type, input.dataFormat ?? "auto", input.data);
+  const palette = getChartPalette({
+    colors: input.colors,
+    themePalette: input.themeOverrides?.palette,
+  });
   const baseSeries =
     format === "top"
       ? buildTopSeries(input, rows)
       : format === "trend"
         ? buildTrendSeries(input, rows)
         : buildNativeSeries(input);
-  const series = applySeriesOptions(baseSeries, input.seriesOptions);
+  const coloredSeries = applyGenericPalette(input.type, baseSeries, palette);
+  const series = applySeriesOptions(coloredSeries, input.seriesOptions);
   const isAxisTopChart = format === "top" && (input.type === "bar" || input.type === "pictorialBar");
   const isTrendChart = format === "trend";
   const xAxisData = rows.map((row) => toDisplayValue(row[0]));
@@ -323,7 +373,7 @@ export function buildGenericChartOption(input: BuildGenericChartOptionInput): EC
   return buildBaseOption({
     legend,
     options: {
-      ...buildThemeOption(input.theme, input.themeOverrides),
+      ...buildThemeOption(input.theme, { ...input.themeOverrides, palette }),
       ...input.options,
     },
     series,

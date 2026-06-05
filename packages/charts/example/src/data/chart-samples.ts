@@ -157,7 +157,7 @@ export const chartSamples: ChartSample[] = [
     type: "radar",
   },
   {
-    buildData: ({ trendTick }) => buildHeatmapData(trendTick),
+    buildData: ({ topTick }) => buildHeatmapData(topTick),
     buildOptions: () => ({
       visualMap: { calculable: true, max: 100, min: 0, orient: "horizontal" },
       xAxis: { data: productLabels, type: "category" },

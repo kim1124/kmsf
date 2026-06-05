@@ -12,24 +12,32 @@ describe("example chart docs", () => {
     }
 
     for (const doc of chartDocs) {
-      expect(doc.markdown).toContain("## Required Props");
+      expect(doc.markdown).toContain("## 필수 설정");
       expect(doc.markdown).toContain("```tsx");
       expect(doc.officialDocsUrl).toMatch(/^https:\/\//);
     }
   });
 
-  it("separates KMSF required props from chart-specific ECharts settings", () => {
+  it("groups chart docs by usage difficulty", () => {
+    expect(getChartDoc("line").category).toBe("easy");
+    expect(getChartDoc("sankey").category).toBe("native-required");
+    expect(getChartDoc("custom").category).toBe("advanced");
+  });
+
+  it("documents KMSF required props and chart-specific ECharts settings in one section", () => {
     const pieDoc = getChartDoc("pie");
-    expect(pieDoc.markdown).toContain("## Required Props");
+    expect(pieDoc.markdown).toContain("## 필수 설정");
     expect(pieDoc.markdown).toContain("`type`: `pie`");
     expect(pieDoc.markdown).toContain("`data`");
+    expect(pieDoc.markdown).toContain("`colors`");
+    expect(pieDoc.markdown).toContain("[KMSF Charts]");
     expect(pieDoc.markdown).toContain("## Recommended Props");
     expect(pieDoc.markdown).not.toContain("## Required ECharts Settings");
     expect(pieDoc.markdown).toContain("[series-pie](https://echarts.apache.org/en/option.html#series-pie)");
 
     const radarDoc = getChartDoc("radar");
-    expect(radarDoc.markdown).toContain("## Required Props");
-    expect(radarDoc.markdown).toContain("## Required ECharts Settings");
+    expect(radarDoc.markdown).toContain("## 필수 설정");
+    expect(radarDoc.markdown).not.toContain("## Required ECharts Settings");
     expect(radarDoc.markdown).toContain("`options` / `options.radar.indicator`");
     expect(radarDoc.markdown).toContain("[radar](https://echarts.apache.org/en/option.html#radar)");
     expect(radarDoc.markdown).toContain("[series-radar](https://echarts.apache.org/en/option.html#series-radar)");
