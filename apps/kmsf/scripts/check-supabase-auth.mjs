@@ -1,14 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const secretKey = process.env.SUPABASE_SECRET_KEY;
 
-if (!url || !serviceRoleKey) {
-  console.error("Supabase URL or service role key is missing.");
+if (!url || !secretKey) {
+  console.error("Supabase URL or secret key is missing.");
   process.exit(1);
 }
 
-const admin = createClient(url, serviceRoleKey, {
+const admin = createClient(url, secretKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,

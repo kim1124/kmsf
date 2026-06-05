@@ -110,6 +110,7 @@
   "confirmEmail": "이메일 확인 후 다시 로그인해 주세요.",
   "accountDeleted": "회원 탈퇴가 완료되었습니다.",
   "sessionExpired": "1시간 이상 활동이 없어 세션이 종료되었습니다. 다시 로그인해 주세요.",
+  "settingsReset": "설정 초기화가 완료되었습니다. 다시 로그인해 주세요.",
   "username": "ID",
     "password": "비밀번호",
     "signIn": "로그인",

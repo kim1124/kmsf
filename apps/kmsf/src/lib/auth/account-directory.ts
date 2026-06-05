@@ -3,7 +3,7 @@ import { resolveSupabaseAuthorization } from "@/lib/auth/authorization";
 import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import type { AppRole } from "@/lib/auth/roles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
+import { hasSupabaseSecretKey, isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type AccountDirectoryEntry = {
   createdAt: string | null;
@@ -73,7 +73,7 @@ export async function getAccountDirectory(): Promise<AccountDirectoryResult> {
     };
   }
 
-  if (!hasSupabaseServiceRoleKey()) {
+  if (!hasSupabaseSecretKey()) {
     return {
       accounts: [],
       provider: "supabase",

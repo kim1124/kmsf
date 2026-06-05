@@ -31,7 +31,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 vi.mock("@/lib/supabase/env", () => ({
-  hasSupabaseServiceRoleKey: () => supabaseMocks.hasServiceRole(),
+  hasSupabaseSecretKey: () => supabaseMocks.hasServiceRole(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({

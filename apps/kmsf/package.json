@@ -11,6 +11,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "KMSF_AUTH_PROVIDER=${KMSF_AUTH_PROVIDER:-local-json} KMSF_LOCAL_AUTH_DB_PATH=${KMSF_LOCAL_AUTH_DB_PATH:-/private/tmp/kmsf-e2e-auth.db.json} KMSF_SETUP_CONFIG_FILE=${KMSF_SETUP_CONFIG_FILE:-setup.codex-e2e.json} env -u NO_COLOR playwright test",
+    "test:e2e:local": "KMSF_AUTH_PROVIDER=local-json KMSF_LOCAL_AUTH_DB_PATH=${KMSF_LOCAL_AUTH_DB_PATH:-/private/tmp/kmsf-e2e-auth.db.json} KMSF_SETUP_CONFIG_FILE=${KMSF_SETUP_CONFIG_FILE:-setup.codex-e2e.json} env -u NO_COLOR playwright test --grep-invert @supabase-remote",
+    "test:e2e:supabase": "KMSF_AUTH_PROVIDER=supabase KMSF_E2E_REMOTE_SUPABASE=1 env -u NO_COLOR playwright test --grep @supabase-remote",
     "test:e2e:headed": "KMSF_AUTH_PROVIDER=${KMSF_AUTH_PROVIDER:-local-json} KMSF_LOCAL_AUTH_DB_PATH=${KMSF_LOCAL_AUTH_DB_PATH:-/private/tmp/kmsf-e2e-auth.db.json} KMSF_SETUP_CONFIG_FILE=${KMSF_SETUP_CONFIG_FILE:-setup.codex-e2e.json} env -u NO_COLOR playwright test --headed",
     "test:reset-auth": "node scripts/reset-auth-state.mjs",
     "verify": "npm run lint && npm run test:run && npm run build",

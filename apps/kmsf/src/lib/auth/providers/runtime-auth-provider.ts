@@ -1,5 +1,5 @@
 import { getAuthProviderKind, type AuthProviderKind } from "@/lib/auth/providers/auth-provider";
-import { getSupabaseApiKey, getSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { getSupabaseApiKey, getSupabaseSecretKey } from "@/lib/supabase/env";
 import type { ProjectSetupConfig } from "@/lib/setup/project-setup-config";
 
 type AuthProviderEnv = Partial<NodeJS.ProcessEnv>;
@@ -35,7 +35,7 @@ async function readStoredProjectSetupConfig() {
 
 async function probeSupabaseAuthHealth() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-  const key = getSupabaseApiKey() || getSupabaseServiceRoleKey();
+  const key = getSupabaseApiKey() || getSupabaseSecretKey();
 
   if (!supabaseUrl || !key) {
     throw new Error("Supabase credentials are missing.");
@@ -92,7 +92,7 @@ export function createRuntimeAuthProviderResolver(
       };
     }
 
-    if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!env.SUPABASE_SECRET_KEY) {
       return {
         provider: "local-json",
         reason: "missing-supabase-service-role",
@@ -133,7 +133,7 @@ function buildRuntimeAuthProviderCacheKey(env: AuthProviderEnv) {
     env.KMSF_SETUP_CONFIG_PATH ?? "",
     env.NEXT_PUBLIC_SUPABASE_URL ?? "",
     env.SUPABASE_API_KEY ?? env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-    env.SUPABASE_SERVICE_ROLE_KEY ? "service-role" : "",
+    env.SUPABASE_SECRET_KEY ? "secret-key" : "",
   ].join("|");
 }
 

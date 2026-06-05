@@ -73,16 +73,24 @@ const copy = {
       confirmationPlaceholder: "Type 초기화",
       description:
         "Factory reset removes all accounts and setup state for the active auth provider. The initial admin setup page opens again after completion.",
-      dialogDescription: "Enter the current administrator password and type 초기화 to continue.",
+      dialogDescription: "Enter the current administrator password and selected confirmation text to continue.",
       dialogTitle: "Confirm system reset",
+      factoryDescription:
+        "Factory reset deletes all accounts, setup state, sessions, and active auth provider state.",
+      factoryMode: "Factory reset",
+      mode: "Reset mode",
       password: "Administrator password",
-      settingsOnlyComingSoon: "Settings-only reset is reserved as a later mode and is not active yet.",
+      riskAccepted: "I understand this reset can remove active runtime data and should continue.",
+      settingsDescription:
+        "Settings reset clears setup/runtime state and sessions while preserving registered accounts.",
+      settingsMode: "Settings reset",
       title: "System reset",
     },
     resetErrors: {
       auth: "The administrator password is incorrect.",
       confirmation: "The confirmation text does not match.",
       reset: "System reset could not be completed.",
+      risk: "Risk confirmation is required before reset.",
       security: "The security token is invalid. Refresh the page and try again.",
       "service-role": "A server-side Supabase key is required to reset Supabase data.",
       unauthorized: "Only level 3 administrators can reset the system.",
@@ -150,16 +158,24 @@ const copy = {
       confirmationPlaceholder: "초기화",
       description:
         "공장 초기화는 현재 인증 저장소의 모든 계정과 설정 상태를 삭제합니다. 완료 후 초기 관리자 추가 화면이 다시 열립니다.",
-      dialogDescription: "현재 관리자 비밀번호를 입력하고 확인 문구로 초기화를 입력해야 진행됩니다.",
+      dialogDescription: "현재 관리자 비밀번호와 선택한 초기화 모드의 확인 문구를 입력해야 진행됩니다.",
       dialogTitle: "시스템 초기화 확인",
+      factoryDescription:
+        "공장 초기화는 모든 계정, 설정 상태, 세션, 현재 인증 저장소 상태를 삭제합니다.",
+      factoryMode: "공장 초기화",
+      mode: "초기화 모드",
       password: "관리자 비밀번호",
-      settingsOnlyComingSoon: "계정을 유지하고 설정만 초기화하는 기능은 후속 모드로 준비 중입니다.",
+      riskAccepted: "초기화로 현재 실행 데이터가 삭제될 수 있음을 확인했습니다.",
+      settingsDescription:
+        "설정 초기화는 가입 계정을 유지하고 설정 상태와 세션만 초기화합니다.",
+      settingsMode: "설정 초기화",
       title: "시스템 초기화",
     },
     resetErrors: {
       auth: "관리자 비밀번호가 올바르지 않습니다.",
       confirmation: "확인 문구가 일치하지 않습니다.",
       reset: "시스템 초기화를 완료할 수 없습니다.",
+      risk: "초기화 위험 확인이 필요합니다.",
       security: "보안 토큰이 유효하지 않습니다. 페이지를 새로고침 후 다시 시도해 주세요.",
       "service-role": "Supabase 데이터를 초기화하려면 서버 전용 Supabase 키가 필요합니다.",
       unauthorized: "레벨 3 관리자만 시스템을 초기화할 수 있습니다.",

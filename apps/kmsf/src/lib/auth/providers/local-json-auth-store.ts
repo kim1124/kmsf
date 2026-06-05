@@ -395,6 +395,10 @@ export async function listLocalJsonAccounts() {
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
+export async function readLocalJsonAuthStoreSnapshot() {
+  return readDb();
+}
+
 export async function verifyLocalJsonCredentials(identifier: string, password: string) {
   return withDbMutation(async () => {
     const db = await readDbFile();

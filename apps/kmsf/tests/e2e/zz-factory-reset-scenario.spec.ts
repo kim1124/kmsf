@@ -175,11 +175,29 @@ test("level3 admin, member lifecycle, and factory reset work end to end", async 
 
   await page.goto("/settings?section=reset");
   await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "시스템 초기화" })).toBeVisible();
+  await page.getByRole("button", { name: "시스템 초기화", exact: true }).click();
+  await page.getByLabel("설정 초기화").check();
+  await page.locator("#system-reset-password").fill(e2eAdminAccount.password);
+  await page.locator("#system-reset-risk-accepted").check();
+  await page.locator("#system-reset-confirmation").fill("설정초기화");
+  await page.getByRole("button", { name: "초기화 진행", exact: true }).click();
+  await page.waitForURL("**/sign-in?success=settings-reset", { timeout: 20_000 });
+  await expect(page.getByText("설정 초기화가 완료되었습니다. 다시 로그인해 주세요.")).toBeVisible();
+  await signIn(page, e2eAdminAccount);
+  await expect
+    .poll(async () => (await readLocalDbAccounts()).some((account) => account.username === e2eAdminAccount.username))
+    .toBe(true);
+
+  await page.goto("/settings?section=reset");
+  await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: "설정" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "시스템 초기화" })).toBeVisible();
   await page.getByRole("button", { name: "시스템 초기화", exact: true }).click();
+  await page.getByLabel("공장 초기화").check();
   await page.locator("#system-reset-password").fill(e2eAdminAccount.password);
-  await page.locator("#system-reset-confirmation").fill("초기화");
+  await page.locator("#system-reset-risk-accepted").check();
+  await page.locator("#system-reset-confirmation").fill("공장초기화");
   await page.getByRole("button", { name: "초기화 진행", exact: true }).click();
   await page.waitForURL("**/setup/initial-admin?reset=success", { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "KMSF 초기 설정" })).toBeVisible();

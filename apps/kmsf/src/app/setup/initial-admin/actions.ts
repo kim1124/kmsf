@@ -19,7 +19,7 @@ import {
   type AccountFields,
 } from "@/lib/auth/validation";
 import type { AuthProviderKind } from "@/lib/auth/providers/auth-provider";
-import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import {
   isAuthEmailTaken,
   isManagerUsernameTaken,
@@ -175,7 +175,7 @@ export async function createInitialAdminAction(
       }
     | null = null;
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const { error: createError } = await createSupabaseAccountWithManager({
       displayName: INITIAL_ADMIN_DISPLAY_NAME,
       email: normalizedEmail,
