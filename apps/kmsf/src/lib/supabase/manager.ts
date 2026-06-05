@@ -3,7 +3,7 @@ import { cache } from "react";
 import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import type { AppRole } from "@/lib/auth/roles";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ManagerProfile = {
@@ -54,7 +54,7 @@ export async function ensureManagerProfile(input: {
   id: string;
   username: string;
 }) {
-  if (!hasSupabaseServiceRoleKey()) {
+  if (!hasSupabaseSecretKey()) {
     return;
   }
 
@@ -82,7 +82,7 @@ export async function ensureManagerProfile(input: {
 }
 
 export async function touchManagerLastSignedIn(id: string) {
-  if (!hasSupabaseServiceRoleKey()) {
+  if (!hasSupabaseSecretKey()) {
     return;
   }
 
@@ -116,7 +116,7 @@ export const isInitialSetupRequired = cache(async () => {
     return !(await hasLocalJsonAccounts());
   }
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { count, error } = await admin
       .from("manager")
@@ -171,7 +171,7 @@ export async function findManagerLoginIdentity(
 ): Promise<ManagerLoginIdentity | null> {
   const normalized = identifier.trim();
 
-  if (!normalized || !hasSupabaseServiceRoleKey()) {
+  if (!normalized || !hasSupabaseSecretKey()) {
     return null;
   }
 
@@ -239,7 +239,7 @@ export async function isManagerUsernameTaken(username: string) {
     return false;
   }
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { data, error } = await admin
       .from("manager")
@@ -277,7 +277,7 @@ export async function isManagerUsernameTaken(username: string) {
 export async function isAuthEmailTaken(email: string) {
   const normalized = email.trim().toLowerCase();
 
-  if (!normalized || !hasSupabaseServiceRoleKey()) {
+  if (!normalized || !hasSupabaseSecretKey()) {
     return false;
   }
 

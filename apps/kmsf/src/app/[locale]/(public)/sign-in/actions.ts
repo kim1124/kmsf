@@ -34,7 +34,7 @@ import {
   touchManagerLastSignedIn,
 } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
-import { getAppUrl, hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
+import { getAppUrl, hasSupabaseSecretKey, isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type SignInFormState = {
   authError: "auth" | "locked" | "security" | null;
@@ -348,7 +348,7 @@ export async function signUpAction(
     | null = null;
   let shouldSignIn = false;
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const { error: createError, user } = await createSupabaseAccountWithManager({
       email: normalizedEmail,
       password: parsed.data.password,

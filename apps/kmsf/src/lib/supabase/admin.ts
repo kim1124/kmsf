@@ -1,13 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
-import { getSupabaseServiceRoleKey, hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { getSupabaseSecretKey, hasSupabaseSecretKey } from "@/lib/supabase/env";
 
 export function createSupabaseAdminClient() {
-  if (!hasSupabaseServiceRoleKey()) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
+  if (!hasSupabaseSecretKey()) {
+    throw new Error("SUPABASE_SECRET_KEY is not configured.");
   }
 
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, getSupabaseServiceRoleKey(), {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, getSupabaseSecretKey(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

@@ -87,7 +87,7 @@ async function deleteCurrentAccount(page: import("@playwright/test").Page) {
   await expect(page.getByText("회원 탈퇴가 완료되었습니다.")).toBeVisible();
 }
 
-test("supabase setup, sign-up, sign-in, page checks, and member deletion", async ({ page }) => {
+test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member deletion", async ({ page }) => {
   const runId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
   const adminEmail = `admin_${runId}@mailinator.com`;
   const memberUsername = `kim${runId.slice(-8)}`;

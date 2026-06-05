@@ -66,6 +66,12 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           </div>
         ) : null}
 
+        {success === "settings-reset" ? (
+          <div className="mt-5 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-foreground">
+            {t("settingsReset")}
+          </div>
+        ) : null}
+
         {error ? (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-500/10 dark:text-red-200">
             {t(`errors.${error}`)}

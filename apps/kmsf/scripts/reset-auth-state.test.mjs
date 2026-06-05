@@ -38,7 +38,7 @@ describe("reset-auth-state script", () => {
           KMSF_SETUP_CONFIG_FILE: configFile,
           NEXT_PUBLIC_SUPABASE_URL: "",
           SUPABASE_API_KEY: "",
-          SUPABASE_SERVICE_ROLE_KEY: "",
+          SUPABASE_SECRET_KEY: "",
         },
       });
 
