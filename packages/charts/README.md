@@ -6,12 +6,14 @@
 
 ## Target Components
 
+- `GenericChart`: `type` 기반 ECharts 범용 차트
 - `TrendChart`: Line, Area 추이 차트
 - `TopChart`: Pie, Bar, Column, Treemap 기반 TOP N 차트
 - `SankeyChart`: ECharts Sankey 옵션 기반 흐름 차트
 - `WordCloud`: `echarts-wordcloud` 확장 기반 워드 클라우드
 - `GaugeChart`: 간결화된 Gauge 차트
 - `SunburstChart`: 계층형 Pie 차트
+- `RadarChart`, `HeatmapChart`, `GraphChart`: native required 차트를 쉽게 쓰기 위한 얇은 wrapper
 
 ## Package Rules
 
@@ -27,6 +29,8 @@ npm --workspace=@kmsf/charts run lint
 npm --workspace=@kmsf/charts run test:run
 npm --workspace=@kmsf/charts run build
 npm --workspace=@kmsf/charts run test:e2e
+npm --workspace=@kmsf/charts run test:soak -- --duration 5
+npm --workspace=@kmsf/charts run test:soak -- --duration 3600 --interval 10 --grep "line live chart performance"
 ```
 
 The example dev server uses port `4000` by default. If the port is already in use, choose the next available port explicitly:
@@ -64,12 +68,37 @@ export function Dashboard() {
 }
 ```
 
+## Loading Fallback
+
+차트 최초 렌더링 전 또는 `wordCloud` 확장 로딩 중에는 `loadingFallback`으로 Skeleton을 전달할 수 있다. `@kmsf/charts`는 shadcn을 직접 의존하지 않으므로, Skeleton UI는 사용하는 앱의 shadcn 컴포넌트를 전달한다.
+
+```tsx
+import { GenericChart } from "@kmsf/charts";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function ChartLoadingSkeleton() {
+  return <Skeleton className="h-full w-full rounded-md" />;
+}
+
+export function RevenueChart() {
+  return (
+    <GenericChart
+      data={[["Alpha", 120]]}
+      dataFormat="top"
+      loadingFallback={<ChartLoadingSkeleton />}
+      type="bar"
+    />
+  );
+}
+```
+
 ## Theme Override
 
-KMSF provides a default chart palette. Consumers can override palette, text, and background without changing package source.
+KMSF provides a default TOP palette. Consumers can pass `colors?: string[]` for fixed hex colors, or override palette, text, and background without changing package source.
 
 ```tsx
 <TrendChart
+  colors={["#10b981", "#0ea5e9", "#f97316"]}
   data={rows}
   series={series}
   theme="light"
@@ -80,13 +109,23 @@ KMSF provides a default chart palette. Consumers can override palette, text, and
 />
 ```
 
-`options` is still merged after the default chart option, so ECharts-native overrides remain available.
+`colors` has priority over `themeOverrides.palette`. Empty or invalid `colors` falls back to the KMSF TOP palette. `options` is still merged after the default chart option, so ECharts-native overrides remain available.
+
+## Runtime Validation
+
+`data` is required for every chart. `TrendChart` additionally requires `series` because trend row value columns are mapped to `series[0..n-1]`. Missing required chart settings stop chart rendering and show a chart-local fallback UI. A `[KMSF Charts]` console error is logged once for the same issue.
+
+Chart-specific ECharts settings are validated before rendering for native-required types such as `radar`, `heatmap`, `lines`, `graph`, `boxplot`, `parallel`, `sankey`, and `themeRiver`. `map` and `custom` remain advanced charts that require official ECharts setup, such as map resource registration or `renderItem`.
+
+The example and Playwright tests intentionally trigger some invalid configurations, such as a missing `options.radar.indicator`, to verify that the fallback UI protects the host app.
 
 ## Public API Notes
 
 - `GaugeChart`와 `SunburstChart`를 public chart 이름으로 사용한다.
+- `RadarChart`, `HeatmapChart`, `GraphChart`는 `GenericChart`에 필요한 native option을 주입하는 wrapper다.
 - tuple 포맷을 직접 만들 수 있지만, 처음 사용하는 개발자는 `createTrendRows`, `createTopRows`를 우선 사용한다.
 - `WordCloud`는 browser-only extension인 `echarts-wordcloud`를 내부에서 lazy load하므로, 패키지 import 자체는 SSR 환경에서도 깨지지 않아야 한다.
+- 예제 페이지의 `Large Data` 탭은 10,000개 line row와 1,000개 bar item을 별도 메뉴에서 생성해 기본 예제 탐색 성능과 분리한다.
 
 ## Documentation
 

@@ -13,6 +13,12 @@ describe("public component aliases", () => {
     expect("GuageChart" in charts).toBe(false);
     expect("SunbustChart" in charts).toBe(false);
   });
+
+  it("exports native required chart wrappers", () => {
+    expect(charts.RadarChart).toBeTypeOf("function");
+    expect(charts.HeatmapChart).toBeTypeOf("function");
+    expect(charts.GraphChart).toBeTypeOf("function");
+  });
 });
 
 describe("createTrendRows", () => {

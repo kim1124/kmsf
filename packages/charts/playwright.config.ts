@@ -4,11 +4,13 @@ const port = Number(process.env.KMSF_CHARTS_PORT ?? process.env.PORT ?? 4000);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 const isCI = Boolean(process.env.CI);
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
+const includeSoak = process.env.KMSF_CHARTS_INCLUDE_SOAK === "1";
 
 export default defineConfig({
   outputDir: "reports/artifacts/playwright",
   reporter: [["html", { open: "never", outputFolder: "reports/artifacts/playwright-html" }], ["list"]],
   testDir: "test/playwright/specs",
+  testIgnore: includeSoak ? [] : ["**/soak.spec.ts"],
   use: {
     baseURL,
     trace: "retain-on-failure",

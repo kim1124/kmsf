@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type {
   EChartsOption,
   LegendComponentOption,
@@ -24,6 +24,7 @@ export interface KmsfChartThemeOverrides {
 export interface KmsfBaseChartProps<TData> {
   data: TData;
   series?: SeriesOption[];
+  colors?: string[];
   legend?: KmsfLegendOption;
   xAxis?: KmsfAxisOption<XAXisComponentOption>;
   yAxis?: KmsfAxisOption<YAXisComponentOption>;
@@ -33,6 +34,7 @@ export interface KmsfBaseChartProps<TData> {
   tooltip?: KmsfTooltipOption;
   theme?: KmsfChartTheme;
   themeOverrides?: KmsfChartThemeOverrides;
+  loadingFallback?: ReactNode;
   className?: string;
   style?: CSSProperties;
   height?: number | string;

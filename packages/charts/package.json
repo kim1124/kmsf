@@ -11,6 +11,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
+    "test:soak": "node scripts/run-soak-test.mjs",
     "verify": "npm run lint && npm run test:run && npm run build",
     "verify:full": "npm run verify && npm run verify:e2e",
     "verify:e2e": "npm run test:e2e"

@@ -1,7 +1,11 @@
 import type { KmsfChartType } from "../../../src";
 import { chartSamples } from "../data/chart-samples";
+import type { ChartSample } from "../data/chart-samples";
+
+export type ChartDocCategory = "advanced" | "easy" | "native-required";
 
 export interface ChartDoc {
+  category: ChartDocCategory;
   markdown: string;
   officialDocs: Array<{ label: string; url: string }>;
   officialDocsUrl: string;
@@ -433,11 +437,16 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
 };
 
 function buildRequiredPropsMarkdown(definition: ChartDocDefinition) {
+  const requiredSettings = definition.requiredEchartsSettings?.map(
+    (item) => `- \`${item.prop}\` / \`${item.code}\`: ${item.description}`,
+  ) ?? [];
+
   return [
-    "## Required Props",
+    "## 필수 설정",
     "",
     `- \`type\`: \`${definition.type}\``,
     `- ${definition.dataDescription}`,
+    ...requiredSettings,
   ].join("\n");
 }
 
@@ -453,28 +462,17 @@ function buildRecommendedPropsMarkdown(definition: ChartDocDefinition) {
   ].join("\n");
 }
 
-function buildRequiredEchartsSettingsMarkdown(definition: ChartDocDefinition) {
-  if (!definition.requiredEchartsSettings?.length) {
-    return "";
-  }
-
-  return [
-    "## Required ECharts Settings",
-    "",
-    ...definition.requiredEchartsSettings.map(
-      (item) => `- \`${item.prop}\` / \`${item.code}\`: ${item.description}`,
-    ),
-  ].join("\n");
-}
-
 function buildCommonOptionsMarkdown() {
   return [
     "## Common Options",
     "",
     "- `legend`: `boolean | object`로 범례 표시를 제어합니다.",
     "- `tooltip`: `boolean | object`로 툴팁 표시를 제어합니다.",
+    "- `colors`: `string[]`로 series 또는 item 색상을 고정합니다. 비어 있으면 KMSF TOP palette를 사용합니다.",
     "- `seriesOptions`: KMSF가 생성한 series의 일부 속성을 덮어씁니다.",
+    "- `loadingFallback`: 차트 최초 렌더링 전 또는 wordCloud 확장 로딩 중 표시할 ReactNode입니다. shadcn Skeleton을 전달하는 방식으로 사용합니다.",
     "- `options`: ECharts 공식 option 구조를 그대로 전달합니다.",
+    "- 필수 설정 누락 시 차트 영역에 fallback을 표시하고 `[KMSF Charts]` console error를 1회 기록합니다.",
   ].join("\n");
 }
 
@@ -500,7 +498,6 @@ function buildMarkdown(type: KmsfChartType) {
     sample?.summary ?? "ECharts native chart",
     buildRequiredPropsMarkdown(definition),
     buildRecommendedPropsMarkdown(definition),
-    buildRequiredEchartsSettingsMarkdown(definition),
     buildCommonOptionsMarkdown(),
     `## Example\n\n\`\`\`tsx\n${definition.exampleCode}\n\`\`\``,
     buildOfficialDocsMarkdown(definition),
@@ -508,8 +505,21 @@ function buildMarkdown(type: KmsfChartType) {
   ]);
 }
 
+function resolveDocCategory(sample: ChartSample, definition: ChartDocDefinition): ChartDocCategory {
+  if (sample.category === "Advanced") {
+    return "advanced";
+  }
+
+  if (definition.requiredEchartsSettings?.length) {
+    return "native-required";
+  }
+
+  return "easy";
+}
+
 export const chartDocs: ChartDoc[] = chartSamples.map((sample) => {
   const definition = chartDocDefinitions[sample.type];
+  const category = resolveDocCategory(sample, definition);
   const markdown = buildMarkdown(sample.type);
   const settingsText = definition.requiredEchartsSettings
     ?.map((item) => `${item.prop} ${item.code} ${item.description}`)
@@ -517,6 +527,7 @@ export const chartDocs: ChartDoc[] = chartSamples.map((sample) => {
   const docsText = definition.officialDocs.map((item) => `${item.label} ${item.url}`).join(" ");
 
   return {
+    category,
     markdown,
     officialDocs: definition.officialDocs,
     officialDocsUrl: definition.officialDocs[0]?.url ?? officialSeriesDocs[sample.type],
@@ -525,6 +536,7 @@ export const chartDocs: ChartDoc[] = chartSamples.map((sample) => {
       sample.category,
       sample.summary,
       sample.dataFormat,
+      category,
       sample.disabledReason,
       settingsText,
       docsText,

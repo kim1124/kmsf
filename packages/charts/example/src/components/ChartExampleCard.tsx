@@ -17,6 +17,7 @@ import {
 import type { ChartExampleDefinition } from "../data/chart-examples";
 import { applyTopRowPalette, getSeriesPaletteOverride } from "../data/chart-colors";
 import { parseEditableChartData, parseEditableOptions } from "../data/live-editing";
+import { ChartSkeleton } from "./ChartSkeleton";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -231,6 +232,7 @@ export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
               dataFormat={example.dataFormat}
               height="100%"
               legend={optionState.legend}
+              loadingFallback={<ChartSkeleton />}
               options={sampleOptions}
               series={sampleSeries}
               seriesOptions={seriesOptions}

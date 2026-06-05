@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildWordCloudTextStyle,
+  kmsfTopPalette,
+  normalizeHexColors,
+  getChartPalette,
+} from "../../src/common/colors";
+import {
   buildLegendOption,
   buildTooltipOption,
   buildTrendDataZoom,
@@ -81,13 +87,18 @@ describe("buildThemeOption", () => {
 });
 
 describe("getWordCloudPalette", () => {
-  it("uses theme override palette when provided", () => {
-    expect(getWordCloudPalette("light", ["#2563eb", "#9333ea"])).toEqual(["#2563eb", "#9333ea"]);
+  it("uses colors prop before theme override palette", () => {
+    expect(getWordCloudPalette(["#111111"], ["#2563eb", "#9333ea"])).toEqual(["#111111"]);
+    expect(getWordCloudPalette(undefined, ["#2563eb", "#9333ea"])).toEqual(["#2563eb", "#9333ea"]);
   });
 
-  it("falls back to KMSF theme palettes", () => {
-    expect(getWordCloudPalette("light")).toEqual(expect.arrayContaining(["#10b981"]));
-    expect(getWordCloudPalette("dark")).toEqual(expect.arrayContaining(["#34d399"]));
+  it("falls back to TOP palette and maps colors by dataIndex", () => {
+    const textStyle = buildWordCloudTextStyle(getChartPalette({}));
+
+    expect(getWordCloudPalette()).toEqual(kmsfTopPalette);
+    expect(normalizeHexColors(["#123456"])).toEqual(["#123456"]);
+    expect(textStyle.color({ dataIndex: 0 })).toBe(kmsfTopPalette[0]);
+    expect(textStyle.color({ dataIndex: 1 })).toBe(kmsfTopPalette[1]);
   });
 });
 
