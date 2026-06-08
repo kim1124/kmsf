@@ -1,6 +1,36 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "Spoqa Han Sans Neo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local("Spoqa Han Sans Neo Regular"),
+    url("/fonts/spoqa/SpoqaHanSansNeo-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spoqa Han Sans Neo";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src:
+    local("Spoqa Han Sans Neo Medium"),
+    url("/fonts/spoqa/SpoqaHanSansNeo-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spoqa Han Sans Neo";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src:
+    local("Spoqa Han Sans Neo Bold"),
+    url("/fonts/spoqa/SpoqaHanSansNeo-Bold.woff2") format("woff2");
+}
+
 :root {
   --kmsf-color-background: #ffffff;
   --kmsf-color-foreground: #111827;
@@ -23,6 +53,8 @@
   --kmsf-shadow-panel: 0 12px 32px rgba(16, 185, 129, 0.04);
   --kmsf-shadow-raised: 0 10px 24px rgba(15, 23, 42, 0.18);
   --kmsf-shadow-overlay: 0 24px 80px rgba(15, 23, 42, 0.28);
+  --kmsf-font-family-base: var(--font-body), sans-serif;
+  --kmsf-font-size-base: 12px;
   --kmsf-motion-fast: 180ms;
   --background: var(--kmsf-color-background);
   --foreground: var(--kmsf-color-foreground);
@@ -65,6 +97,20 @@ html[data-theme="dark"] {
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);
   --font-display: var(--font-display);
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: var(--kmsf-font-size-base);
+  --text-sm--line-height: 1.55;
+  --text-base: 0.8125rem;
+  --text-base--line-height: 1.55;
+  --text-lg: 0.875rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.125rem;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 1.25rem;
+  --text-3xl--line-height: 1.2;
 }
 
 * {
@@ -79,8 +125,14 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), sans-serif;
+  font-family: var(--kmsf-font-family-base);
+  font-size: var(--kmsf-font-size-base);
   overflow: hidden;
+}
+
+.kmsf-typography-base {
+  font-family: var(--kmsf-font-family-base);
+  font-size: var(--kmsf-font-size-base);
 }
 
 a,

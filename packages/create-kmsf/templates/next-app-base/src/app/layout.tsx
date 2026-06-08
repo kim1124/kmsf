@@ -36,7 +36,7 @@ export default async function RootLayout({
       className={`${theme === "dark" ? "dark" : ""} h-full antialiased`}
       style={fontVariables}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="kmsf-typography-base min-h-full flex flex-col">
         {children}
       </body>
     </html>

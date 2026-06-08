@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { bodyFontStack, displayFontStack, monoFontStack } from "./font-stacks";
 
 describe("font stacks", () => {
-  it("use system-first sans fonts that cover Korean and English", () => {
-    expect(bodyFontStack).toContain("system-ui");
+  it("use Spoqa Han Sans Neo before system fallbacks", () => {
+    expect(bodyFontStack.startsWith("\"Spoqa Han Sans Neo\"")).toBe(true);
+    expect(bodyFontStack).toContain("\"SpoqaHanSans\"");
     expect(bodyFontStack).toContain("\"Apple SD Gothic Neo\"");
     expect(bodyFontStack).toContain("\"Malgun Gothic\"");
     expect(bodyFontStack).toContain("\"Segoe UI\"");
