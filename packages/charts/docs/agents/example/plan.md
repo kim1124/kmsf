@@ -14,9 +14,9 @@
    - left chart-type aside can collapse and expand.
    - right floating docs aside contains a search input and Markdown-rendered required props.
    - option controls update rendered chart state.
-   - trend data updates within about 1 second and top data updates within about 10 seconds.
+   - trend data updates within about 1 second and top data updates within about 5 seconds.
 2. Add failing Playwright coverage for a separate gridstack page:
-   - page navigation works without a router dependency.
+   - page navigation works through React Router hash routes.
    - chart widgets can be added and removed.
    - repeated create/delete leaves no console errors and restores the expected canvas count.
 3. Implement example-only UI primitives under `example/src/components/ui`.
@@ -48,7 +48,7 @@ Improve the chart example page so every sample renders with clear chart identity
 ### Confirmed Implementation Direction
 
 1. Prefer deterministic KMSF-aligned colors over random colors.
-   - Add a 10-color palette derived from current KMSF mint/lime/sky/orange/violet/red direction.
+   - Use the current 10-color KMSF mint family palette.
    - Use the palette as `themeOverrides.palette` for series-level coloring.
    - For item/category charts, apply `itemStyle.color` by `dataIndex % palette.length`.
    - For wordCloud, apply `textStyle.color` from the same palette.
@@ -151,7 +151,7 @@ Improve the chart example page so every sample renders with clear chart identity
 
 ### Goal
 
-Improve the example page into a chart-type scoped example gallery so developers can compare 3 to 5 practical variants for the selected chart without keeping inactive chart type instances, editor state, or docs search state in memory.
+Improve the example page into a chart-type scoped example gallery so developers can compare 5 practical variants for the selected chart without keeping inactive chart type instances, editor state, or docs search state in memory.
 
 ### Required Remount Rule
 
@@ -168,7 +168,7 @@ Improve the example page into a chart-type scoped example gallery so developers 
 1. Keep `chartSamples` as the left aside menu source.
 2. Add a chart-type keyed example group model for the center content.
    - Render only the selected chart type's group.
-   - Provide 3 to 5 Card-based examples for renderable chart types.
+   - Provide exactly 5 Card-based examples for renderable chart types.
    - Keep disabled/resource-dependent chart types as explicit placeholder examples until their rendering prerequisites are added.
 3. Add a common `ChartExampleCard` component.
    - Use shadcn-style `Card` and `Badge`.
@@ -183,7 +183,8 @@ Improve the example page into a chart-type scoped example gallery so developers 
    - TOP examples keep TOP 50 rows and only add series variants where the chart type can express multiple series clearly.
 6. Move live timers below the selected content boundary.
    - Trend live examples tick every 1 second.
-   - TOP and flow live examples tick every 10 seconds.
+   - TOP live examples tick every 5 seconds.
+   - Slow structural live examples can use a 10 second interval when layout cost is higher.
    - Timers are created only for the selected chart group and are cleared on unmount.
 7. Preserve the separate GridStack page.
    - Do not convert GridStack dashboard examples into the Card gallery.
@@ -195,7 +196,7 @@ Improve the example page into a chart-type scoped example gallery so developers 
    - Verify repeated selection of the same chart type keeps the current content/docs state.
    - Verify content search, option editor error state, docs search, and canvas count reset after selecting a different chart type.
 2. Add RED coverage for example group metadata.
-   - Renderable chart types must have 3 to 5 examples.
+   - Renderable chart types must have exactly 5 examples.
    - Every example must have a stable id, title, tags, mode, summary, and builder.
    - Series count capable examples must clamp to 1 through 10.
 3. Add `example/src/data/chart-examples.ts`.
@@ -230,7 +231,7 @@ Improve the example page into a chart-type scoped example gallery so developers 
 - Selecting the same chart type again is ignored and does not reset content/docs state.
 - Previous data editor, option editor, validation error, content search, and docs search state do not remain after selection.
 - Only visible cards for the selected chart type have chart canvases, and each card has exactly one canvas unless a documented multi-layer allow-list applies.
-- Renderable chart types expose 3 to 5 examples.
+- Renderable chart types expose exactly 5 examples.
 - Example cards use shadcn-style Card and Badge primitives.
 - Search filters examples within the current chart type only.
 - Series count controls stay within 1 to 10.
@@ -240,3 +241,10 @@ Improve the example page into a chart-type scoped example gallery so developers 
 ## Split Rule
 
 If this file grows beyond 500 lines, move detailed steps into `plans/00_example-plan.md`.
+
+## 설계 결정 질문 루프
+
+- 이 문서를 작성하거나 갱신하기 전에 사용자 결정이 필요한 항목을 질문으로 분리한다.
+- 답변 전에는 추천안을 확정된 계획이나 결론으로 쓰지 않는다.
+- 답변 이후에도 재결정 항목이 남으면 추가 질문을 먼저 한다.
+- 모든 사용자 결정 항목이 닫힌 뒤 내용을 확정한다.

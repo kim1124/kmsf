@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SeriesOption } from "echarts";
+import type { EChartsOption, SeriesOption } from "echarts";
 import type { LucideIcon } from "lucide-react";
+import { Dialog as DialogPrimitive } from "radix-ui";
 import {
   Activity,
   ChartBar,
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 import { DashboardGrid, useDashboardGrid } from "@kmsf/gridstack";
 import type { DashboardWidget } from "@kmsf/gridstack";
+import { Navigate, NavLink, useLocation, useNavigate, useParams } from "react-router";
 import "gridstack/dist/gridstack.min.css";
 import "@kmsf/gridstack/styles.css";
 
@@ -39,6 +41,7 @@ import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { Textarea } from "./components/ui/textarea";
 import { ChartSkeleton } from "./components/ChartSkeleton";
 import { ChartExampleCard } from "./components/ChartExampleCard";
 import { MarkdownDocument } from "./components/MarkdownDocument";
@@ -47,10 +50,23 @@ import { chartSamples } from "./data/chart-samples";
 import type { ChartSample, SampleClock } from "./data/chart-samples";
 import { chartExampleGroups } from "./data/chart-examples";
 import type { ChartExampleDefinition } from "./data/chart-examples";
-import { getChartDoc, searchChartDocs } from "./docs/chart-docs";
+import { buildChartPath, searchCharts } from "./data/chart-search";
+import {
+  createDashboardDraft,
+  dashboardEditorTypes,
+  validateDashboardDraft,
+} from "./data/dashboard-widget-editor";
+import type { DashboardWidgetDraft, ValidatedDashboardDraft } from "./data/dashboard-widget-editor";
+import { buildDocSearchTargets } from "./data/doc-search";
+import type { DocSearchTarget } from "./data/doc-search";
+import { getChartDoc } from "./docs/chart-docs";
 
 interface DashboardChartData {
+  data?: unknown;
   dataFormat?: GenericChartDataFormat;
+  options?: EChartsOption;
+  series?: SeriesOption[];
+  seriesOptions?: Partial<SeriesOption> | Array<Partial<SeriesOption>>;
   type: KmsfChartType;
 }
 
@@ -82,18 +98,23 @@ function getChartIcon(type: KmsfChartType): LucideIcon {
   return chartIconByType[type] ?? Activity;
 }
 
-function useHashRoute() {
-  const [route, setRoute] = useState(() => window.location.hash.replace("#", "") || "/");
+const excludedRouteTypes = new Set<KmsfChartType>(["custom", "map"]);
+const routableChartSamples = chartSamples.filter((sample) => !excludedRouteTypes.has(sample.type));
 
-  useEffect(() => {
-    const handleHashChange = () => setRoute(window.location.hash.replace("#", "") || "/");
+function isChartType(value: string | undefined): value is KmsfChartType {
+  return routableChartSamples.some((sample) => sample.type === value);
+}
 
-    window.addEventListener("hashchange", handleHashChange);
+function getRouteChartType(value: string | undefined): KmsfChartType {
+  return isChartType(value) ? value : "line";
+}
 
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+function hasExample(type: KmsfChartType, exampleId: string | undefined) {
+  if (!exampleId) {
+    return true;
+  }
 
-  return route;
+  return Boolean(chartExampleGroups[type]?.some((example) => example.id === exampleId));
 }
 
 function useSampleClock() {
@@ -108,13 +129,16 @@ function useSampleClock() {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setTopTick((value) => value + 1), 10_000);
+    const interval = window.setInterval(() => setTopTick((value) => value + 1), 5000);
 
     return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setFlowTick((value) => value + 1), 10_000);
+    const interval = window.setInterval(() => {
+      setTopTick((value) => value + 1);
+      setFlowTick((value) => value + 1);
+    }, 10_000);
 
     return () => window.clearInterval(interval);
   }, []);
@@ -159,7 +183,7 @@ function mergeSeriesOptions(sample: ChartSample): Partial<SeriesOption> | Array<
 function groupedSamples() {
   const groups = new Map<ChartSample["category"], ChartSample[]>();
 
-  for (const sample of chartSamples) {
+  for (const sample of routableChartSamples) {
     const items = groups.get(sample.category) ?? [];
     items.push(sample);
     groups.set(sample.category, items);
@@ -172,12 +196,10 @@ function ChartNavigation({
   activeType,
   collapsed,
   onCollapseToggle,
-  onSelectType,
 }: {
   activeType: KmsfChartType;
   collapsed: boolean;
   onCollapseToggle: () => void;
-  onSelectType: (type: KmsfChartType) => void;
 }) {
   return (
     <aside className="chart-aside" data-collapsed={collapsed}>
@@ -205,14 +227,14 @@ function ChartNavigation({
                 const Icon = getChartIcon(sample.type);
 
                 return (
-                  <button
+                  <NavLink
                     aria-label={`${sample.type} 차트 선택`}
                     aria-pressed={activeType === sample.type}
                     className="chart-menu-button"
                     key={sample.type}
-                    onClick={() => onSelectType(sample.type)}
+                    role="button"
                     title={collapsed ? `${sample.type}: ${sample.summary}` : undefined}
-                    type="button"
+                    to={`/charts/${sample.type}`}
                   >
                     <Icon aria-hidden="true" size={17} />
                     {!collapsed ? (
@@ -221,7 +243,7 @@ function ChartNavigation({
                         <small>{sample.summary}</small>
                       </span>
                     ) : null}
-                  </button>
+                  </NavLink>
                 );
               })}
             </div>
@@ -236,8 +258,11 @@ function useSelectedExampleClock(examples: ChartExampleDefinition[]) {
   const [trendTick, setTrendTick] = useState(0);
   const [topTick, setTopTick] = useState(0);
   const [flowTick, setFlowTick] = useState(0);
-  const needsTrend = examples.some((example) => example.mode === "live" && example.tags.includes("Trend"));
-  const needsSlowUpdate = examples.some((example) => example.mode === "live" && !example.tags.includes("Trend"));
+  const needsTrend = examples.some((example) => example.mode === "live" && example.updateIntervalMs === 1000);
+  const needsTopUpdate = examples.some((example) => example.mode === "live" && example.updateIntervalMs === 5000);
+  const needsSlowUpdate = examples.some(
+    (example) => example.mode === "live" && example.updateIntervalMs !== 1000 && example.updateIntervalMs !== 5000,
+  );
 
   useEffect(() => {
     if (!needsTrend) {
@@ -248,6 +273,16 @@ function useSelectedExampleClock(examples: ChartExampleDefinition[]) {
 
     return () => window.clearInterval(interval);
   }, [needsTrend]);
+
+  useEffect(() => {
+    if (!needsTopUpdate) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => setTopTick((value) => value + 1), 5000);
+
+    return () => window.clearInterval(interval);
+  }, [needsTopUpdate]);
 
   useEffect(() => {
     if (!needsSlowUpdate) {
@@ -265,38 +300,105 @@ function useSelectedExampleClock(examples: ChartExampleDefinition[]) {
   return useMemo<SampleClock>(() => ({ flowTick, topTick, trendTick }), [flowTick, topTick, trendTick]);
 }
 
-function ChartExampleContent({ type }: { type: KmsfChartType }) {
+function GlobalChartSearch() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
-  const examples = chartExampleGroups[type] ?? [];
-  const clock = useSelectedExampleClock(examples);
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleExamples = useMemo(
-    () =>
-      normalizedQuery
-        ? examples.filter((example) => {
-            const haystack = [example.title, example.summary, example.type, ...example.tags].join(" ").toLowerCase();
+  const results = useMemo(() => searchCharts(query), [query]);
 
-            return haystack.includes(normalizedQuery);
-          })
-        : examples,
-    [examples, normalizedQuery],
-  );
+  useEffect(() => {
+    setQuery("");
+  }, [location.key]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setQuery("");
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  const selectResult = (item: ReturnType<typeof searchCharts>[number]) => {
+    navigate(buildChartPath({ exampleId: item.exampleId, type: item.type }));
+    setQuery("");
+  };
 
   return (
-    <main aria-label="차트 예제" className="chart-example-main">
+    <div className="global-chart-search" ref={rootRef}>
       <div className="example-search">
         <Search aria-hidden="true" size={16} />
         <Input
-          aria-label="예제 검색"
-          placeholder="예제 검색"
+          aria-controls={query.trim() ? "global-chart-search-results" : undefined}
+          aria-expanded={Boolean(query.trim())}
+          aria-label="전체 차트 검색"
+          placeholder="전체 차트 검색"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setQuery("");
+            }
+          }}
         />
       </div>
+      {query.trim() ? (
+        <div aria-label="전체 차트 검색 결과" className="global-search-popup" id="global-chart-search-results" role="listbox">
+          {results.length ? (
+            results.map((item) => (
+              <button
+                aria-label={`${item.type} ${item.title} ${item.description}`}
+                className="global-search-popup__item"
+                key={item.id}
+                role="option"
+                type="button"
+                onClick={() => selectResult(item)}
+              >
+                <Badge>{item.kind === "chart-option" ? "옵션" : item.kind === "chart-example" ? "예제" : "문서"}</Badge>
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.description}</small>
+                </span>
+              </button>
+            ))
+          ) : (
+            <p className="global-search-popup__empty">검색된 결과가 없습니다.</p>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
-      {visibleExamples.length ? (
+function ChartExampleContent({ exampleId, type }: { exampleId?: string; type: KmsfChartType }) {
+  const examples = chartExampleGroups[type] ?? [];
+  const clock = useSelectedExampleClock(examples);
+
+  useEffect(() => {
+    if (!exampleId) {
+      return;
+    }
+
+    const element = document.querySelector<HTMLElement>(`[data-testid="chart-example-card-${exampleId}"]`);
+
+    if (!element) {
+      return;
+    }
+
+    element.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [exampleId, type]);
+
+  return (
+    <main aria-label="차트 예제" className="chart-example-main">
+      <GlobalChartSearch />
+
+      {examples.length ? (
         <div className="chart-example-list">
-          {visibleExamples.map((example) => (
+          {examples.map((example) => (
             <ChartExampleCard clock={clock} example={example} key={example.id} />
           ))}
         </div>
@@ -310,7 +412,11 @@ function ChartExampleContent({ type }: { type: KmsfChartType }) {
 function ChartDocsPanel({ activeType }: { activeType: KmsfChartType }) {
   const [query, setQuery] = useState("");
   const selectedDoc = getChartDoc(activeType);
-  const docs = query.trim() ? searchChartDocs(query) : [selectedDoc];
+  const docSearchTargets = useMemo(() => buildDocSearchTargets(selectedDoc, query), [query, selectedDoc]);
+
+  const selectDocTarget = (target: DocSearchTarget) => {
+    document.getElementById(target.id)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
 
   return (
     <aside aria-label="차트 문서" className="docs-aside">
@@ -325,18 +431,29 @@ function ChartDocsPanel({ activeType }: { activeType: KmsfChartType }) {
       </div>
 
       <ScrollArea className="docs-scroll">
-        {docs.length ? (
-          docs.map((doc) => (
-            <section className="docs-section" key={doc.type}>
-              <MarkdownDocument markdown={doc.markdown} />
-              <a className="official-doc-link" href={doc.officialDocsUrl} rel="noreferrer" target="_blank">
-                ECharts 공식 문서
-              </a>
-            </section>
-          ))
-        ) : (
-          <p className="docs-empty">검색 결과가 없습니다.</p>
-        )}
+        <section className="docs-section" key={selectedDoc.type}>
+          {query && docSearchTargets.length ? (
+            <div aria-label="현재 차트 문서 검색 결과" className="docs-search-results" role="listbox">
+              {docSearchTargets.map((target) => (
+                <button
+                  aria-label={`${target.title} ${target.excerpt}`}
+                  className="docs-search-results__item"
+                  key={target.id}
+                  role="option"
+                  type="button"
+                  onClick={() => selectDocTarget(target)}
+                >
+                  {target.excerpt}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {query && !docSearchTargets.length ? <p className="docs-empty">검색된 결과가 없습니다.</p> : null}
+          <MarkdownDocument blockIdPrefix={`doc-block-${selectedDoc.type}`} markdown={selectedDoc.markdown} />
+          <a className="official-doc-link" href={selectedDoc.officialDocsUrl} rel="noreferrer" target="_blank">
+            ECharts 공식 문서
+          </a>
+        </section>
       </ScrollArea>
     </aside>
   );
@@ -536,12 +653,19 @@ function MobileDocsButton({ activeType }: { activeType: KmsfChartType }) {
   );
 }
 
-function ChartWorkspacePage() {
-  const [activeType, setActiveType] = useState<KmsfChartType>("line");
+export function ChartWorkspacePage() {
+  const params = useParams();
+  const activeType = getRouteChartType(params.type);
+  const exampleId = params.exampleId;
   const [isNavigationCollapsed, setIsNavigationCollapsed] = useState(false);
-  const selectChartType = (type: KmsfChartType) => {
-    setActiveType((current) => (current === type ? current : type));
-  };
+
+  if (params.type && !isChartType(params.type)) {
+    return <NotFoundPage />;
+  }
+
+  if (!hasExample(activeType, exampleId)) {
+    return <Navigate replace to="/charts/line" />;
+  }
 
   return (
     <div className="example-shell">
@@ -576,10 +700,9 @@ function ChartWorkspacePage() {
               activeType={activeType}
               collapsed={isNavigationCollapsed}
               onCollapseToggle={() => setIsNavigationCollapsed((value) => !value)}
-              onSelectType={selectChartType}
             />
 
-            <ChartExampleContent key={`content-${activeType}`} type={activeType} />
+            <ChartExampleContent exampleId={exampleId} key={`content-${activeType}`} type={activeType} />
 
             <ChartDocsPanel activeType={activeType} key={`docs-${activeType}`} />
           </div>
@@ -619,28 +742,39 @@ const initialDashboardWidgets: DashboardWidget<DashboardChartData>[] = [
   },
 ];
 
-function buildDashboardWidget(nextNumber: number): DashboardWidget<DashboardChartData> {
-  const chartData = dashboardTypes[nextNumber % dashboardTypes.length]!;
+function buildDashboardWidget(
+  nextNumber: number,
+  draft?: DashboardWidgetDraft,
+  validated?: ValidatedDashboardDraft,
+): DashboardWidget<DashboardChartData> {
+  const chartData: DashboardChartData =
+    draft && validated
+      ? {
+          dataFormat: draft.dataFormat,
+          type: draft.type,
+          ...validated,
+        }
+      : dashboardTypes[nextNumber % dashboardTypes.length]!;
   const id = `chart-widget-${nextNumber}`;
 
   return {
     data: chartData,
     id,
     layout: { h: 3, id, w: 4, x: 0, y: 0 },
-    title: `${chartData.type} ${nextNumber}`,
+    title: draft?.title || `${chartData.type} ${nextNumber}`,
   };
 }
 
 function DashboardChart({ clock, widget }: { clock: SampleClock; widget: DashboardWidget<DashboardChartData> }) {
   const { elementRef, isReady } = useElementReadySize();
   const sample = chartSamples.find((item) => item.type === widget.data?.type) ?? chartSamples[0]!;
-  const generatedData = useMemo(() => sample.buildData(clock), [clock, sample]);
+  const generatedData = useMemo(() => widget.data?.data ?? sample.buildData(clock), [clock, sample, widget.data]);
   const data = useMemo(() => applyTopRowPalette(generatedData, sample.type), [generatedData, sample.type]);
-  const series = useMemo(() => sample.buildSeries?.(clock), [clock, sample]);
-  const options = useMemo(() => sample.buildOptions?.(clock), [clock, sample]);
+  const series = useMemo(() => widget.data?.series ?? sample.buildSeries?.(clock), [clock, sample, widget.data]);
+  const options = useMemo(() => widget.data?.options ?? sample.buildOptions?.(clock), [clock, sample, widget.data]);
   const seriesOptions = useMemo(
-    () => mergeSeriesOptions(sample),
-    [sample],
+    () => widget.data?.seriesOptions ?? mergeSeriesOptions(sample),
+    [sample, widget.data],
   );
 
   return (
@@ -648,11 +782,11 @@ function DashboardChart({ clock, widget }: { clock: SampleClock; widget: Dashboa
       {isReady ? (
         <GenericChart
           data={data}
-          dataFormat={sample.dataFormat}
+          dataFormat={widget.data?.dataFormat ?? sample.dataFormat}
           height="100%"
           loadingFallback={<ChartSkeleton />}
           options={options}
-          series={series}
+          series={series?.length ? series : undefined}
           seriesOptions={seriesOptions}
           themeOverrides={{ palette: getSeriesPaletteOverride() }}
           type={sample.type}
@@ -664,17 +798,148 @@ function DashboardChart({ clock, widget }: { clock: SampleClock; widget: Dashboa
   );
 }
 
-function GridstackPage() {
+function DashboardWidgetEditor({
+  draft,
+  error,
+  onChangeDraft,
+  onClose,
+  onCreate,
+  onRegenerate,
+  onReset,
+}: {
+  draft: DashboardWidgetDraft;
+  error: string | null;
+  onChangeDraft: (draft: DashboardWidgetDraft) => void;
+  onClose: () => void;
+  onCreate: () => void;
+  onRegenerate: (type?: KmsfChartType) => void;
+  onReset: () => void;
+}) {
+  const updateField = (field: keyof DashboardWidgetDraft, value: string) => {
+    onChangeDraft({ ...draft, [field]: value });
+  };
+
+  return (
+    <DialogPrimitive.Content aria-label="차트 위젯 추가" className="ui-card dashboard-editor">
+      <CardHeader>
+        <div className="dashboard-editor__title">
+          <div>
+            <DialogPrimitive.Title asChild>
+              <CardTitle>차트 위젯 추가</CardTitle>
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description asChild>
+              <CardDescription>생성 전에 차트 타입, 데이터, 옵션을 검증합니다.</CardDescription>
+            </DialogPrimitive.Description>
+          </div>
+          <Badge>{draft.type}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="dashboard-editor__content">
+        {error ? (
+          <div className="dashboard-editor__alert" role="alert">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="dashboard-editor__grid">
+          <label className="dashboard-editor__field">
+            <span>차트 타입</span>
+            <select
+              aria-label="차트 타입"
+              autoFocus
+              value={draft.type}
+              onChange={(event) => onRegenerate(event.target.value as KmsfChartType)}
+            >
+              {dashboardEditorTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="dashboard-editor__field">
+            <span>위젯 제목</span>
+            <Input aria-label="위젯 제목" value={draft.title} onChange={(event) => updateField("title", event.target.value)} />
+          </label>
+          <label className="dashboard-editor__field">
+            <span>data JSON</span>
+            <Textarea aria-label="data JSON" value={draft.dataJson} onChange={(event) => updateField("dataJson", event.target.value)} />
+          </label>
+          <label className="dashboard-editor__field">
+            <span>options JSON</span>
+            <Textarea aria-label="options JSON" value={draft.optionsJson} onChange={(event) => updateField("optionsJson", event.target.value)} />
+          </label>
+          <label className="dashboard-editor__field">
+            <span>series JSON</span>
+            <Textarea aria-label="series JSON" value={draft.seriesJson} onChange={(event) => updateField("seriesJson", event.target.value)} />
+          </label>
+          <label className="dashboard-editor__field">
+            <span>seriesOptions JSON</span>
+            <Textarea
+              aria-label="seriesOptions JSON"
+              value={draft.seriesOptionsJson}
+              onChange={(event) => updateField("seriesOptionsJson", event.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="dashboard-editor__actions">
+          <Button type="button" variant="outline" onClick={() => onRegenerate(draft.type)}>
+            샘플 생성
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onRegenerate(draft.type)}>
+            랜덤 값 갱신
+          </Button>
+          <Button type="button" variant="secondary" onClick={onReset}>
+            초기화
+          </Button>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            닫기
+          </Button>
+          <Button type="button" onClick={onCreate}>
+            위젯 생성
+          </Button>
+        </div>
+      </CardContent>
+    </DialogPrimitive.Content>
+  );
+}
+
+export function GridstackPage() {
   const dashboard = useDashboardGrid<DashboardChartData>({
     initialColumns: 12,
     initialWidgets: initialDashboardWidgets,
   });
   const [nextWidgetNumber, setNextWidgetNumber] = useState(3);
+  const [draftSeed, setDraftSeed] = useState(1);
+  const [draft, setDraft] = useState(() => createDashboardDraft({ seed: 1 }));
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorError, setEditorError] = useState<string | null>(null);
   const clock = useSampleClock();
 
-  const addWidget = () => {
-    dashboard.commands.addWidget(buildDashboardWidget(nextWidgetNumber));
+  const generateDraft = (type?: KmsfChartType) => {
+    const nextSeed = draftSeed + 1;
+    setDraftSeed(nextSeed);
+    setDraft(createDashboardDraft({ seed: nextSeed, type }));
+    setEditorError(null);
+  };
+
+  const openWidgetEditor = () => {
+    generateDraft();
+    setIsEditorOpen(true);
+  };
+
+  const addWidgetFromDraft = () => {
+    const result = validateDashboardDraft(draft);
+
+    if (!result.ok) {
+      setEditorError(result.error);
+      return;
+    }
+
+    dashboard.commands.addWidget(buildDashboardWidget(nextWidgetNumber, draft, result.value));
     setNextWidgetNumber((value) => value + 1);
+    setIsEditorOpen(false);
   };
 
   return (
@@ -691,7 +956,7 @@ function GridstackPage() {
               차트 문서
             </a>
           </Button>
-          <Button onClick={addWidget}>차트 추가</Button>
+          <Button onClick={openWidgetEditor}>차트 추가</Button>
           <Button variant="danger" onClick={() => dashboard.commands.clearWidgets()}>
             전체 삭제
           </Button>
@@ -719,16 +984,37 @@ function GridstackPage() {
         onWidgetHeaderDoubleClick={dashboard.commands.fitWidgetToColumns}
         renderWidget={(widget) => <DashboardChart clock={clock} widget={widget} />}
       />
+
+      <DialogPrimitive.Root open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="dashboard-editor-backdrop" />
+          <DashboardWidgetEditor
+            draft={draft}
+            error={editorError}
+            onChangeDraft={(nextDraft) => {
+              setDraft(nextDraft);
+              setEditorError(null);
+            }}
+            onClose={() => setIsEditorOpen(false)}
+            onCreate={addWidgetFromDraft}
+            onRegenerate={generateDraft}
+            onReset={() => generateDraft()}
+          />
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </div>
   );
 }
 
 export function App() {
-  const route = useHashRoute();
-
-  if (route === "/gridstack") {
-    return <GridstackPage />;
-  }
-
   return <ChartWorkspacePage />;
+}
+
+export function NotFoundPage() {
+  return (
+    <div className="example-shell">
+      <p className="example-kicker">404</p>
+      <h1>지원하지 않는 페이지입니다.</h1>
+    </div>
+  );
 }

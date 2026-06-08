@@ -1,6 +1,9 @@
 import type { ReactElement } from "react";
 
+import { parseMarkdownBlocks } from "../data/markdown-blocks";
+
 interface MarkdownDocumentProps {
+  blockIdPrefix?: string;
   markdown: string;
 }
 
@@ -25,61 +28,42 @@ function renderInlineText(text: string) {
   });
 }
 
-export function MarkdownDocument({ markdown }: MarkdownDocumentProps) {
+export function MarkdownDocument({ blockIdPrefix, markdown }: MarkdownDocumentProps) {
   const blocks: ReactElement[] = [];
-  const lines = markdown.split("\n");
-  let index = 0;
+  const sourceLines = markdown.split("\n");
 
-  while (index < lines.length) {
-    const line = lines[index] ?? "";
-
-    if (!line.trim()) {
-      index += 1;
-      continue;
-    }
-
-    if (line.startsWith("```")) {
-      const language = line.slice(3).trim();
-      const codeLines: string[] = [];
-      index += 1;
-
-      while (index < lines.length && !lines[index]?.startsWith("```")) {
-        codeLines.push(lines[index] ?? "");
-        index += 1;
-      }
-
+  for (const block of parseMarkdownBlocks(markdown, blockIdPrefix)) {
+    if (block.kind === "code") {
       blocks.push(
-        <pre className="markdown-code" key={`code-${index}`} data-language={language}>
-          <code>{codeLines.join("\n")}</code>
+        <pre className="markdown-code" data-language={block.language} data-testid={block.id} id={block.id} key={`code-${block.lineStart}`}>
+          <code>{block.code}</code>
         </pre>,
       );
-      index += 1;
       continue;
     }
 
-    if (line.startsWith("## ")) {
-      blocks.push(<h2 key={`h2-${index}`}>{line.slice(3)}</h2>);
-      index += 1;
-      continue;
-    }
-
-    if (line.startsWith("# ")) {
-      blocks.push(<h1 key={`h1-${index}`}>{line.slice(2)}</h1>);
-      index += 1;
-      continue;
-    }
-
-    if (line.startsWith("- ")) {
-      const items: string[] = [];
-
-      while (index < lines.length && lines[index]?.startsWith("- ")) {
-        items.push((lines[index] ?? "").slice(2));
-        index += 1;
-      }
-
+    if (block.kind === "heading" && sourceLines[block.lineStart]?.startsWith("## ")) {
       blocks.push(
-        <ul key={`list-${index}`}>
-          {items.map((item) => (
+        <h2 data-testid={block.id} id={block.id} key={`h2-${block.lineStart}`}>
+          {block.text}
+        </h2>,
+      );
+      continue;
+    }
+
+    if (block.kind === "heading") {
+      blocks.push(
+        <h1 data-testid={block.id} id={block.id} key={`h1-${block.lineStart}`}>
+          {block.text}
+        </h1>,
+      );
+      continue;
+    }
+
+    if (block.kind === "list") {
+      blocks.push(
+        <ul data-testid={block.id} id={block.id} key={`list-${block.lineStart}`}>
+          {(block.items ?? []).map((item) => (
             <li key={item}>{renderInlineText(item)}</li>
           ))}
         </ul>,
@@ -87,8 +71,11 @@ export function MarkdownDocument({ markdown }: MarkdownDocumentProps) {
       continue;
     }
 
-    blocks.push(<p key={`p-${index}`}>{renderInlineText(line)}</p>);
-    index += 1;
+    blocks.push(
+      <p data-testid={block.id} id={block.id} key={`p-${block.lineStart}`}>
+        {renderInlineText(block.text)}
+      </p>,
+    );
   }
 
   return <article className="markdown-document">{blocks}</article>;

@@ -42,6 +42,35 @@ async function expectSelectedChartCanvasLayers(page: Page, type: string) {
   await expectChartCanvasLayers(selectedChartCards(page, type), type);
 }
 
+async function expectChartCanvasesWithinStages(page: Page, type: string) {
+  const failures = await page.getByTestId(new RegExp(`chart-example-card-${type}-`)).evaluateAll((cards) =>
+    cards.flatMap((card) => {
+      const cardElement = card as HTMLElement;
+      const stage = cardElement.querySelector<HTMLElement>('[data-testid="chart-stage"]');
+      const canvases = Array.from(cardElement.querySelectorAll("canvas")) as HTMLCanvasElement[];
+
+      if (!stage) {
+        return [`${cardElement.dataset.testid ?? type}: missing chart stage`];
+      }
+
+      const stageBox = stage.getBoundingClientRect();
+
+      return canvases.flatMap((canvas, index) => {
+        const canvasBox = canvas.getBoundingClientRect();
+        const outside =
+          canvasBox.left < stageBox.left - 1 ||
+          canvasBox.top < stageBox.top - 1 ||
+          canvasBox.right > stageBox.right + 1 ||
+          canvasBox.bottom > stageBox.bottom + 1;
+
+        return outside ? [`${cardElement.dataset.testid ?? type}: canvas ${index} is outside chart stage`] : [];
+      });
+    }),
+  );
+
+  expect(failures).toEqual([]);
+}
+
 async function expectNoLoadingSkeleton(page: Page) {
   await expect(page.getByTestId("chart-loading-skeleton")).toHaveCount(0);
 }
@@ -72,10 +101,12 @@ test("example page renders docs shell with collapsible chart navigation", async 
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");
 
+  await expect(page.locator("body")).toHaveCSS("font-size", "12px");
+  await expect(page.locator("body")).toHaveCSS("font-family", /Spoqa Han Sans Neo/);
   await expect(page.getByRole("heading", { name: "@kmsf/charts" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "차트 종류" })).toBeVisible();
   await expect(page.getByRole("main", { name: "차트 예제" })).toBeVisible();
-  await expect(page.getByTestId(/chart-example-card-line-/)).toHaveCount(3);
+  await expect(page.getByTestId(/chart-example-card-line-/)).toHaveCount(5);
   const firstCard = page.getByTestId("chart-example-card-line-static-basic");
   await expect(firstCard.getByTestId("sample-data")).toBeVisible();
   await firstCard.getByRole("tab", { name: "Usage" }).click();
@@ -102,6 +133,116 @@ test("example page renders docs shell with collapsible chart navigation", async 
   expect(box?.height).toBeGreaterThan(100);
   await expectCanvasPainted(page);
   await expectNoLoadingSkeleton(page);
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("topbar tabs and chart navigation stay fixed while examples scroll", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.setViewportSize({ width: 1440, height: 820 });
+  await page.goto("/");
+
+  const topbar = page.locator(".example-topbar");
+  const tabsBar = page.locator(".workspace-tabs__bar");
+  const chartAside = page.locator(".chart-aside");
+  const menuScroll = page.locator(".chart-menu-scroll");
+
+  const before = {
+    aside: await chartAside.boundingBox(),
+    tabs: await tabsBar.boundingBox(),
+    topbar: await topbar.boundingBox(),
+  };
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(100);
+
+  await expect(page.getByRole("heading", { name: "@kmsf/charts" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Chart Examples" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "차트 종류" })).toBeVisible();
+
+  const after = {
+    aside: await chartAside.boundingBox(),
+    tabs: await tabsBar.boundingBox(),
+    topbar: await topbar.boundingBox(),
+  };
+
+  expect(after.topbar).not.toBeNull();
+  expect(after.tabs).not.toBeNull();
+  expect(after.aside).not.toBeNull();
+  expect(before.topbar).not.toBeNull();
+  expect(before.tabs).not.toBeNull();
+  expect(before.aside).not.toBeNull();
+  expect(Math.abs(after.topbar!.y - before.topbar!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(after.tabs!.y - before.tabs!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(after.aside!.y - before.aside!.y)).toBeLessThanOrEqual(1);
+  await expect(menuScroll).toHaveCSS("overflow", /hidden|auto/);
+  expect(diagnostics).toEqual([]);
+});
+
+test("chart menu navigation uses URL routes and direct example routes scroll to the target card", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/#/charts/radar/examples/radar-live-update");
+  await expect(page).toHaveURL(/#\/charts\/radar\/examples\/radar-live-update/);
+  await expect(page.getByRole("heading", { name: "@kmsf/charts" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "차트 종류" })).toBeVisible();
+  await expect(chartButton(page, "radar")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("chart-example-card-radar-live-update")).toBeInViewport();
+
+  await chartButton(page, "heatmap").click();
+  await expect(page).toHaveURL(/#\/charts\/heatmap$/);
+  await expect(page.getByTestId("chart-example-card-radar-live-update")).toHaveCount(0);
+  await expect(page.getByTestId("chart-example-card-heatmap-static-basic")).toBeVisible();
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("unsupported chart routes show 404 and invalid example routes redirect to line", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/#/charts/map");
+  await expect(page.getByRole("heading", { name: "지원하지 않는 페이지입니다." })).toBeVisible();
+
+  await page.goto("/#/charts/line/examples/not-found-example");
+  await expect(page).toHaveURL(/#\/charts\/line$/);
+  await expect(page.getByTestId("chart-example-card-line-static-basic")).toBeVisible();
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("global search popup navigates by URL without creating inactive charts", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/#/charts/line");
+  await page.getByPlaceholder("전체 차트 검색").fill("visualMap");
+  await expect(page.getByRole("listbox", { name: "전체 차트 검색 결과" })).toBeVisible();
+  await expect(page.getByRole("option", { name: /heatmap 옵션/ })).toBeVisible();
+  await expect(page.getByTestId(/chart-example-card-heatmap-/)).toHaveCount(0);
+
+  await page.getByRole("option", { name: /heatmap 옵션/ }).click();
+  await expect(page).toHaveURL(/#\/charts\/heatmap/);
+  await expect(page.getByTestId("chart-example-card-heatmap-static-basic")).toBeVisible();
+  await expect(page.getByRole("listbox", { name: "전체 차트 검색 결과" })).toHaveCount(0);
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("docs search is scoped to the active chart document", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/#/charts/line");
+  const docsPanel = await openDocsPanel(page);
+  await docsPanel.getByPlaceholder("옵션 또는 기능 검색").fill("visualMap");
+  await expect(docsPanel.getByText("검색된 결과가 없습니다.")).toBeVisible();
+
+  await page.goto("/#/charts/heatmap");
+  await expect(page).toHaveURL(/#\/charts\/heatmap$/);
+  await expect(page.getByTestId("chart-example-card-heatmap-static-basic")).toBeVisible();
+  const heatmapDocs = await openDocsPanel(page);
+  await heatmapDocs.getByPlaceholder("옵션 또는 기능 검색").fill("visualMap");
+  await expect(heatmapDocs.getByRole("listbox", { name: "현재 차트 문서 검색 결과" })).toBeVisible();
+  await heatmapDocs.getByRole("option", { name: /options\.visualMap/ }).click();
+  await expect(heatmapDocs.getByTestId(/doc-block-heatmap-/).filter({ hasText: "visualMap" }).first()).toBeInViewport();
 
   expect(diagnostics).toEqual([]);
 });
@@ -181,7 +322,7 @@ test("example menu switches charts and docs search filters options", async ({ pa
 
   for (const name of chartButtons) {
     await chartButton(page, name).click();
-    await expect(page.getByTestId(new RegExp(`chart-example-card-${name}-`))).toHaveCount(3);
+    await expect(page.getByTestId(new RegExp(`chart-example-card-${name}-`))).toHaveCount(5);
     await expectSelectedChartCanvasLayers(page, name);
     await expectCanvasPainted(page);
     await expectNoLoadingSkeleton(page);
@@ -196,7 +337,7 @@ test("example menu switches charts and docs search filters options", async ({ pa
   await chartButton(page, "bar").click();
   const topData = page.getByTestId("chart-example-card-bar-live-update").getByTestId("sample-data");
   const topBefore = await topData.textContent();
-  await page.waitForTimeout(10300);
+  await page.waitForTimeout(5300);
   await expect(topData).not.toHaveText(topBefore ?? "");
 
   const docsPanel = await openDocsPanel(page);
@@ -204,7 +345,7 @@ test("example menu switches charts and docs search filters options", async ({ pa
   await docsSearch.fill("seriesOptions");
   await expect(docsPanel).toContainText("seriesOptions");
   await docsSearch.fill("존재하지않는검색어");
-  await expect(docsPanel).toContainText("검색 결과가 없습니다.");
+  await expect(docsPanel).toContainText("검색된 결과가 없습니다.");
 
   expect(diagnostics).toEqual([]);
 });
@@ -239,7 +380,6 @@ test("all supported chart types render examples or prepared advanced cards witho
     "tree",
     "treemap",
     "sunburst",
-    "map",
     "lines",
     "graph",
     "boxplot",
@@ -249,7 +389,6 @@ test("all supported chart types render examples or prepared advanced cards witho
     "sankey",
     "themeRiver",
     "pictorialBar",
-    "custom",
     "wordCloud",
   ];
 
@@ -258,15 +397,10 @@ test("all supported chart types render examples or prepared advanced cards witho
   for (const type of types) {
     await chartButton(page, type).click();
 
-    if (type === "map" || type === "custom") {
-      await expect(page.getByTestId(new RegExp(`chart-example-card-${type}-`))).toHaveCount(1);
-      await expect(page.getByTestId(new RegExp(`chart-example-card-${type}-`))).toContainText("준비");
-      continue;
-    }
-
     const cards = page.getByTestId(new RegExp(`chart-example-card-${type}-`));
-    await expect(cards).toHaveCount(3);
+    await expect(cards).toHaveCount(5);
     await expectChartCanvasLayers(cards, type);
+    await expectChartCanvasesWithinStages(page, type);
     await expectNoLoadingSkeleton(page);
   }
 
@@ -278,7 +412,7 @@ test("wordCloud skeleton clears after extension registration without diagnostics
   await page.goto("/");
 
   await chartButton(page, "wordCloud").click();
-  await expect(page.getByTestId(new RegExp("chart-example-card-wordCloud-"))).toHaveCount(3);
+  await expect(page.getByTestId(new RegExp("chart-example-card-wordCloud-"))).toHaveCount(5);
   await expectSelectedChartCanvasLayers(page, "wordCloud");
   await expectCanvasPainted(page);
   await expectNoLoadingSkeleton(page);
@@ -300,9 +434,91 @@ test("option controls update chart option summary without browser errors", async
 
   await firstCard.getByRole("button", { name: "색상 변경" }).click();
   await expect(optionSummary).toContainText("themeOverrides");
-  await expect(optionSummary).toContainText("#84cc16");
+  await expect(optionSummary).toContainText("#047857");
   await expectCanvasPainted(page);
   await expectNoLoadingSkeleton(page);
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("example legend defaults match chart behavior and allow data legend opt-in", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  await chartButton(page, "bar").click();
+  const barCard = page.getByTestId("chart-example-card-bar-static-basic");
+  await barCard.getByRole("tab", { name: "Options" }).click();
+  await expect(barCard.getByTestId("option-summary")).toContainText('"legend": false');
+
+  await chartButton(page, "heatmap").click();
+  const heatmapCard = page.getByTestId("chart-example-card-heatmap-static-basic");
+  await heatmapCard.getByRole("tab", { name: "Options" }).click();
+  await expect(heatmapCard.getByTestId("option-summary")).toContainText('"legend": false');
+
+  await chartButton(page, "pie").click();
+  const pieCard = page.getByTestId("chart-example-card-pie-static-basic");
+  await pieCard.getByRole("tab", { name: "Options" }).click();
+  await expect(pieCard.getByTestId("option-summary")).toContainText('"legend": true');
+  await expectSelectedChartCanvasLayers(page, "pie");
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("selected examples expose three-series live data without diagnostics", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  for (const type of ["scatter", "effectScatter", "tree", "sankey", "parallel", "radar"]) {
+    await chartButton(page, type).click();
+    const liveCard = page.getByTestId(`chart-example-card-${type}-live-update`);
+    await expect(liveCard.getByTestId("series-count-summary")).toContainText("3");
+    await expectSelectedChartCanvasLayers(page, type);
+  }
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("line live and single-series examples expose polished playground contracts", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  const lineLiveCard = page.getByTestId("chart-example-card-line-live-update");
+  const lineSummary = JSON.parse((await lineLiveCard.getByTestId("sample-data").textContent()) ?? "{}") as {
+    data?: unknown[];
+    seriesCount?: number;
+  };
+  expect(lineSummary.seriesCount).toBe(3);
+  expect(lineSummary.data).toHaveLength(60);
+
+  await chartButton(page, "pie").click();
+  const pieCard = page.getByTestId("chart-example-card-pie-static-basic");
+  await pieCard.getByRole("tab", { name: "Options" }).click();
+  await expect(pieCard.getByTestId("option-summary")).toContainText('"legend": true');
+  await expect(pieCard.getByTestId("option-summary")).toContainText('"show": false');
+
+  for (const type of ["treemap", "gauge", "funnel", "wordCloud", "sunburst", "themeRiver"]) {
+    await chartButton(page, type).click();
+    await expect(page.getByTestId(new RegExp(`chart-example-card-${type}-`)).getByLabel(/Series 개수/)).toHaveCount(0);
+    await expectSelectedChartCanvasLayers(page, type);
+  }
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("complex examples refresh richer data without browser diagnostics", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  for (const type of ["tree", "graph", "sankey", "themeRiver"]) {
+    await chartButton(page, type).click();
+    const firstCard = page.getByTestId(`chart-example-card-${type}-static-basic`);
+    const sampleData = firstCard.getByTestId("sample-data");
+    const before = await sampleData.textContent();
+
+    await firstCard.getByRole("button", { name: "전체 데이터 갱신" }).click();
+    await expect(sampleData).not.toHaveText(before ?? "");
+    await expectSelectedChartCanvasLayers(page, type);
+  }
 
   expect(diagnostics).toEqual([]);
 });
@@ -344,9 +560,9 @@ test("chart type changes remount content and docs while repeated selection is ig
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");
 
-  await page.getByPlaceholder("예제 검색").fill("실시간");
-  await page.getByRole("tab", { name: "Options" }).click();
-  await page.getByLabel("옵션 JSON 편집").first().fill('{"notAllowed":true}');
+  const firstCard = page.getByTestId("chart-example-card-line-static-basic");
+  await firstCard.getByRole("tab", { name: "Options" }).click();
+  await firstCard.getByLabel("옵션 JSON 편집").fill('{"notAllowed":true}');
   await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
 
   let docsPanel = await openDocsPanel(page);
@@ -356,7 +572,6 @@ test("chart type changes remount content and docs while repeated selection is ig
   await closeOverlayDocsPanel(page);
 
   await chartButton(page, "line").click();
-  await expect(page.getByPlaceholder("예제 검색")).toHaveValue("실시간");
   await expect(page.getByText("허용되지 않는 옵션입니다.")).toBeVisible();
   if (!docsInOverlay) {
     docsPanel = await openDocsPanel(page);
@@ -366,7 +581,7 @@ test("chart type changes remount content and docs while repeated selection is ig
 
   await chartButton(page, "bar").click();
 
-  await expect(page.getByPlaceholder("예제 검색")).toHaveValue("");
+  await expect(page.getByPlaceholder("전체 차트 검색")).toHaveValue("");
   await expect(page.getByText("허용되지 않는 옵션입니다.")).toHaveCount(0);
   docsPanel = await openDocsPanel(page);
   await expect(docsPanel.getByPlaceholder("옵션 또는 기능 검색")).toHaveValue("");
@@ -376,17 +591,19 @@ test("chart type changes remount content and docs while repeated selection is ig
   expect(diagnostics).toEqual([]);
 });
 
-test("example search filters cards within selected chart type", async ({ page }) => {
+test("example search opens global popup and keeps active chart instances minimal", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");
 
-  await expect(page.getByTestId(/chart-example-card-/)).toHaveCount(3);
-  await page.getByPlaceholder("예제 검색").fill("실시간");
-  await expect(page.getByTestId(/chart-example-card-/)).toHaveCount(1);
+  await expect(page.getByTestId(/chart-example-card-/)).toHaveCount(5);
+  await page.getByPlaceholder("전체 차트 검색").fill("options.radar.indicator");
+  await expect(page.getByRole("option", { name: /radar 옵션/ })).toBeVisible();
+  await expect(page.getByTestId(/chart-example-card-radar-/)).toHaveCount(0);
 
-  await chartButton(page, "bar").click();
-  await expect(page.getByPlaceholder("예제 검색")).toHaveValue("");
-  await expectSelectedChartCanvasLayers(page, "bar");
+  await page.getByRole("option", { name: /radar 옵션/ }).click();
+  await expect(page).toHaveURL(/#\/charts\/radar/);
+  await expect(page.getByTestId(/chart-example-card-radar-/)).toHaveCount(5);
+  await expectSelectedChartCanvasLayers(page, "radar");
 
   expect(diagnostics).toEqual([]);
 });
@@ -402,8 +619,46 @@ test("live series count control updates selected example without diagnostics", a
   await expect(liveCard.getByTestId("series-count-summary")).toContainText("7");
   await expectCanvasPainted(page);
 
+  await seriesInput.fill("10");
+  await expect(seriesInput).toHaveValue("10");
+  await expect(liveCard.getByTestId("series-count-summary")).toContainText("10");
+
+  await seriesInput.fill("3");
+  await expect(seriesInput).toHaveValue("3");
+  await expect(liveCard.getByTestId("series-count-summary")).toContainText("3");
+  await expect
+    .poll(async () => {
+      const summary = JSON.parse((await liveCard.getByTestId("sample-data").textContent()) ?? "{}") as {
+        data?: unknown[][];
+      };
+
+      return summary.data?.[0]?.length ?? 0;
+    })
+    .toBe(4);
+
   await seriesInput.fill("99");
   await expect(seriesInput).toHaveValue("10");
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("series count input allows replacing 10 with another value", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  const liveCard = page.getByTestId("chart-example-card-line-live-update");
+  const seriesInput = liveCard.getByLabel("실시간 갱신 Series 개수");
+
+  await seriesInput.fill("10");
+  await expect(seriesInput).toHaveValue("10");
+  await seriesInput.fill("3");
+  await expect(seriesInput).toHaveValue("3");
+  await expect(liveCard.getByTestId("series-count-summary")).toContainText("3");
+  await seriesInput.fill("");
+  await expect(seriesInput).toHaveValue("");
+  await seriesInput.blur();
+  await expect(seriesInput).toHaveValue("1");
+  await expect(liveCard.getByTestId("series-count-summary")).toContainText("1");
 
   expect(diagnostics).toEqual([]);
 });
@@ -419,6 +674,7 @@ test("gridstack page dynamically creates and removes chart widgets", async ({ pa
   await expect(canvas).toHaveCount(2);
 
   await page.getByRole("button", { name: "차트 추가" }).click();
+  await page.getByRole("button", { name: "위젯 생성" }).click();
   await expect(canvas).toHaveCount(3);
   await expectCanvasPainted(page);
 
@@ -427,6 +683,7 @@ test("gridstack page dynamically creates and removes chart widgets", async ({ pa
 
   for (let index = 0; index < 3; index += 1) {
     await page.getByRole("button", { name: "차트 추가" }).click();
+    await page.getByRole("button", { name: "위젯 생성" }).click();
     await expect(canvas).toHaveCount(3);
     await page.locator(".kmsf-dashboard-widget__actions button[aria-label$='삭제']").last().click();
     await expect(canvas).toHaveCount(2);
@@ -434,6 +691,31 @@ test("gridstack page dynamically creates and removes chart widgets", async ({ pa
 
   await page.getByRole("button", { name: "전체 삭제" }).click();
   await expect(canvas).toHaveCount(0);
+
+  expect(diagnostics).toEqual([]);
+});
+
+test("gridstack chart add popup validates before creating widgets", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/#/gridstack");
+  const initialCount = await page.locator(".grid-stack-item").count();
+
+  await page.getByRole("button", { name: "차트 추가" }).click();
+  const editorDialog = page.getByRole("dialog", { name: "차트 위젯 추가" });
+  await expect(editorDialog).toBeVisible();
+  await expect(editorDialog.getByRole("combobox", { name: "차트 타입" })).toBeFocused();
+  await page.getByRole("textbox", { exact: true, name: "options JSON" }).fill("{\"notSupported\":true}");
+  await page.getByRole("button", { name: "위젯 생성" }).click();
+  await expect(page.getByRole("alert")).toHaveText("허용되지 않는 옵션입니다.");
+  await expect(page.locator(".grid-stack-item")).toHaveCount(initialCount);
+  await page.keyboard.press("Escape");
+  await expect(editorDialog).toHaveCount(0);
+
+  await page.getByRole("button", { name: "차트 추가" }).click();
+  await page.getByRole("button", { name: "샘플 생성" }).click();
+  await page.getByRole("button", { name: "위젯 생성" }).click();
+  await expect(page.locator(".grid-stack-item")).toHaveCount(initialCount + 1);
 
   expect(diagnostics).toEqual([]);
 });

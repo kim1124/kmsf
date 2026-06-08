@@ -17,6 +17,8 @@ export type SeriesOverride = Partial<SeriesOption> | Array<Partial<SeriesOption>
 
 export interface KmsfChartThemeOverrides {
   backgroundColor?: string;
+  fontFamily?: string;
+  fontSize?: number;
   palette?: string[];
   textColor?: string;
 }

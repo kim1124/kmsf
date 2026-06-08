@@ -1,9 +1,52 @@
 import { describe, expect, it } from "vitest";
 
 import { chartSamples } from "../../example/src/data/chart-samples";
+import { buildDocSearchTargets } from "../../example/src/data/doc-search";
 import { chartDocs, getChartDoc, searchChartDocs } from "../../example/src/docs/chart-docs";
 
 describe("example chart docs", () => {
+  function collectRenderedBlockIds(markdown: string, prefix: string) {
+    const blockIds: string[] = [];
+    const lines = markdown.split("\n");
+    let index = 0;
+
+    while (index < lines.length) {
+      const line = lines[index] ?? "";
+
+      if (!line.trim()) {
+        index += 1;
+        continue;
+      }
+
+      if (line.startsWith("```")) {
+        blockIds.push(`${prefix}-${index}`);
+        index += 1;
+
+        while (index < lines.length && !lines[index]?.startsWith("```")) {
+          index += 1;
+        }
+
+        index += 1;
+        continue;
+      }
+
+      if (line.startsWith("- ")) {
+        blockIds.push(`${prefix}-${index}`);
+
+        while (index < lines.length && lines[index]?.startsWith("- ")) {
+          index += 1;
+        }
+
+        continue;
+      }
+
+      blockIds.push(`${prefix}-${index}`);
+      index += 1;
+    }
+
+    return blockIds;
+  }
+
   it("documents every visible chart sample with required props and example code", () => {
     const documentedTypes = new Set(chartDocs.map((doc) => doc.type));
 
@@ -48,5 +91,18 @@ describe("example chart docs", () => {
     expect(searchChartDocs("options.radar.indicator").some((doc) => doc.type === "radar")).toBe(true);
     expect(searchChartDocs("실시간").some((doc) => doc.type === "line")).toBe(true);
     expect(searchChartDocs("존재하지않는검색어")).toEqual([]);
+  });
+
+  it("builds doc search targets that point to rendered markdown blocks", () => {
+    const pieDoc = getChartDoc("pie");
+    const prefix = "doc-block-pie";
+    const renderedBlockIds = collectRenderedBlockIds(pieDoc.markdown, prefix);
+
+    for (const query of ["tooltip", "loadingFallback"]) {
+      const target = buildDocSearchTargets(pieDoc, query).at(0);
+
+      expect(target, query).toBeDefined();
+      expect(renderedBlockIds, query).toContain(target!.id);
+    }
   });
 });

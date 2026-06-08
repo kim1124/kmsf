@@ -13,26 +13,34 @@
 packages/charts/
 ├── src/
 │   ├── common/
-│   │   ├── README.md
+│   │   ├── ChartFallback.tsx
 │   │   ├── KmsfChart.tsx
+│   │   ├── colors.ts
+│   │   ├── data-builders.ts
 │   │   ├── data-normalizers.ts
 │   │   ├── formatters.ts
+│   │   ├── generic-chart.ts
 │   │   ├── options.ts
-│   │   └── theme.ts
+│   │   ├── theme.ts
+│   │   ├── types.ts
+│   │   └── validation.ts
 │   ├── components/
-│   │   ├── README.md
-│   │   ├── TrendChart/
-│   │   ├── TopChart/
+│   │   ├── GenericChart/
+│   │   ├── GaugeChart/
+│   │   ├── GraphChart/
+│   │   ├── HeatmapChart/
+│   │   ├── RadarChart/
 │   │   ├── SankeyChart/
-│   │   ├── WordCloud/
-│   │   ├── GuageChart/
-│   │   └── SunbustChart/
+│   │   ├── SunburstChart/
+│   │   ├── TopChart/
+│   │   ├── TrendChart/
+│   │   └── WordCloud/
 │   └── index.ts
 ├── example/
 └── test/
 ```
 
-현재 구조는 1차 구현 기준이다. 후속 확장은 동일한 경계 안에서 테스트를 먼저 추가한 뒤 진행한다.
+현재 구조는 public chart API와 예제 검증 기준이다. dated `docs/superpowers/plans/*`와 `docs/superpowers/specs/*`는 구현 히스토리로 보며, 현재 API 계약은 `src/index.ts`, `docs/03-component-api-draft.md`, `docs/07-acceptance-matrix.md`를 우선한다.
 
 ## 공통 엔진 책임
 
@@ -49,12 +57,16 @@ packages/charts/
 - `series` 순서와 데이터 인덱스 매핑
 - 숫자 라벨 천 단위 콤마 처리
 - 축 라벨 formatter 확장 포인트 제공
+- `GenericChart`의 `auto`, `top`, `trend`, `native` data format resolution
+- native-required chart의 필수 설정 validation
 
 ## 테마 책임
 
 - KMSF 기본 light/dark 색상 프로파일 제공
 - 소비자가 ECharts theme 또는 option override로 교체할 수 있는 경로 제공
 - 테마 변경 시 차트가 즉시 갱신되도록 처리
+- `colors` prop을 `themeOverrides.palette`보다 우선 적용
+- 유효한 `colors`가 없을 때 KMSF mint 계열 TOP palette fallback
 
 ## 성능 기준
 

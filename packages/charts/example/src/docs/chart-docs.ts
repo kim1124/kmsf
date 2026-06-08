@@ -92,7 +92,7 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
   line: {
     type: "line",
     dataDescription: "`data`: `[[time, value], ...]` 형태의 추이 데이터입니다. `time`은 문자열 또는 `Date`를 사용할 수 있습니다.",
-    recommendedProps: ["`dataFormat`: `trend`"],
+    recommendedProps: ["`dataFormat`: `trend`", "`seriesOptions.smooth`: 기본 `true`입니다."],
     officialDocs: [seriesDoc("line")],
     exampleCode: trendExample("line"),
   },
@@ -106,7 +106,10 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
   pie: {
     type: "pie",
     dataDescription: "`data`: `[[name, value], ...]` 형태의 TOP 데이터입니다.",
-    recommendedProps: ["`dataFormat`: `top`"],
+    recommendedProps: [
+      "`dataFormat`: `top`",
+      "`legend`: 기본 `true`이며 오른쪽 세로 scroll legend와 왼쪽 pie center를 적용합니다.",
+    ],
     officialDocs: [seriesDoc("pie")],
     exampleCode: topExample("pie"),
   },
@@ -149,7 +152,10 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
   radar: {
     type: "radar",
     dataDescription: "`data`: `[{ name, value: number[] }]` 형태의 radar series data입니다.",
-    recommendedProps: ["`dataFormat`: `native`"],
+    recommendedProps: [
+      "`dataFormat`: `native`",
+      "`legend`: 표시 시 기본 radar center/radius를 조정해 legend와 chart 간격을 확보합니다.",
+    ],
     requiredEchartsSettings: [
       { prop: "options", code: "options.radar.indicator", description: "각 radar 축의 이름과 최대값을 정의합니다." },
     ],
@@ -175,7 +181,7 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
   heatmap: {
     type: "heatmap",
     dataDescription: "`data`: `[[xIndex, yIndex, value], ...]` 형태의 matrix 데이터입니다.",
-    recommendedProps: ["`dataFormat`: `native`"],
+    recommendedProps: ["`dataFormat`: `native`", "`legend`: 기본 `false`입니다."],
     requiredEchartsSettings: [
       { prop: "options", code: "options.xAxis", description: "x축 category 또는 좌표계를 정의합니다." },
       { prop: "options", code: "options.yAxis", description: "y축 category 또는 좌표계를 정의합니다." },
@@ -355,7 +361,7 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
   funnel: {
     type: "funnel",
     dataDescription: "`data`: `[[name, value], ...]` 형태의 TOP 데이터입니다.",
-    recommendedProps: ["`dataFormat`: `top`"],
+    recommendedProps: ["`dataFormat`: `top`", "`label`: 기본 숨김입니다.", "`tooltip`: single-series TOP tooltip은 `Item N` 라벨을 사용합니다."],
     officialDocs: [seriesDoc("funnel")],
     exampleCode: topExample("funnel"),
   },
@@ -466,10 +472,14 @@ function buildCommonOptionsMarkdown() {
   return [
     "## Common Options",
     "",
-    "- `legend`: `boolean | object`로 범례 표시를 제어합니다.",
+    "- `legend`: `boolean | object`로 범례 표시를 제어합니다. `bar`, `pictorialBar`, `treemap`, `gauge`, `sankey`, `heatmap`, `funnel`, `sunburst`, `wordCloud`와 `TopChart`의 `bar`/`column`/`treemap` mode는 기본 숨김이며, `pie`는 기본 표시입니다. 데이터 범례 차트는 표시 시 scroll/ellipsis 기본값을 적용합니다. 우측 세로 legend와 차트 영역 축소 기본값은 우선 `pie`에 적용합니다.",
+    "- Visible `legend`는 기본 `icon: \"circle\"`을 사용합니다.",
     "- `tooltip`: `boolean | object`로 툴팁 표시를 제어합니다.",
-    "- `colors`: `string[]`로 series 또는 item 색상을 고정합니다. 비어 있으면 KMSF TOP palette를 사용합니다.",
+    "- TOP single-series tooltip은 기본 formatter에서 `Item N` 라벨을 사용합니다.",
+    "- `colors`: `string[]`로 series 또는 item 색상을 고정합니다. 비어 있으면 KMSF mint 계열 TOP 10 palette를 사용합니다.",
     "- `seriesOptions`: KMSF가 생성한 series의 일부 속성을 덮어씁니다.",
+    "- `options.title.text` 또는 `options.title.subtext`가 있으면 grid top 기본값을 확장합니다. 사용자 `options.grid`가 최종 우선합니다.",
+    "- `pie`와 `funnel`은 기본 label을 숨깁니다.",
     "- `loadingFallback`: 차트 최초 렌더링 전 또는 wordCloud 확장 로딩 중 표시할 ReactNode입니다. shadcn Skeleton을 전달하는 방식으로 사용합니다.",
     "- `options`: ECharts 공식 option 구조를 그대로 전달합니다.",
     "- 필수 설정 누락 시 차트 영역에 fallback을 표시하고 `[KMSF Charts]` console error를 1회 기록합니다.",

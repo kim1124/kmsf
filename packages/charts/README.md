@@ -131,7 +131,7 @@ The example and Playwright tests intentionally trigger some invalid configuratio
 
 - 요구사항: `docs/01-requirements.md`
 - 아키텍처: `docs/02-architecture.md`
-- 컴포넌트 API 초안: `docs/03-component-api-draft.md`
+- 컴포넌트 API: `docs/03-component-api-draft.md`
 - 빠른 시작: `docs/06-quick-start.md`
 - 검증 전략: `docs/04-verification-strategy.md`
 - 미확정 사항: `docs/05-open-questions.md`

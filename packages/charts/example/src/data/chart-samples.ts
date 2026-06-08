@@ -1,6 +1,7 @@
 import type { EChartsOption, SeriesOption } from "echarts";
 
 import type { GenericChartDataFormat, KmsfChartType } from "../../../src";
+import { getExampleColor } from "./chart-colors";
 
 export interface SampleClock {
   flowTick: number;
@@ -9,9 +10,9 @@ export interface SampleClock {
 }
 
 export interface ChartSample {
-  buildData: (clock: SampleClock) => unknown;
-  buildOptions?: (clock: SampleClock) => EChartsOption;
-  buildSeries?: (clock: SampleClock) => SeriesOption[];
+  buildData: (clock: SampleClock, seriesCount?: number) => unknown;
+  buildOptions?: (clock: SampleClock, seriesCount?: number) => EChartsOption;
+  buildSeries?: (clock: SampleClock, seriesCount?: number) => SeriesOption[];
   category: "Trend" | "Top" | "Native" | "Advanced";
   dataFormat?: GenericChartDataFormat;
   disabledReason?: string;
@@ -27,11 +28,34 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
-export function buildTrendRows(tick: number, seriesCount = 1) {
-  return Array.from({ length: 40 }, (_, index) => {
+function countFixtureSeries(seriesCount = 1) {
+  if (!Number.isFinite(seriesCount)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.min(3, Math.round(seriesCount)));
+}
+
+function buildNamedSeries(count: number, factory: (index: number) => SeriesOption): SeriesOption[] {
+  return Array.from({ length: count }, (_, index) => ({
+    name: `Series ${index + 1}`,
+    ...factory(index),
+  }) as SeriesOption);
+}
+
+function getSeededRandom(seed: number) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+
+  return value - Math.floor(value);
+}
+
+function buildRandomTrendRows(tick: number, seriesCount = 1, length: number) {
+  return Array.from({ length }, (_, index) => {
     const second = tick + index + 1;
     const values = Array.from({ length: Math.max(1, seriesCount) }, (_, seriesIndex) => {
-      return 900 + ((second * (37 + seriesIndex * 11) + seriesIndex * 83) % 520);
+      const seed = (tick + 1) * 97 + (index + 1) * 53 + (seriesIndex + 1) * 191;
+
+      return Math.round(getSeededRandom(seed) * 500);
     });
 
     return [
@@ -41,81 +65,261 @@ export function buildTrendRows(tick: number, seriesCount = 1) {
   });
 }
 
+export function buildTrendRows(tick: number, seriesCount = 1) {
+  return buildRandomTrendRows(tick, seriesCount, 40);
+}
+
+export function buildLiveTrendRows(tick: number, seriesCount = 1) {
+  return buildRandomTrendRows(tick, seriesCount, 60);
+}
+
 export function buildTopRows(tick: number) {
-  return topNames.map((name, index) => [name, 80 + ((tick * (index + 3) * 11 + index * 47) % 180)]);
+  return topNames.map((name, index) => [name, 20 + ((tick * (index + 3) * 23 + index * 59) % 460)]);
 }
 
 export function buildTopRowsWithSeries(tick: number, seriesCount = 1) {
   return buildTopRows(tick).map(([name, value], rowIndex) => {
     const numericValue = Number(value);
     const values = Array.from({ length: Math.max(1, seriesCount) }, (_, seriesIndex) => {
-      return numericValue + (((rowIndex + 1) * (seriesIndex + 3)) % 40);
+      return numericValue + ((tick + rowIndex + 1) * (seriesIndex + 3) * 7) % 140;
     });
 
     return [name, ...values];
   });
 }
 
-function buildScatterRows(tick: number) {
+function buildFunnelRows(tick: number) {
+  const labels = ["Visit", "Signup", "Trial", "Quote", "Purchase"];
+
+  return labels.map((name, index) => [name, 80 + ((tick * (index + 5) * 17 + index * 61) % 360)]);
+}
+
+function buildScatterRows(tick: number, seriesCount = 1) {
   return Array.from({ length: 24 }, (_, index) => {
     const second = tick + index + 1;
+    const values = Array.from({ length: Math.max(1, seriesCount) }, (_, seriesIndex) => {
+      return (second * (19 + seriesIndex * 13) + tick * 17 + seriesIndex * 71) % (180 + seriesIndex * 40);
+    });
 
     return [
       `2026-05-26 11:${pad(Math.floor(second / 60))}:${pad(second % 60)}`,
-      40 + ((second * 19) % 120),
+      ...values,
     ];
   });
 }
 
-function buildSankeyLinks(tick: number) {
+function buildSankeyNodes(index: number) {
+  const prefix = `S${index + 1}`;
+
   return [
-    { source: "Visit", target: "Signup", value: 80 + tick * 4 },
-    { source: "Signup", target: "Trial", value: 48 + tick * 3 },
-    { source: "Trial", target: "Purchase", value: 24 + tick * 2 },
+    { name: `${prefix} Website` },
+    { name: `${prefix} Campaign` },
+    { name: `${prefix} Referral` },
+    { name: `${prefix} Signup` },
+    { name: `${prefix} Trial` },
+    { name: `${prefix} Demo` },
+    { name: `${prefix} Purchase` },
+    { name: `${prefix} Expansion` },
+  ];
+}
+
+function buildSankeyLinks(tick: number, index = 0) {
+  const prefix = `S${index + 1}`;
+  const weight = index + 1;
+
+  return [
+    { source: `${prefix} Website`, target: `${prefix} Signup`, value: 80 + tick * 8 + weight * 12 },
+    { source: `${prefix} Campaign`, target: `${prefix} Signup`, value: 66 + tick * 7 + weight * 11 },
+    { source: `${prefix} Referral`, target: `${prefix} Signup`, value: 42 + tick * 6 + weight * 9 },
+    { source: `${prefix} Signup`, target: `${prefix} Trial`, value: 68 + tick * 6 + weight * 10 },
+    { source: `${prefix} Signup`, target: `${prefix} Demo`, value: 32 + tick * 5 + weight * 7 },
+    { source: `${prefix} Trial`, target: `${prefix} Purchase`, value: 40 + tick * 5 + weight * 8 },
+    { source: `${prefix} Demo`, target: `${prefix} Purchase`, value: 24 + tick * 4 + weight * 6 },
+    { source: `${prefix} Purchase`, target: `${prefix} Expansion`, value: 18 + tick * 4 + weight * 5 },
+    { source: `${prefix} Trial`, target: `${prefix} Expansion`, value: 12 + tick * 3 + weight * 4 },
+    { source: `${prefix} Campaign`, target: `${prefix} Demo`, value: 15 + tick * 3 + weight * 5 },
   ];
 }
 
 function buildGaugeRows(tick: number) {
-  return [["Conversion", 35 + ((tick * 13) % 60)]];
+  return [["Conversion", (tick * 17) % 101]];
 }
 
 function buildHeatmapData(tick: number) {
   return productLabels.flatMap((_, xIndex) =>
-    ["A", "B", "C"].map((__, yIndex) => [xIndex, yIndex, 20 + ((tick + xIndex * 7 + yIndex * 11) % 80)]),
+    ["A", "B", "C"].map((__, yIndex) => [xIndex, yIndex, (tick * 5 + xIndex * 17 + yIndex * 29) % 101]),
   );
+}
+
+function buildRadarItem(tick: number, index = 0) {
+  return {
+    name: `Series ${index + 1}`,
+    value: [92, 84, 78, 88, 75].map((value, valueIndex) => {
+      return Math.min(100, value + ((tick + index * 7 + valueIndex * 3) % 12));
+    }),
+  };
+}
+
+function buildTreeRoot(tick: number, index = 0) {
+  const prefix = `Series ${index + 1}`;
+  const offset = tick + index * 9;
+
+  return {
+    name: prefix,
+    children: [
+      {
+        name: `${prefix} Alpha`,
+        children: [
+          { name: `${prefix} Alpha Leaf 1`, value: 40 + offset },
+          { name: `${prefix} Alpha Leaf 2`, value: 30 + offset },
+        ],
+      },
+      {
+        name: `${prefix} Beta`,
+        children: [
+          { name: `${prefix} Beta Leaf 1`, value: 28 + offset },
+          { name: `${prefix} Beta Leaf 2`, value: 22 + offset },
+        ],
+      },
+      {
+        name: `${prefix} Gamma`,
+        children: [
+          { name: `${prefix} Gamma Leaf 1`, value: 18 + offset },
+          { name: `${prefix} Gamma Leaf 2`, value: 14 + offset },
+        ],
+      },
+    ],
+  };
+}
+
+function buildGraphNodes(tick: number) {
+  return [
+    { name: "Entry", symbolSize: 38, value: 90 + tick, x: 60, y: 150 },
+    { name: "Search", symbolSize: 30, value: 72 + tick, x: 180, y: 80 },
+    { name: "Social", symbolSize: 28, value: 64 + tick, x: 180, y: 220 },
+    { name: "Signup", symbolSize: 34, value: 58 + tick, x: 320, y: 150 },
+    { name: "Trial", symbolSize: 28, value: 44 + tick, x: 460, y: 90 },
+    { name: "Demo", symbolSize: 24, value: 32 + tick, x: 460, y: 220 },
+    { name: "Purchase", symbolSize: 32, value: 26 + tick, x: 620, y: 150 + (tick % 18) },
+    { name: "Expansion", symbolSize: 22, value: 16 + tick, x: 760, y: 150 },
+  ];
+}
+
+function buildGraphLinks(tick: number) {
+  return [
+    { source: "Entry", target: "Search", value: 90 + tick },
+    { source: "Entry", target: "Social", value: 76 + tick },
+    { source: "Search", target: "Signup", value: 58 + tick },
+    { source: "Social", target: "Signup", value: 44 + tick },
+    { source: "Signup", target: "Trial", value: 38 + tick },
+    { source: "Signup", target: "Demo", value: 28 + tick },
+    { source: "Trial", target: "Purchase", value: 24 + tick },
+    { source: "Demo", target: "Purchase", value: 18 + tick },
+    { source: "Purchase", target: "Expansion", value: 12 + tick },
+    { source: "Trial", target: "Expansion", value: 8 + tick },
+  ];
+}
+
+function withSunburstColors(nodes: Array<Record<string, unknown>>, offset = 0): Array<Record<string, unknown>> {
+  return nodes.map((node, index) => {
+    const children = Array.isArray(node.children)
+      ? withSunburstColors(node.children as Array<Record<string, unknown>>, offset + index + 1)
+      : undefined;
+
+    return {
+      ...node,
+      itemStyle: { color: getExampleColor(offset + index) },
+      ...(children ? { children } : {}),
+    };
+  });
+}
+
+function buildSunburstData(tick: number) {
+  return withSunburstColors([
+    {
+      name: "Traffic",
+      children: [
+        {
+          name: "Organic",
+          children: [
+            { name: "Search", value: 46 + tick },
+            { name: "Content", value: 30 + tick },
+          ],
+        },
+        {
+          name: "Paid",
+          children: [
+            { name: "Ads", value: 28 + tick },
+            { name: "Retargeting", value: 16 + tick },
+          ],
+        },
+        {
+          name: "Referral",
+          children: [
+            { name: "Partner", value: 18 + tick },
+            { name: "Community", value: 12 + tick },
+          ],
+        },
+      ],
+    },
+  ]);
+}
+
+function buildThemeRiverRows(tick: number) {
+  const categories = ["Organic", "Paid", "Referral", "Direct"];
+
+  return Array.from({ length: 12 }, (_, dayIndex) =>
+    categories.map((category, categoryIndex) => [
+      `2026/05/${pad(dayIndex + 1)}`,
+      8 + ((tick * (categoryIndex + 2) + dayIndex * (categoryIndex + 4) + categoryIndex * 11) % 32),
+      category,
+    ]),
+  ).flat();
+}
+
+function buildParallelRows(tick: number, index = 0) {
+  const offset = tick + index * 14;
+
+  return [
+    [12 + offset, 38 + index * 8, 42 + tick],
+    [28 + offset, 55 + index * 8, 64 + tick],
+    [45 + offset, 72 + index * 8, 80 + tick],
+    [66 + offset, 84 + index * 8, 92 + tick],
+  ];
 }
 
 export const chartSamples: ChartSample[] = [
   {
-    buildData: ({ trendTick }) => buildTrendRows(trendTick),
+    buildData: ({ trendTick }, seriesCount) => buildTrendRows(trendTick, seriesCount),
     category: "Trend",
     dataFormat: "trend",
     summary: "시간 흐름에 따른 단일 지표 변화를 보여주는 라인 차트",
     type: "line",
   },
   {
-    buildData: ({ topTick }) => buildTopRows(topTick),
+    buildData: ({ topTick }, seriesCount) => buildTopRowsWithSeries(topTick, seriesCount),
     category: "Top",
     dataFormat: "top",
     summary: "순위형 데이터를 가로 막대로 비교하는 TOP 차트",
     type: "bar",
   },
   {
-    buildData: ({ topTick }) => buildTopRows(topTick),
+    buildData: ({ topTick }, seriesCount) => buildTopRowsWithSeries(topTick, countFixtureSeries(seriesCount)),
     category: "Top",
     dataFormat: "top",
+    seriesOptions: { center: ["34%", "52%"], label: { show: false }, radius: ["32%", "66%"] },
     summary: "구성 비율을 조각 단위로 비교하는 파이 차트",
     type: "pie",
   },
   {
-    buildData: ({ trendTick }) => buildScatterRows(trendTick),
+    buildData: ({ trendTick }, seriesCount) => buildScatterRows(trendTick, seriesCount),
     category: "Trend",
     dataFormat: "trend",
     summary: "시간과 값의 분포를 점으로 확인하는 산점도",
     type: "scatter",
   },
   {
-    buildData: ({ trendTick }) => buildScatterRows(trendTick),
+    buildData: ({ trendTick }, seriesCount) => buildScatterRows(trendTick, seriesCount),
     category: "Trend",
     dataFormat: "trend",
     summary: "분포 중 강조 지점을 더 눈에 띄게 표현하는 산점도",
@@ -139,18 +343,23 @@ export const chartSamples: ChartSample[] = [
     type: "candlestick",
   },
   {
-    buildData: ({ topTick }) => [{ name: "KMSF", value: [92, 84, 78, 88, 75].map((value) => value + (topTick % 5)) }],
+    buildData: ({ topTick }, seriesCount) =>
+      Array.from({ length: countFixtureSeries(seriesCount) }, (_, index) => buildRadarItem(topTick, index)),
     buildOptions: () => ({
       radar: {
         indicator: [
-          { name: "UX", max: 100 },
-          { name: "API", max: 100 },
-          { name: "Perf", max: 100 },
-          { name: "Docs", max: 100 },
-          { name: "A11y", max: 100 },
+          { name: "UX" },
+          { name: "API" },
+          { name: "Perf" },
+          { name: "Docs" },
+          { name: "A11y" },
         ],
       },
     }),
+    buildSeries: ({ topTick }, seriesCount) =>
+      buildNamedSeries(countFixtureSeries(seriesCount), (index) => ({
+        data: [buildRadarItem(topTick, index)],
+      })),
     category: "Native",
     dataFormat: "native",
     summary: "여러 평가 축의 균형을 다각형으로 비교하는 차트",
@@ -169,16 +378,17 @@ export const chartSamples: ChartSample[] = [
     type: "heatmap",
   },
   {
-    buildData: ({ topTick }) => [
-      {
-        name: "Root",
-        children: [
-          { name: "Alpha", value: 40 + topTick },
-          { name: "Beta", value: 28 + topTick },
-          { name: "Gamma", value: 18 + topTick },
-        ],
-      },
-    ],
+    buildData: ({ topTick }) => [buildTreeRoot(topTick)],
+    buildSeries: ({ topTick }, seriesCount) =>
+      buildNamedSeries(countFixtureSeries(seriesCount), (index) => ({
+        data: [buildTreeRoot(topTick, index)],
+        label: { overflow: "truncate", width: 92 },
+        leaves: { label: { overflow: "truncate", width: 92 } },
+        left: `${4 + index * 32}%`,
+        orient: "LR",
+        right: `${68 - index * 32}%`,
+        top: 64,
+      })),
     category: "Native",
     dataFormat: "native",
     summary: "계층형 parent-child 구조를 노드로 보여주는 트리 차트",
@@ -188,23 +398,23 @@ export const chartSamples: ChartSample[] = [
     buildData: ({ topTick }) => buildTopRows(topTick),
     category: "Top",
     dataFormat: "top",
+    seriesOptions: { height: "88%", left: "4%", top: "6%", width: "92%" },
     summary: "TOP 값을 면적 크기로 비교하는 트리맵",
     type: "treemap",
   },
   {
-    buildData: ({ topTick }) => [
-      {
-        name: "Traffic",
-        children: [
-          { name: "Organic", value: 46 + topTick },
-          { name: "Paid", value: 28 + topTick },
-          { name: "Referral", value: 18 + topTick },
-        ],
-      },
-    ],
+    buildData: ({ topTick }) => buildSunburstData(topTick),
+    buildSeries: ({ topTick }, seriesCount) =>
+      buildNamedSeries(countFixtureSeries(seriesCount), (index) => ({
+        center: countFixtureSeries(seriesCount) === 1 ? ["50%", "52%"] : [["22%", "52%"], ["50%", "52%"], ["78%", "52%"]][index],
+        data: buildSunburstData(topTick + index * 7),
+        label: { show: false },
+        labelLine: { show: false },
+        radius: countFixtureSeries(seriesCount) === 1 ? ["12%", "86%"] : ["18%", "38%"],
+      })),
     category: "Native",
     dataFormat: "native",
-    seriesOptions: { radius: ["20%", "85%"] },
+    seriesOptions: { center: ["50%", "52%"], label: { show: false }, labelLine: { show: false }, radius: ["12%", "86%"] },
     summary: "계층형 비율을 동심원 구조로 표현하는 선버스트",
     type: "sunburst",
   },
@@ -233,22 +443,12 @@ export const chartSamples: ChartSample[] = [
     type: "lines",
   },
   {
-    buildData: ({ flowTick }) => [
-      { name: "Visit", x: 80, y: 140 },
-      { name: "Signup", x: 220, y: 80 },
-      { name: "Trial", x: 220, y: 210 },
-      { name: "Purchase", x: 380, y: 140 + flowTick },
-    ],
-    buildSeries: () => [
+    buildData: ({ flowTick }) => buildGraphNodes(flowTick),
+    buildSeries: ({ flowTick }) => [
       {
-        label: { show: true },
+        label: { show: false },
         layout: "none",
-        links: [
-          { source: "Visit", target: "Signup" },
-          { source: "Visit", target: "Trial" },
-          { source: "Signup", target: "Purchase" },
-          { source: "Trial", target: "Purchase" },
-        ],
+        links: buildGraphLinks(flowTick),
         roam: true,
       },
     ],
@@ -273,20 +473,20 @@ export const chartSamples: ChartSample[] = [
     type: "boxplot",
   },
   {
-    buildData: ({ topTick }) => [
-      [12, 38, 42 + topTick],
-      [28, 55, 64 + topTick],
-      [45, 72, 80 + topTick],
-      [66, 84, 92 + topTick],
-    ],
+    buildData: ({ topTick }) => buildParallelRows(topTick),
     buildOptions: () => ({
-      parallel: { left: 48, right: 28 },
+      parallel: { left: 48, right: 28, top: 64 },
       parallelAxis: [
         { dim: 0, name: "Speed" },
         { dim: 1, name: "Cost" },
         { dim: 2, name: "Score" },
       ],
     }),
+    buildSeries: ({ topTick }, seriesCount) =>
+      buildNamedSeries(countFixtureSeries(seriesCount), (index) => ({
+        data: buildParallelRows(topTick, index),
+        lineStyle: { width: 2 },
+      })),
     category: "Native",
     dataFormat: "native",
     summary: "여러 축에 걸친 항목별 수치를 한 번에 비교하는 평행좌표",
@@ -294,6 +494,33 @@ export const chartSamples: ChartSample[] = [
   },
   {
     buildData: ({ topTick }) => buildGaugeRows(topTick),
+    buildSeries: ({ topTick }, seriesCount) =>
+      buildNamedSeries(countFixtureSeries(seriesCount), (index) => ({
+        axisLine: {
+          lineStyle: {
+            color: [
+              [0.35, getExampleColor(1)],
+              [0.72, getExampleColor(3)],
+              [1, getExampleColor(6)],
+            ],
+            width: 14,
+          },
+        },
+        axisTick: { distance: -18, length: 5 },
+        center: countFixtureSeries(seriesCount) === 1 ? ["50%", "58%"] : [["22%", "58%"], ["50%", "58%"], ["78%", "58%"]][index],
+        data: [{ name: `Conversion ${index + 1}`, value: (topTick * (17 + index * 5) + index * 23) % 101 }],
+        detail: {
+          formatter: "{value}%",
+          fontSize: 18,
+          offsetCenter: [0, "64%"],
+        },
+        max: 100,
+        min: 0,
+        pointer: { length: "58%", width: 4 },
+        progress: { show: true, width: 14 },
+        radius: countFixtureSeries(seriesCount) === 1 ? "66%" : "34%",
+        title: { fontSize: 12, offsetCenter: [0, "88%"] },
+      })),
     category: "Top",
     dataFormat: "top",
     seriesOptions: { max: 100, min: 0 },
@@ -301,31 +528,39 @@ export const chartSamples: ChartSample[] = [
     type: "gauge",
   },
   {
-    buildData: ({ topTick }) => buildTopRows(topTick),
+    buildData: ({ topTick }) => buildFunnelRows(topTick),
     category: "Top",
     dataFormat: "top",
+    seriesOptions: { label: { show: false }, left: "12%", top: 48, width: "76%" },
     summary: "단계별 전환 규모를 깔때기 형태로 비교하는 차트",
     type: "funnel",
   },
   {
-    buildData: () => [{ name: "Visit" }, { name: "Signup" }, { name: "Trial" }, { name: "Purchase" }],
-    buildSeries: ({ flowTick }) => [{ links: buildSankeyLinks(flowTick), name: "Flow" }],
+    buildData: () => buildSankeyNodes(0),
+    buildSeries: ({ flowTick }, seriesCount) =>
+      buildNamedSeries(countFixtureSeries(seriesCount), (index) => {
+        const count = countFixtureSeries(seriesCount);
+
+        return {
+          bottom: count === 1 ? 12 : `${57 - index * 25}%`,
+          data: buildSankeyNodes(index),
+          emphasis: { focus: "adjacency" },
+          label: { overflow: "truncate", width: 86 },
+          left: 12,
+          links: buildSankeyLinks(flowTick, index),
+          right: 12,
+          top: count === 1 ? 56 : `${18 + index * 25}%`,
+        };
+      }),
     category: "Native",
     dataFormat: "native",
     summary: "출발 노드에서 도착 노드로 흐르는 양을 표현하는 Sankey 차트",
     type: "sankey",
   },
   {
-    buildData: ({ topTick }) => [
-      ["2026/05/01", 10 + topTick, "Organic"],
-      ["2026/05/02", 15 + topTick, "Organic"],
-      ["2026/05/03", 12 + topTick, "Organic"],
-      ["2026/05/01", 7 + topTick, "Paid"],
-      ["2026/05/02", 9 + topTick, "Paid"],
-      ["2026/05/03", 14 + topTick, "Paid"],
-    ],
+    buildData: ({ topTick }) => buildThemeRiverRows(topTick),
     buildOptions: () => ({
-      singleAxis: { bottom: 40, left: 48, right: 24, top: 44, type: "time" },
+      singleAxis: { bottom: 40, left: 48, right: 24, top: 64, type: "time" },
     }),
     category: "Native",
     dataFormat: "native",
@@ -333,7 +568,7 @@ export const chartSamples: ChartSample[] = [
     type: "themeRiver",
   },
   {
-    buildData: ({ topTick }) => buildTopRows(topTick),
+    buildData: ({ topTick }, seriesCount) => buildTopRowsWithSeries(topTick, seriesCount),
     category: "Top",
     dataFormat: "top",
     seriesOptions: { symbol: "rect", symbolRepeat: true, symbolSize: [8, 12] },
@@ -349,16 +584,17 @@ export const chartSamples: ChartSample[] = [
     type: "custom",
   },
   {
-    buildData: ({ topTick }) => [
-      ["React", 120 + topTick],
-      ["ECharts", 96 + topTick],
-      ["KMSF", 80 + topTick],
-      ["Dashboard", 64 + topTick],
-      ["Analytics", 58 + topTick],
-      ["Chart", 44 + topTick],
-    ],
+    buildData: ({ topTick }, seriesCount) =>
+      topNames.map((name, rowIndex) => {
+        const values = Array.from({ length: countFixtureSeries(seriesCount) }, (_, seriesIndex) => {
+          return 24 + ((topTick * 11 + rowIndex * 17 + seriesIndex * 29) % 120);
+        });
+
+        return [name, ...values];
+      }),
     category: "Top",
     dataFormat: "top",
+    seriesOptions: { height: "88%", left: "4%", top: "6%", width: "92%" },
     summary: "키워드 중요도를 글자 크기와 색상으로 표현하는 워드 클라우드",
     type: "wordCloud",
   },

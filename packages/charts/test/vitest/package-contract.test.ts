@@ -138,7 +138,7 @@ describe("package harness contract", () => {
     expect(existsSync(join(packagesRoot, "AGENTS.md"))).toBe(false);
 
     const packageAgentFiles = readdirSync(packagesRoot, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
       .map((entry) => join(packagesRoot, entry.name, "AGENTS.md"));
 
     for (const file of packageAgentFiles) {

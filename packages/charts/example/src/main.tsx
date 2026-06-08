@@ -1,8 +1,18 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { createHashRouter, Navigate } from "react-router";
+import { RouterProvider } from "react-router/dom";
 
-import { App } from "./App";
+import { ChartWorkspacePage, GridstackPage, NotFoundPage } from "./App";
 import "./styles.css";
+
+const router = createHashRouter([
+  { element: <Navigate replace to="/charts/line" />, path: "/" },
+  { element: <ChartWorkspacePage />, path: "/charts/:type" },
+  { element: <ChartWorkspacePage />, path: "/charts/:type/examples/:exampleId" },
+  { element: <GridstackPage />, path: "/gridstack" },
+  { element: <NotFoundPage />, path: "*" },
+]);
 
 const root = document.getElementById("root");
 
@@ -12,6 +22,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <RouterProvider router={router} />
   </StrictMode>,
 );
