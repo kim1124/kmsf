@@ -4,6 +4,8 @@
 
 - 2026-05-03: `charts` 기준 하네스 구조를 이 도메인에 맞춰 적용한다.
 - 2026-05-27: active drag/resize 중 React prop sync가 GridStack engine에 즉시 반영되지 않도록 adapter sync를 지연한다.
+- 2026-06-08: 위젯 resize 중 GridLayout/browser boundary 이탈로 stop event가 누락되는 경로를 Playwright로 재현하고, adapter-level browser-exit guard를 검토한다. Detailed plan: `docs/agents/gridstack/260608_103051_plan.md`.
+- 2026-06-08: 실행 가능한 구현 계획을 `docs/agents/gridstack/260608_103645_plan.md`에 작성했다. 사용자 결정이 필요한 항목은 없으며, 구현은 RED E2E부터 시작한다.
 
 ## 2026-05-27 Resize Interaction Plan
 
@@ -12,6 +14,16 @@
 3. During active interaction, keep latest adapter options but defer `grid.updateOptions`, `grid.column`, and `syncGridWidgets`.
 4. After interaction, commit the layout once, then apply the latest pending sync on the next animation frame.
 5. Verify with focused Playwright, `npm --workspace=@kmsf/gridstack run verify:full`, and `npm --workspace=@kmsf/charts run verify:full`.
+
+## 2026-06-08 Resize Boundary Exit Plan
+
+1. Add a focused Playwright regression for leaving the grid area and releasing inside the browser document.
+2. Add a focused Playwright regression for browser-boundary exit where `mouseup` is not delivered to the document.
+3. During active drag/resize, attach temporary document guard listeners from the adapter.
+4. On viewport/browser exit, keep the interaction active while the mouse button remains pressed; when a later event reports `buttons === 0`, dispatch a synthetic document `mouseup` at that event's current coordinates so GridStack can apply min/max constraints and emit `resizestop`/`dragstop`.
+5. If GridStack stop does not arrive by the next animation frame, fallback to adapter `stopInteraction()` to flush pending commit/sync.
+6. Verify with focused Chromium Playwright tests, then `npm --workspace=@kmsf/gridstack run verify:full`.
+7. Implementation status: completed after RED/GREEN Playwright validation and package verification.
 
 ## Planning Rules
 
@@ -24,3 +36,10 @@
 
 - 문서만 변경하는 작업은 TDD 예외다.
 - 코드나 설정이 바뀌면 패키지별 `AGENTS.md`의 verification command를 따른다.
+
+## 설계 결정 질문 루프
+
+- 이 문서를 작성하거나 갱신하기 전에 사용자 결정이 필요한 항목을 질문으로 분리한다.
+- 답변 전에는 추천안을 확정된 계획이나 결론으로 쓰지 않는다.
+- 답변 이후에도 재결정 항목이 남으면 추가 질문을 먼저 한다.
+- 모든 사용자 결정 항목이 닫힌 뒤 내용을 확정한다.

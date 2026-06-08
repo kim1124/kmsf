@@ -19,6 +19,11 @@ export type DashboardGridAdapter<TData = unknown> = {
   destroy: () => void;
 };
 
+type PointerSnapshot = {
+  clientX: number;
+  clientY: number;
+};
+
 export function createDashboardGridAdapter<TData>(
   element: HTMLElement,
   options: DashboardGridAdapterOptions<TData>,
@@ -30,6 +35,12 @@ export function createDashboardGridAdapter<TData>(
   let pendingSync = false;
   let finishInteractionFrame: number | undefined;
   let deferredSyncFrame: number | undefined;
+  let forceEndFrame: number | undefined;
+  let lastPointer: PointerSnapshot | undefined;
+  let activeInteractionItem: GridItemHTMLElement | undefined;
+  let pendingForcedRevealItem: GridItemHTMLElement | undefined;
+  let pendingForcedRevealId: string | undefined;
+  let interactionGuardsAttached = false;
 
   const commitLayout = () => {
     const snapshot = readDashboardLayoutSnapshot(grid, currentOptions.columns ?? 12);
@@ -58,6 +69,151 @@ export function createDashboardGridAdapter<TData>(
     }
   };
 
+  const resetGridStackItemDragDrop = (item: GridItemHTMLElement) => {
+    if (!item.gridstackNode) {
+      return;
+    }
+
+    grid.prepareDragDrop(item, true);
+
+    const id = item.getAttribute("data-widget-id") ?? item.getAttribute("gs-id");
+    const widget = currentOptions.widgets.find((candidate) => candidate.id === id);
+    const gridWidget = widget ? toGridStackWidget(widget, currentOptions) : undefined;
+    grid.movable(item, !(gridWidget?.noMove ?? false));
+    grid.resizable(item, !(gridWidget?.noResize ?? false));
+  };
+
+  const captureInteractionPointer = (event: MouseEvent) => {
+    if (!isInteracting) {
+      return;
+    }
+    lastPointer = { clientX: event.clientX, clientY: event.clientY };
+  };
+
+  const forceInteractionEnd = (event?: MouseEvent, shouldDispatchFinalMove = false) => {
+    if (!isInteracting || forceEndFrame !== undefined) {
+      return;
+    }
+
+    if (event) {
+      captureInteractionPointer(event);
+    }
+
+    forceEndFrame = window.requestAnimationFrame(() => {
+      forceEndFrame = undefined;
+      if (isInteracting) {
+        stopInteraction();
+      }
+    });
+
+    const point = lastPointer ?? { clientX: 0, clientY: 0 };
+    const forcedInteractionItem =
+      activeInteractionItem ??
+      element.querySelector<GridItemHTMLElement>(".grid-stack-item.ui-resizable-resizing, .grid-stack-item.ui-draggable-dragging") ??
+      undefined;
+    if (shouldDispatchFinalMove) {
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          bubbles: true,
+          cancelable: true,
+          buttons: 0,
+          clientX: point.clientX,
+          clientY: point.clientY,
+        }),
+      );
+    }
+    document.dispatchEvent(
+      new MouseEvent("mouseup", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        buttons: 0,
+        clientX: point.clientX,
+        clientY: point.clientY,
+      }),
+    );
+    forcedInteractionItem?.dispatchEvent(
+      new MouseEvent("mouseout", {
+        bubbles: true,
+        cancelable: true,
+        clientX: point.clientX,
+        clientY: point.clientY,
+        relatedTarget: null,
+      }),
+    );
+    forcedInteractionItem?.classList.remove("ui-resizable-autohide");
+    pendingForcedRevealItem = forcedInteractionItem;
+    pendingForcedRevealId =
+      forcedInteractionItem?.getAttribute("data-widget-id") ?? forcedInteractionItem?.getAttribute("gs-id") ?? undefined;
+  };
+
+  const handleDocumentMouseMove = (event: MouseEvent) => {
+    captureInteractionPointer(event);
+    if (event.buttons === 0) {
+      forceInteractionEnd(event);
+    }
+  };
+
+  const handleDocumentMouseLeave = (event: MouseEvent) => {
+    captureInteractionPointer(event);
+    if (event.relatedTarget !== null) {
+      return;
+    }
+    if (event.buttons === 0) {
+      forceInteractionEnd(event, true);
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      forceInteractionEnd();
+    }
+  };
+
+  const attachInteractionGuards = () => {
+    if (interactionGuardsAttached) {
+      return;
+    }
+    interactionGuardsAttached = true;
+    document.addEventListener("mousemove", handleDocumentMouseMove, true);
+    document.documentElement.addEventListener("mouseleave", handleDocumentMouseLeave, true);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+  };
+
+  const detachInteractionGuards = () => {
+    if (!interactionGuardsAttached) {
+      return;
+    }
+    interactionGuardsAttached = false;
+    document.removeEventListener("mousemove", handleDocumentMouseMove, true);
+    document.documentElement.removeEventListener("mouseleave", handleDocumentMouseLeave, true);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+
+  const findPendingForcedRevealItem = () => {
+    if (pendingForcedRevealItem?.isConnected) {
+      return pendingForcedRevealItem;
+    }
+    if (!pendingForcedRevealId) {
+      return undefined;
+    }
+    return [...element.querySelectorAll<GridItemHTMLElement>(".grid-stack-item")].find(
+      (item) =>
+        item.getAttribute("data-widget-id") === pendingForcedRevealId || item.getAttribute("gs-id") === pendingForcedRevealId,
+    );
+  };
+
+  const revealPendingForcedItem = () => {
+    const item = findPendingForcedRevealItem();
+    if (item) {
+      resetGridStackItemDragDrop(item);
+    }
+    item?.classList.remove("ui-resizable-autohide");
+    window.requestAnimationFrame(() => item?.classList.remove("ui-resizable-autohide"));
+    pendingForcedRevealItem = undefined;
+    pendingForcedRevealId = undefined;
+  };
+
   const scheduleDeferredSync = () => {
     cancelFrame(deferredSyncFrame);
     deferredSyncFrame = window.requestAnimationFrame(() => {
@@ -67,11 +223,15 @@ export function createDashboardGridAdapter<TData>(
         return;
       }
       runSync(currentOptions);
+      revealPendingForcedItem();
     });
   };
 
   const flushInteraction = () => {
     finishInteractionFrame = undefined;
+    detachInteractionGuards();
+    lastPointer = undefined;
+    activeInteractionItem = undefined;
     isInteracting = false;
 
     const shouldCommit = pendingCommit;
@@ -84,18 +244,34 @@ export function createDashboardGridAdapter<TData>(
     }
     if (shouldSync) {
       scheduleDeferredSync();
+    } else {
+      revealPendingForcedItem();
     }
   };
 
-  const startInteraction = () => {
+  const startInteraction = (event?: Event, item?: GridItemHTMLElement) => {
     isInteracting = true;
+    activeInteractionItem =
+      item ??
+      (event?.target instanceof HTMLElement
+        ? (event.target.closest(".grid-stack-item") as GridItemHTMLElement | null) ?? undefined
+        : undefined);
     cancelFrame(finishInteractionFrame);
+    cancelFrame(forceEndFrame);
     finishInteractionFrame = undefined;
+    forceEndFrame = undefined;
+    if (event instanceof MouseEvent) {
+      captureInteractionPointer(event);
+    }
+    attachInteractionGuards();
   };
 
   const stopInteraction = () => {
     pendingCommit = true;
+    detachInteractionGuards();
+    cancelFrame(forceEndFrame);
     cancelFrame(finishInteractionFrame);
+    forceEndFrame = undefined;
     finishInteractionFrame = window.requestAnimationFrame(flushInteraction);
   };
 
@@ -132,8 +308,12 @@ export function createDashboardGridAdapter<TData>(
       commitLayout();
     },
     destroy() {
+      detachInteractionGuards();
+      pendingForcedRevealItem = undefined;
+      pendingForcedRevealId = undefined;
       cancelFrame(finishInteractionFrame);
       cancelFrame(deferredSyncFrame);
+      cancelFrame(forceEndFrame);
       grid.offAll();
       grid.destroy(false);
     },
