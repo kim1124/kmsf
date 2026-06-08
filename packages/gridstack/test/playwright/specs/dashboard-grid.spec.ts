@@ -40,6 +40,46 @@ async function readGridEngineColumn(grid: Locator): Promise<number> {
   });
 }
 
+async function readWidgetInteractionState(widget: Locator) {
+  return widget.evaluate((element) => ({
+    isResizing: element.classList.contains("ui-resizable-resizing"),
+    hasInlinePosition: (element as HTMLElement).style.position === "absolute",
+  }));
+}
+
+async function simulateBrowserBoundaryExit(page: Page, clientX: number, clientY: number) {
+  const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
+
+  await page.mouse.move(viewport.width - 1, viewport.height - 1, { steps: 8 });
+  await page.evaluate(({ x, y }) => {
+    document.documentElement.dispatchEvent(
+      new MouseEvent("mouseleave", {
+        bubbles: true,
+        cancelable: true,
+        buttons: 1,
+        clientX: x,
+        clientY: y,
+        relatedTarget: null,
+      }),
+    );
+    window.dispatchEvent(new Event("blur"));
+  }, { x: clientX, y: clientY });
+}
+
+async function simulateBrowserBoundaryRelease(page: Page, clientX: number, clientY: number) {
+  await page.evaluate(({ x, y }) => {
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        cancelable: true,
+        buttons: 0,
+        clientX: x,
+        clientY: y,
+      }),
+    );
+  }, { x: clientX, y: clientY });
+}
+
 async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
   const box = await widget.boundingBox();
   if (!box) {
@@ -68,6 +108,52 @@ async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY:
   await page.mouse.down();
   await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 12 });
   await page.mouse.up();
+}
+
+async function resizeWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: number) {
+  await widget.evaluate(
+    (element, delta) => {
+      const handle = element.querySelector<HTMLElement>(".ui-resizable-se");
+      if (!handle) {
+        throw new Error("Resize handle is not available");
+      }
+
+      const rect = handle.getBoundingClientRect();
+      const startX = rect.left + rect.width / 2;
+      const startY = rect.top + rect.height / 2;
+
+      handle.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: startX,
+          clientY: startY,
+        }),
+      );
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          bubbles: true,
+          cancelable: true,
+          buttons: 1,
+          clientX: startX + delta.x,
+          clientY: startY + delta.y,
+        }),
+      );
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: startX + delta.x,
+          clientY: startY + delta.y,
+        }),
+      );
+    },
+    { x: deltaX, y: deltaY },
+  );
 }
 
 async function startWidgetResize(page: Page, widget: Locator) {
@@ -413,6 +499,90 @@ test("defers grid sync while a widget is actively resizing", async ({ page }, te
   }).toBe(true);
 
   await page.waitForTimeout(100);
+  expect(diagnostics).toEqual([]);
+});
+
+test("finalizes widget resize when the pointer leaves the browser boundary", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/");
+
+  const grid = page.getByTestId("dashboard-grid");
+  const sales = page.getByTestId("dashboard-widget-sales");
+
+  await expect(grid).toHaveAttribute("data-columns", "6");
+
+  try {
+    const { startX, startY } = await startWidgetResize(page, sales);
+    await page.mouse.move(startX + 140, startY + 110, { steps: 8 });
+
+    await page.getByLabel("컬럼 선택").evaluate((element) => {
+      const select = element as HTMLSelectElement;
+      select.value = "12";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    await expect.poll(() => readGridEngineColumn(grid)).toBe(6);
+
+    const releaseX = startX + 900;
+    const releaseY = startY + 420;
+    await simulateBrowserBoundaryExit(page, releaseX, releaseY);
+
+    await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(true);
+    await expect.poll(() => readGridEngineColumn(grid)).toBe(6);
+
+    await simulateBrowserBoundaryRelease(page, releaseX, releaseY);
+
+    await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(false);
+    await expect(grid).toHaveAttribute("data-columns", "12");
+    await expect.poll(() => readGridEngineColumn(grid)).toBe(12);
+    const forcedLayout = await readWidgetLayout(sales);
+    expect(forcedLayout.w).toBe(6);
+    expect(forcedLayout.h).toBeGreaterThan(2);
+    await page.mouse.up().catch(() => undefined);
+    await page.bringToFront();
+
+    const afterForcedEnd = forcedLayout;
+    await resizeWidgetWithDomEvents(sales, 180, 130);
+    await expect.poll(async () => {
+      const layout = await readWidgetLayout(sales);
+      return layout.w !== afterForcedEnd.w || layout.h !== afterForcedEnd.h;
+    }).toBe(true);
+    expect(diagnostics).toEqual([]);
+  } finally {
+    await page.mouse.up().catch(() => undefined);
+  }
+});
+
+test("finishes widget resize after leaving the grid area", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/");
+
+  const grid = page.getByTestId("dashboard-grid");
+  const sales = page.getByTestId("dashboard-widget-sales");
+  const beforeResize = await readWidgetLayout(sales);
+  const gridBox = await grid.boundingBox();
+
+  if (!gridBox) {
+    throw new Error("Grid bounding box is not available");
+  }
+
+  const { startX, startY } = await startWidgetResize(page, sales);
+
+  await page.mouse.move(startX + 180, startY + 120, { steps: 8 });
+  await page.mouse.move(gridBox.x + gridBox.width + 80, startY + 120, { steps: 8 });
+  await page.mouse.up();
+
+  await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(false);
+  await expect.poll(async () => {
+    const layout = await readWidgetLayout(sales);
+    return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
+  }).toBe(true);
   expect(diagnostics).toEqual([]);
 });
 
