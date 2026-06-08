@@ -1,4 +1,6 @@
 export const bodyFontStack = [
+  "\"Spoqa Han Sans Neo\"",
+  "\"SpoqaHanSans\"",
   "system-ui",
   "-apple-system",
   "\"Apple SD Gothic Neo\"",
