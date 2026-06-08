@@ -14,14 +14,14 @@ npm install
 npm install @kmsf/charts echarts
 ```
 
-## 기본 사용
+## TrendChart
 
 ```tsx
 import { TrendChart, createTrendRows } from "@kmsf/charts";
 
 const data = createTrendRows([
   { x: "2026-04-26 10:00:00", value: 1000 },
-  { x: "2026-04-26 11:00:00", value: 1400 },
+  { x: "2026-04-26 10:01:00", value: 1120 },
 ]);
 
 const series = [{ id: "sales", name: "Sales" }];
@@ -31,54 +31,83 @@ export function SalesTrend() {
 }
 ```
 
-## 데이터 helper
+`TrendChart`는 `data`와 `series`가 모두 필요하다.
 
-### TrendChart
+## TopChart
 
-```ts
-createTrendRows([
-  { x: "2026-04-26 10:00:00", values: [100, 200] },
-  { x: new Date(), value: 300 },
-]);
-```
+```tsx
+import { TopChart, createTopRows } from "@kmsf/charts";
 
-출력:
-
-```ts
-[
-  ["2026-04-26 10:00:00", 100, 200],
-  [dateObject, 300],
-];
-```
-
-### TopChart
-
-```ts
-createTopRows([
+const data = createTopRows([
   { name: "A", value: 100 },
-  { name: "B", values: [200, 20] },
+  { name: "B", value: 80 },
+  { name: "C", value: 64 },
 ]);
+
+export function TopMetrics() {
+  return <TopChart data={data} mode="pie" />;
+}
 ```
 
-출력:
+`TopChart`는 `series`가 없으면 기본 series를 생성한다.
 
-```ts
-[
-  ["A", 100],
-  ["B", 200, 20],
-];
+## GenericChart
+
+```tsx
+import { GenericChart } from "@kmsf/charts";
+
+export function GenericBar() {
+  return (
+    <GenericChart
+      data={[
+        ["Alpha", 120],
+        ["Beta", 96],
+      ]}
+      dataFormat="top"
+      type="bar"
+    />
+  );
+}
 ```
 
-## 이름 호환성
+`GenericChart`의 advanced chart는 ECharts 공식 option이 추가로 필요할 수 있다. 차트별 필수 설정은 예제 페이지 우측 문서 또는 `docs/03-component-api-draft.md`를 확인한다.
 
-권장 이름:
+## Loading Fallback
 
-- `GaugeChart`
-- `SunburstChart`
+`@kmsf/charts`는 shadcn을 직접 import하지 않는다. 사용하는 앱에서 Skeleton을 전달한다.
 
-호환 이름:
+```tsx
+import { GenericChart } from "@kmsf/charts";
+import { Skeleton } from "@/components/ui/skeleton";
 
-- `GuageChart`
-- `SunbustChart`
+export function LoadingExample() {
+  return (
+    <GenericChart
+      data={[["Alpha", 120]]}
+      dataFormat="top"
+      loadingFallback={<Skeleton className="h-full w-full rounded-md" />}
+      type="bar"
+    />
+  );
+}
+```
 
-호환 이름은 기존 요청 표기와 초기 구현을 깨지 않기 위해 유지한다.
+## Colors
+
+```tsx
+<GenericChart
+  colors={["#064e3b", "#047857", "#059669"]}
+  data={[
+    ["Alpha", 120],
+    ["Beta", 96],
+  ]}
+  dataFormat="top"
+  type="pie"
+/>
+```
+
+`colors`는 유효한 16진수 배열만 사용하며, 없거나 유효 색상이 없으면 KMSF mint 계열 TOP palette로 fallback한다.
+
+## Public Names
+
+권장 및 지원 public component 이름은 `GaugeChart`, `SunburstChart`다. `GuageChart`, `SunbustChart`는 export하지 않는다.

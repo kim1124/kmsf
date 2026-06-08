@@ -1,12 +1,8 @@
 import type { EChartsOption, SeriesOption } from "echarts";
 
 import type { GenericChartDataFormat, KmsfChartType } from "../../../src";
-import {
-  buildTopRows,
-  buildTopRowsWithSeries,
-  buildTrendRows,
-  chartSamples,
-} from "./chart-samples";
+import { getExamplePalette } from "./chart-colors";
+import { buildLiveTrendRows, chartSamples } from "./chart-samples";
 import type { ChartSample, SampleClock } from "./chart-samples";
 
 export type ChartExampleTag = "정적" | "동적" | "TOP" | "Trend" | "Type" | "Native";
@@ -32,6 +28,7 @@ export interface ChartExampleDefinition {
   tags: ChartExampleTag[];
   title: string;
   type: KmsfChartType;
+  updateIntervalMs?: number;
 }
 
 const staticClock: SampleClock = {
@@ -40,7 +37,19 @@ const staticClock: SampleClock = {
   trendTick: 0,
 };
 
-const seriesCountTypes = new Set<KmsfChartType>(["bar", "line"]);
+const preparedExampleTypes = new Set<KmsfChartType>(["custom", "map"]);
+const TREND_UPDATE_INTERVAL_MS = 1000;
+const TOP_UPDATE_INTERVAL_MS = 5000;
+const SLOW_UPDATE_INTERVAL_MS = 10000;
+const singleSeriesExampleTypes = new Set<KmsfChartType>([
+  "funnel",
+  "gauge",
+  "pie",
+  "sunburst",
+  "themeRiver",
+  "treemap",
+  "wordCloud",
+]);
 
 export function clampExampleSeriesCount(value: number) {
   if (!Number.isFinite(value)) {
@@ -115,58 +124,153 @@ function mergePlainObjects<TValue extends Record<string, unknown>>(base: TValue,
 }
 
 function buildSampleData(sample: ChartSample, context: ChartExampleContext, clock: SampleClock): unknown {
-  if (sample.type === "line") {
-    return buildTrendRows(clock.trendTick, context.seriesCount);
-  }
-
-  if (sample.type === "bar" && context.seriesCount > 1) {
-    return buildTopRowsWithSeries(clock.topTick, context.seriesCount);
-  }
-
-  return sample.buildData(clock);
+  return sample.buildData(clock, context.seriesCount);
 }
 
-function buildOptionVariant(sample: ChartSample, clock: SampleClock): EChartsOption {
-  const baseOptions = (sample.buildOptions?.(clock) ?? {}) as Record<string, unknown>;
+function canUseSeriesCount(sample: ChartSample) {
+  return !preparedExampleTypes.has(sample.type) && !singleSeriesExampleTypes.has(sample.type);
+}
 
-  return mergePlainObjects(baseOptions, {
-    title: {
-      left: "center",
-      text: `${sample.type} option variant`,
-      textStyle: { fontSize: 12 },
+function getLiveUpdateInterval(sample: ChartSample) {
+  if (sample.category === "Trend") {
+    return TREND_UPDATE_INTERVAL_MS;
+  }
+
+  if (sample.category === "Top") {
+    return TOP_UPDATE_INTERVAL_MS;
+  }
+
+  return SLOW_UPDATE_INTERVAL_MS;
+}
+
+function buildOptionVariant(sample: ChartSample, clock: SampleClock, variant = 0): EChartsOption {
+  const baseOptions = (sample.buildOptions?.(clock, 3) ?? {}) as Record<string, unknown>;
+  const palette = getExamplePalette(variant + 2);
+  const commonOptions: Record<string, unknown> = {
+    color: palette,
+  };
+  const typeOptions: Partial<Record<KmsfChartType, Record<string, unknown>>> = {
+    bar: {
+      grid: { bottom: 36, left: 24, right: 16, top: 28 },
+      xAxis: { axisLabel: { rotate: 20 } },
     },
-  }) as EChartsOption;
+    boxplot: {
+      grid: { bottom: 32, left: 32, right: 18, top: 28 },
+      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
+    },
+    candlestick: {
+      grid: { bottom: 38, left: 28, right: 18, top: 26 },
+      yAxis: { scale: true },
+    },
+    effectScatter: {
+      xAxis: { boundaryGap: false },
+      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
+    },
+    funnel: {
+      legend: { bottom: 0, top: undefined },
+    },
+    gauge: {
+      legend: false,
+    },
+    graph: {
+      legend: { top: 8 },
+    },
+    heatmap: {
+      visualMap: { bottom: 4, left: "center", orient: "horizontal" },
+    },
+    line: {
+      dataZoom: [{ type: "inside" }],
+      xAxis: { boundaryGap: false },
+      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
+    },
+    lines: {
+      grid: { bottom: 28, left: 28, right: 20, top: 28 },
+    },
+    parallel: {
+      parallel: { bottom: 28, left: 58, right: 30, top: 64 },
+    },
+    pictorialBar: {
+      grid: { bottom: 34, left: 24, right: 16, top: 28 },
+    },
+    pie: {
+      legend: { orient: "vertical", right: 8, top: 36, type: "scroll" },
+    },
+    radar: {
+      legend: { top: 8 },
+      radar: { center: ["50%", "62%"], radius: "46%", splitNumber: 4 },
+    },
+    sankey: {
+      legend: false,
+    },
+    scatter: {
+      xAxis: { boundaryGap: false },
+      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
+    },
+    sunburst: {
+      legend: false,
+    },
+    themeRiver: {
+      singleAxis: { bottom: 38, left: 48, right: 24, top: 64, type: "time" },
+    },
+    tree: {
+      legend: { top: 8 },
+    },
+    treemap: {
+      legend: false,
+    },
+    wordCloud: {
+      legend: false,
+    },
+  };
+
+  return mergePlainObjects(mergePlainObjects(baseOptions, commonOptions), typeOptions[sample.type]) as EChartsOption;
 }
 
-function buildOptionSeries(sample: ChartSample): Partial<SeriesOption> | Array<Partial<SeriesOption>> | undefined {
+function buildOptionSeries(sample: ChartSample, variant = 0): Partial<SeriesOption> | Array<Partial<SeriesOption>> | undefined {
   if (sample.seriesOptions) {
     return sample.seriesOptions;
   }
 
   if (sample.type === "line") {
-    return { areaStyle: {}, smooth: true };
+    return variant % 2 === 0 ? { areaStyle: {}, smooth: true } : { lineStyle: { width: 3 }, smooth: true };
   }
 
   if (sample.type === "bar") {
-    return { barMaxWidth: 18 };
+    return variant % 2 === 0 ? { barMaxWidth: 18 } : { barGap: "24%", barMaxWidth: 26 };
   }
 
   if (sample.type === "pie") {
-    return { radius: ["42%", "72%"] };
+    return variant % 2 === 0
+      ? { center: ["34%", "52%"], radius: ["42%", "72%"] }
+      : { center: ["36%", "52%"], roseType: "radius", radius: ["24%", "72%"] };
   }
 
   if (sample.type === "scatter" || sample.type === "effectScatter") {
-    return { symbolSize: 10 };
+    return variant % 2 === 0 ? { symbolSize: 10 } : { symbol: "diamond", symbolSize: 14 };
   }
 
-  return { emphasis: { focus: "series" } };
+  if (sample.type === "tree") {
+    return variant % 2 === 0 ? { symbolSize: 8 } : { edgeShape: "polyline", symbolSize: 10 };
+  }
+
+  if (sample.type === "sankey") {
+    return variant % 2 === 0 ? { lineStyle: { opacity: 0.35 } } : { nodeGap: 10, nodeWidth: 12 };
+  }
+
+  if (sample.type === "themeRiver") {
+    return variant % 2 === 0 ? { emphasis: { focus: "series" } } : { label: { show: false } };
+  }
+
+  return variant % 2 === 0
+    ? { emphasis: { focus: "series" } }
+    : { emphasis: { focus: "self" }, selectedMode: "single" };
 }
 
 function createExamples(sample: ChartSample): ChartExampleDefinition[] {
   if (sample.disabledReason) {
     return [
       {
-        buildData: () => sample.buildData(staticClock),
+        buildData: () => sample.buildData(staticClock, 1),
         dataFormat: sample.dataFormat,
         disabledReason: sample.disabledReason,
         id: `${sample.type}-placeholder`,
@@ -179,7 +283,7 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
     ];
   }
 
-  const seriesCountEnabled = seriesCountTypes.has(sample.type);
+  const seriesCountEnabled = canUseSeriesCount(sample);
 
   return [
     {
@@ -187,20 +291,29 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
       dataFormat: sample.dataFormat,
       id: `${sample.type}-static-basic`,
       mode: "static",
+      seriesCountEnabled: singleSeriesExampleTypes.has(sample.type) ? false : undefined,
       seriesOptions: sample.seriesOptions,
       summary: `${sample.summary}의 기본 사용 예제입니다.`,
       tags: getBaseTags(sample, "static"),
       title: "기본 예제",
       type: sample.type,
       ...(sample.buildOptions
-        ? { buildOptions: (context) => sample.buildOptions!(getStaticClock(context.refreshVersion)) }
+        ? { buildOptions: (context) => sample.buildOptions!(getStaticClock(context.refreshVersion), 1) }
         : {}),
       ...(sample.buildSeries
-        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion)) }
+        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion), 1) }
         : {}),
     },
     {
-      buildData: (context) => buildSampleData(sample, context, offsetClock(context.clock, context.refreshVersion)),
+      buildData: (context) => {
+        const nextClock = offsetClock(context.clock, context.refreshVersion);
+
+        if (sample.type === "line") {
+          return buildLiveTrendRows(nextClock.trendTick, context.seriesCount);
+        }
+
+        return buildSampleData(sample, context, nextClock);
+      },
       dataFormat: sample.dataFormat,
       defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
       id: `${sample.type}-live-update`,
@@ -211,44 +324,67 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
       tags: getBaseTags(sample, "live"),
       title: "실시간 갱신",
       type: sample.type,
+      updateIntervalMs: getLiveUpdateInterval(sample),
       ...(sample.buildOptions
-        ? { buildOptions: (context) => sample.buildOptions!(offsetClock(context.clock, context.refreshVersion)) }
+        ? { buildOptions: (context) => sample.buildOptions!(offsetClock(context.clock, context.refreshVersion), context.seriesCount) }
         : {}),
       ...(sample.buildSeries
-        ? { buildSeries: (context) => sample.buildSeries!(offsetClock(context.clock, context.refreshVersion)) }
+        ? { buildSeries: (context) => sample.buildSeries!(offsetClock(context.clock, context.refreshVersion), context.seriesCount) }
         : {}),
     },
     {
       buildData: (context) => {
         const nextClock = getStaticClock(context.refreshVersion + 2);
 
-        if (sample.type === "bar") {
-          return buildTopRowsWithSeries(nextClock.topTick, context.seriesCount);
-        }
-
-        if (sample.type === "line") {
-          return buildTrendRows(nextClock.trendTick, Math.max(2, context.seriesCount));
-        }
-
-        if (sample.type === "pie" || sample.type === "funnel" || sample.type === "treemap" || sample.type === "pictorialBar") {
-          return buildTopRows(nextClock.topTick);
-        }
-
-        return sample.buildData(nextClock);
+        return buildSampleData(sample, context, nextClock);
       },
       buildOptions: (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 2)),
       dataFormat: sample.dataFormat,
-      defaultSeriesCount: sample.type === "bar" ? 3 : sample.type === "line" ? 2 : undefined,
+      defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
       id: `${sample.type}-option-variant`,
       mode: "static",
-      seriesCountEnabled: sample.type === "bar",
+      seriesCountEnabled,
       seriesOptions: buildOptionSeries(sample),
       summary: `${sample.summary}에 자주 쓰는 시각 옵션을 적용한 예제입니다.`,
       tags: getBaseTags(sample, "static", ["Type"]),
       title: "옵션 변형",
       type: sample.type,
       ...(sample.buildSeries
-        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 2)) }
+        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 2), context.seriesCount) }
+        : {}),
+    },
+    {
+      buildData: (context) => buildSampleData(sample, context, getStaticClock(context.refreshVersion + 4)),
+      buildOptions: (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 4), 1),
+      dataFormat: sample.dataFormat,
+      defaultSeriesCount: seriesCountEnabled ? 2 : undefined,
+      id: `${sample.type}-data-variant`,
+      mode: "static",
+      seriesCountEnabled,
+      seriesOptions: buildOptionSeries(sample, 1),
+      summary: `${sample.summary}의 데이터 분포를 다르게 구성한 예제입니다.`,
+      tags: getBaseTags(sample, "static", ["Type"]),
+      title: "데이터 변형",
+      type: sample.type,
+      ...(sample.buildSeries
+        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 4), context.seriesCount) }
+        : {}),
+    },
+    {
+      buildData: (context) => buildSampleData(sample, context, getStaticClock(context.refreshVersion + 7)),
+      buildOptions: (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 7), 2),
+      dataFormat: sample.dataFormat,
+      defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
+      id: `${sample.type}-layout-variant`,
+      mode: "static",
+      seriesCountEnabled,
+      seriesOptions: buildOptionSeries(sample, 2),
+      summary: `${sample.summary}의 레이아웃과 강조 표현을 바꾼 예제입니다.`,
+      tags: getBaseTags(sample, "static", ["Type"]),
+      title: "레이아웃 변형",
+      type: sample.type,
+      ...(sample.buildSeries
+        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 7), context.seriesCount) }
         : {}),
     },
   ];

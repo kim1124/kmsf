@@ -19,6 +19,13 @@ export interface KmsfChartProps {
   theme?: string;
 }
 
+export function getKmsfChartSetOptionOptions(): Parameters<ECharts["setOption"]>[1] {
+  return {
+    lazyUpdate: true,
+    replaceMerge: ["series"],
+  };
+}
+
 export function KmsfChart(props: KmsfChartProps) {
   const [hasRendered, setHasRendered] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -80,10 +87,7 @@ export function KmsfChart(props: KmsfChartProps) {
   }, [props.theme]);
 
   useEffect(() => {
-    chartRef.current?.setOption(props.option, {
-      lazyUpdate: true,
-      notMerge: false,
-    });
+    chartRef.current?.setOption(props.option, getKmsfChartSetOptionOptions());
   }, [props.option]);
 
   return (

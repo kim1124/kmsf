@@ -38,27 +38,32 @@ export function mergeChartOptions<T extends PlainObject>(base: T, override?: Pla
   return result as T;
 }
 
-export function buildLegendOption(legend: KmsfLegendOption | undefined): LegendComponentOption {
+export function buildLegendOption(
+  legend: KmsfLegendOption | undefined,
+  defaults?: LegendComponentOption,
+): LegendComponentOption {
   if (legend === false) {
     return { show: false };
   }
 
   if (legend === true || legend === undefined) {
-    return { show: true };
+    return { icon: "circle", show: true, ...defaults };
   }
 
-  return { show: true, ...legend };
+  return mergeChartOptions({ icon: "circle", show: true, ...defaults } as PlainObject, legend as PlainObject) as LegendComponentOption;
 }
 
 export function buildTooltipOption(
   tooltip: KmsfTooltipOption | undefined,
   trigger: TooltipComponentOption["trigger"] = "axis",
+  defaults?: TooltipComponentOption,
 ): TooltipComponentOption {
   const base: TooltipComponentOption = {
     appendToBody: true,
     confine: false,
     show: true,
     trigger,
+    ...defaults,
   };
 
   if (tooltip === false) {
@@ -70,6 +75,54 @@ export function buildTooltipOption(
   }
 
   return mergeChartOptions(base as PlainObject, tooltip as PlainObject) as TooltipComponentOption;
+}
+
+export function hasVisibleChartTitle(options?: EChartsOption): boolean {
+  const title = Array.isArray(options?.title) ? options.title[0] : options?.title;
+
+  if (!isPlainObject(title)) {
+    return false;
+  }
+
+  return Boolean(title.text || title.subtext);
+}
+
+export function buildTitleDefaults(): EChartsOption {
+  return { title: { subtext: "", text: "" } };
+}
+
+export function buildGridLayoutDefaults(input: { legendVisible: boolean; titleVisible: boolean }): EChartsOption {
+  if (!input.titleVisible && !input.legendVisible) {
+    return {};
+  }
+
+  return {
+    grid: {
+      top: input.titleVisible && input.legendVisible ? 104 : input.titleVisible ? 80 : 56,
+    },
+  };
+}
+
+function hasExplicitLegendVerticalPlacement(legend?: KmsfLegendOption): boolean {
+  return Boolean(
+    legend &&
+      typeof legend === "object" &&
+      ("top" in legend || "bottom" in legend),
+  );
+}
+
+function applyTitleLegendSpacing(
+  legend: LegendComponentOption,
+  inputLegend: KmsfLegendOption | undefined,
+  titleVisible: boolean,
+): LegendComponentOption {
+  if (!titleVisible || legend.show === false || hasExplicitLegendVerticalPlacement(inputLegend) || legend.bottom !== undefined) {
+    return legend;
+  }
+
+  const top = typeof legend.top === "number" ? Math.max(legend.top, 56) : 56;
+
+  return { ...legend, top };
 }
 
 export function normalizeAxisOption<TAxis>(
@@ -145,15 +198,28 @@ export function buildTrendDataZoom(showSlider = false): DataZoomComponentOption[
 
 export function buildBaseOption(input: {
   legend?: KmsfLegendOption;
+  legendDefaults?: LegendComponentOption;
   tooltip?: KmsfTooltipOption;
+  tooltipDefaults?: TooltipComponentOption;
   tooltipTrigger?: TooltipComponentOption["trigger"];
   options?: EChartsOption;
   series: SeriesOption[];
   xAxis?: XAXisComponentOption | XAXisComponentOption[];
   yAxis?: YAXisComponentOption | YAXisComponentOption[];
 }): EChartsOption {
+  const titleVisible = hasVisibleChartTitle(input.options);
+  const legend = applyTitleLegendSpacing(
+    buildLegendOption(input.legend, input.legendDefaults),
+    input.legend,
+    titleVisible,
+  );
+  const layoutDefaults = buildGridLayoutDefaults({
+    legendVisible: legend.show !== false,
+    titleVisible,
+  });
   const base: EChartsOption = {
     animation: true,
+    ...buildTitleDefaults(),
     grid: {
       bottom: 28,
       containLabel: true,
@@ -161,8 +227,8 @@ export function buildBaseOption(input: {
       right: 12,
       top: 36,
     },
-    legend: buildLegendOption(input.legend),
-    tooltip: buildTooltipOption(input.tooltip, input.tooltipTrigger),
+    legend,
+    tooltip: buildTooltipOption(input.tooltip, input.tooltipTrigger, input.tooltipDefaults),
     series: input.series,
   };
 
@@ -174,5 +240,7 @@ export function buildBaseOption(input: {
     base.yAxis = input.yAxis;
   }
 
-  return mergeChartOptions(base as PlainObject, input.options as PlainObject | undefined) as EChartsOption;
+  const baseWithLayout = mergeChartOptions(base as PlainObject, layoutDefaults as PlainObject);
+
+  return mergeChartOptions(baseWithLayout, input.options as PlainObject | undefined) as EChartsOption;
 }

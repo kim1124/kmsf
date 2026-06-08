@@ -35,6 +35,22 @@ interface ChartExampleCardProps {
   example: ChartExampleDefinition;
 }
 
+const hiddenLegendExampleTypes = new Set([
+  "bar",
+  "funnel",
+  "gauge",
+  "heatmap",
+  "pictorialBar",
+  "sankey",
+  "sunburst",
+  "treemap",
+  "wordCloud",
+]);
+
+export function getInitialLegendState(type: string) {
+  return !hiddenLegendExampleTypes.has(type);
+}
+
 function stringifyJson(value: unknown): string {
   return JSON.stringify(value ?? {}, null, 2);
 }
@@ -95,11 +111,13 @@ function buildOptionSummary(input: {
 }
 
 export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
-  const [optionState, setOptionState] = useState<LocalOptionState>({
-    legend: true,
+  const initialSeriesCount = clampExampleSeriesCount(example.defaultSeriesCount ?? 1);
+  const [optionState, setOptionState] = useState<LocalOptionState>(() => ({
+    legend: getInitialLegendState(example.type),
     tooltip: true,
-  });
-  const [seriesCount, setSeriesCount] = useState(() => clampExampleSeriesCount(example.defaultSeriesCount ?? 1));
+  }));
+  const [seriesCount, setSeriesCount] = useState(() => initialSeriesCount);
+  const [seriesCountText, setSeriesCountText] = useState(() => String(initialSeriesCount));
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [accentIndex, setAccentIndex] = useState(0);
   const [dataText, setDataText] = useState("");
@@ -200,6 +218,35 @@ export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
     setOptionError(result.error);
   };
 
+  const commitSeriesCount = (value: string) => {
+    const nextSeriesCount = clampExampleSeriesCount(Number(value));
+
+    setSeriesCount(nextSeriesCount);
+    setSeriesCountText(String(nextSeriesCount));
+  };
+
+  const handleSeriesCountChange = (value: string) => {
+    setSeriesCountText(value);
+
+    if (value.trim() === "") {
+      return;
+    }
+
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+      return;
+    }
+
+    const nextSeriesCount = clampExampleSeriesCount(numericValue);
+
+    setSeriesCount(nextSeriesCount);
+
+    if (numericValue < 1 || numericValue > 10) {
+      setSeriesCountText(String(nextSeriesCount));
+    }
+  };
+
   const refreshData = () => {
     setDataDirty(false);
     setManualData(undefined);
@@ -268,8 +315,14 @@ export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
                 max={10}
                 min={1}
                 type="number"
-                value={seriesCount}
-                onChange={(event) => setSeriesCount(clampExampleSeriesCount(Number(event.target.value)))}
+                value={seriesCountText}
+                onBlur={(event) => commitSeriesCount(event.currentTarget.value)}
+                onChange={(event) => handleSeriesCountChange(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    commitSeriesCount(event.currentTarget.value);
+                  }
+                }}
               />
             </label>
           ) : null}

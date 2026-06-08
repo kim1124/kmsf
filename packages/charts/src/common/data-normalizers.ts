@@ -71,6 +71,7 @@ export function buildTrendSeries(input: BuildTrendSeriesInput): SeriesOption[] {
     type: "line",
     showSymbol: false,
     sampling: "lttb",
+    smooth: true,
     areaStyle: input.mode === "area" ? {} : undefined,
     data: input.valuesBySeries[seriesIndex] ?? [],
   }) as SeriesOption);
@@ -88,10 +89,12 @@ export function buildTopSeries(input: BuildTopSeriesInput): SeriesOption[] {
 
   return baseSeries.map((seriesItem, seriesIndex) => {
     const values = input.valuesBySeries[seriesIndex] ?? input.valuesBySeries[0] ?? [];
+    const source = seriesItem as SeriesOption & { label?: unknown };
 
     if (input.mode === "pie" || input.mode === "treemap") {
       return {
         ...seriesItem,
+        label: input.mode === "pie" ? (source.label ?? { show: false }) : source.label,
         type: input.mode,
         data: input.categories.map((name, categoryIndex) => ({
           name,

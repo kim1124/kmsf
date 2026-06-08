@@ -50,10 +50,10 @@ export function SunburstChart(props: SunburstChartProps) {
             focus: "ancestor",
           },
           label: {
-            show: true,
+            show: false,
           },
           labelLine: {
-            show: true,
+            show: false,
           },
           radius: props.radius,
           ...item,

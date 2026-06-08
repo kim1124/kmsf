@@ -1,16 +1,16 @@
 import type { SeriesOption } from "echarts";
 
 export const kmsfTopPalette = [
+  "#064e3b",
+  "#047857",
+  "#059669",
   "#10b981",
-  "#84cc16",
-  "#0ea5e9",
-  "#f97316",
-  "#8b5cf6",
-  "#ef4444",
   "#14b8a6",
-  "#22c55e",
-  "#3b82f6",
-  "#f59e0b",
+  "#0d9488",
+  "#0f766e",
+  "#2dd4bf",
+  "#34d399",
+  "#5eead4",
 ] as const;
 
 export const hexColorPattern = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;

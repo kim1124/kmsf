@@ -22,7 +22,28 @@ describe("buildLegendOption", () => {
   });
 
   it("uses a visible legend by default", () => {
-    expect(buildLegendOption(undefined)).toEqual({ show: true });
+    expect(buildLegendOption(undefined)).toEqual({ icon: "circle", show: true });
+  });
+
+  it("merges scroll and truncation defaults for visible data legends", () => {
+    expect(
+      buildLegendOption(true, {
+        orient: "vertical",
+        right: 8,
+        textStyle: { ellipsis: "...", overflow: "truncate", width: 112 },
+        type: "scroll",
+      }),
+    ).toMatchObject({
+      orient: "vertical",
+      right: 8,
+      show: true,
+      textStyle: { ellipsis: "...", overflow: "truncate", width: 112 },
+      type: "scroll",
+    });
+  });
+
+  it("keeps explicit false stronger than scroll defaults", () => {
+    expect(buildLegendOption(false, { type: "scroll" })).toEqual({ show: false });
   });
 });
 
@@ -82,6 +103,15 @@ describe("buildThemeOption", () => {
       backgroundColor: "#ffffff",
       color: ["#2563eb", "#9333ea"],
       textStyle: { color: "#0f172a" },
+    });
+  });
+
+  it("uses the shared KMSF typography baseline for chart text", () => {
+    expect(buildThemeOption("light")).toMatchObject({
+      textStyle: {
+        fontFamily: expect.stringContaining("Spoqa Han Sans Neo"),
+        fontSize: 12,
+      },
     });
   });
 });

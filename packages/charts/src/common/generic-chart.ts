@@ -13,6 +13,8 @@ import {
   buildBaseOption,
   buildCategoryAxis,
   buildValueAxis,
+  hasVisibleChartTitle,
+  mergeChartOptions,
   normalizeAxisOption,
 } from "./options";
 import {
@@ -105,6 +107,18 @@ const topPreferredTypes = new Set<KmsfChartType>([
 const trendPreferredTypes = new Set<KmsfChartType>(["effectScatter", "line", "scatter"]);
 const axisTopTypes = new Set<KmsfChartType>(["bar", "pictorialBar"]);
 const itemColorTypes = new Set<KmsfChartType>(["funnel", "pie", "treemap"]);
+const hiddenLegendByDefaultTypes = new Set<KmsfChartType>([
+  "bar",
+  "funnel",
+  "gauge",
+  "heatmap",
+  "pictorialBar",
+  "sankey",
+  "sunburst",
+  "treemap",
+  "wordCloud",
+]);
+const dataLegendTypes = new Set<KmsfChartType>(["funnel", "pie", "sunburst", "treemap", "wordCloud"]);
 
 function isTimeLike(value: unknown): boolean {
   return value instanceof Date || (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value));
@@ -190,6 +204,251 @@ function buildLegendWithDefaultIcon(
   }
 
   return { icon, ...legend };
+}
+
+function resolveLegendDefault(type: KmsfChartType, legend: KmsfLegendOption | undefined): KmsfLegendOption | undefined {
+  if (legend !== undefined) {
+    return legend;
+  }
+
+  return hiddenLegendByDefaultTypes.has(type) ? false : undefined;
+}
+
+function buildDataLegendDefaults(type: KmsfChartType): LegendComponentOption | undefined {
+  if (!dataLegendTypes.has(type)) {
+    return undefined;
+  }
+
+  const base: LegendComponentOption = {
+    pageButtonItemGap: 6,
+    pageButtonPosition: "end",
+    pageIconColor: "#64748b",
+    pageIconInactiveColor: "#cbd5e1",
+    textStyle: {
+      ellipsis: "...",
+      overflow: "truncate",
+      width: 112,
+    },
+    type: "scroll",
+  };
+
+  if (type !== "pie") {
+    return base;
+  }
+
+  return {
+    ...base,
+    bottom: 12,
+    orient: "vertical",
+    right: 8,
+    top: 36,
+  };
+}
+
+function isLegendVisible(legend: KmsfLegendOption | undefined): boolean {
+  if (legend === false) {
+    return false;
+  }
+
+  if (legend && typeof legend === "object" && "show" in legend && legend.show === false) {
+    return false;
+  }
+
+  return true;
+}
+
+function applyPieLegendLayout(type: KmsfChartType, series: SeriesOption[], legendVisible: boolean): SeriesOption[] {
+  if (type !== "pie" || !legendVisible) {
+    return series;
+  }
+
+  return series.map((item) => {
+    const source = item as SeriesOption & { center?: unknown; radius?: unknown };
+
+    return {
+      ...item,
+      center: source.center ?? ["34%", "52%"],
+      radius: source.radius ?? ["32%", "66%"],
+    } as SeriesOption;
+  });
+}
+
+function buildRadarLegendDefault(
+  type: KmsfChartType,
+  legend: KmsfLegendOption | undefined,
+  titleVisible: boolean,
+): KmsfLegendOption | undefined {
+  if (type !== "radar" || !isLegendVisible(legend)) {
+    return legend;
+  }
+
+  const top = titleVisible ? 56 : 8;
+
+  if (legend === undefined || legend === true) {
+    return { top };
+  }
+
+  if (legend && typeof legend === "object") {
+    return { top, ...legend };
+  }
+
+  return legend;
+}
+
+function getProtectedTop(input: { legendVisible: boolean; titleVisible: boolean }) {
+  if (input.titleVisible && input.legendVisible) {
+    return 96;
+  }
+
+  if (input.titleVisible) {
+    return 80;
+  }
+
+  if (input.legendVisible) {
+    return 64;
+  }
+
+  return 28;
+}
+
+function buildNonGridLayoutDefaults(
+  type: KmsfChartType,
+  input: { legendVisible: boolean; titleVisible: boolean },
+): EChartsOption {
+  if (!input.titleVisible && !input.legendVisible && type !== "radar") {
+    return {};
+  }
+
+  const top = getProtectedTop(input);
+
+  if (type === "radar") {
+    const hasProtectedHeader = input.titleVisible || input.legendVisible;
+
+    return {
+      radar: {
+        center: ["50%", hasProtectedHeader ? "62%" : "58%"],
+        radius: hasProtectedHeader ? "46%" : "50%",
+      },
+    };
+  }
+
+  if (type === "parallel") {
+    return {
+      parallel: {
+        bottom: 28,
+        left: 56,
+        right: 28,
+        top,
+      },
+    };
+  }
+
+  if (type === "themeRiver") {
+    return {
+      singleAxis: {
+        bottom: 38,
+        left: 48,
+        right: 24,
+        top,
+        type: "time",
+      },
+    };
+  }
+
+  return {};
+}
+
+function normalizeRadarIndicatorSafety(radar: unknown): unknown {
+  if (Array.isArray(radar)) {
+    return radar.map(normalizeRadarIndicatorSafety);
+  }
+
+  if (!isPlainObject(radar)) {
+    return radar;
+  }
+
+  const indicator = Array.isArray(radar.indicator)
+    ? radar.indicator.map((item) =>
+        isPlainObject(item) && item.alignTicks === undefined
+          ? { ...item, alignTicks: false }
+          : item,
+      )
+    : radar.indicator;
+
+  return {
+    ...radar,
+    alignTicks: radar.alignTicks ?? false,
+    ...(indicator ? { indicator } : {}),
+  };
+}
+
+function applyRadarIndicatorSafety(type: KmsfChartType, options: EChartsOption): EChartsOption {
+  if (type !== "radar" || options.radar === undefined) {
+    return options;
+  }
+
+  return {
+    ...options,
+    radar: normalizeRadarIndicatorSafety(options.radar) as EChartsOption["radar"],
+  };
+}
+
+function applyNonGridSeriesLayoutDefaults(
+  type: KmsfChartType,
+  series: SeriesOption[],
+  input: { legendVisible: boolean; titleVisible: boolean },
+): SeriesOption[] {
+  if (!input.titleVisible && !input.legendVisible) {
+    return series;
+  }
+
+  const top = getProtectedTop(input);
+
+  return series.map((item) => {
+    const source = item as SeriesOption & Record<string, unknown>;
+
+    if (type === "gauge") {
+      return {
+        ...item,
+        center: source.center ?? ["50%", input.titleVisible ? "60%" : "58%"],
+        radius: source.radius ?? (input.titleVisible ? "58%" : "64%"),
+      } as SeriesOption;
+    }
+
+    if (type === "funnel" || type === "treemap" || type === "wordCloud") {
+      return {
+        ...item,
+        height: source.height ?? "72%",
+        top: source.top ?? top,
+      } as SeriesOption;
+    }
+
+    if (type === "sunburst") {
+      return {
+        ...item,
+        center: source.center ?? ["50%", input.titleVisible ? "58%" : "55%"],
+        radius: source.radius ?? ["10%", input.titleVisible ? "70%" : "78%"],
+      } as SeriesOption;
+    }
+
+    if (type === "tree" || type === "graph" || type === "sankey") {
+      return {
+        ...item,
+        bottom: source.bottom ?? 12,
+        top: source.top ?? top,
+      } as SeriesOption;
+    }
+
+    if (type === "pie") {
+      return {
+        ...item,
+        center: source.center ?? ["34%", input.titleVisible ? "56%" : "52%"],
+        radius: source.radius ?? ["28%", input.titleVisible ? "62%" : "66%"],
+      } as SeriesOption;
+    }
+
+    return item;
+  });
 }
 
 export function resolveGenericDataFormat(
@@ -296,11 +555,50 @@ function buildTrendSeries(input: BuildGenericChartOptionInput, rows: GenericChar
         animationEasingUpdate: "linear",
         sampling: "lttb",
         showSymbol: false,
+        smooth: true,
       });
     }
 
     return nextSeries as SeriesOption;
   });
+}
+
+function applyTopLabelDefaults(type: KmsfChartType, series: SeriesOption[]): SeriesOption[] {
+  if (type !== "pie" && type !== "funnel" && type !== "sunburst") {
+    return series;
+  }
+
+  return series.map((item) => {
+    const source = item as SeriesOption & { label?: unknown; labelLine?: unknown };
+
+    return {
+      ...item,
+      label: source.label ?? { show: false },
+      labelLine: source.labelLine ?? { show: false },
+    } as SeriesOption;
+  });
+}
+
+function buildTopSingleSeriesTooltipFormatter() {
+  return (params: unknown) => {
+    const item = Array.isArray(params) ? params[0] : params;
+    const dataIndex = Number((item as { dataIndex?: unknown }).dataIndex ?? 0) + 1;
+    const name = String((item as { name?: unknown }).name ?? "");
+    const value = String((item as { value?: unknown }).value ?? "");
+
+    return `Item ${dataIndex}: ${name}<br/>${value}`;
+  };
+}
+
+function buildTooltipDefaults(input: {
+  format: Exclude<GenericChartDataFormat, "auto">;
+  series: SeriesOption[];
+}): TooltipComponentOption | undefined {
+  if (input.format !== "top" || input.series.length !== 1) {
+    return undefined;
+  }
+
+  return { formatter: buildTopSingleSeriesTooltipFormatter() };
 }
 
 function buildNativeSeries(input: BuildGenericChartOptionInput): SeriesOption[] {
@@ -363,21 +661,38 @@ export function buildGenericChartOption(input: BuildGenericChartOptionInput): EC
       : format === "trend"
         ? buildTrendSeries(input, rows)
         : buildNativeSeries(input);
-  const coloredSeries = applyGenericPalette(input.type, baseSeries, palette);
-  const series = applySeriesOptions(coloredSeries, input.seriesOptions);
   const isAxisTopChart = format === "top" && (input.type === "bar" || input.type === "pictorialBar");
   const isTrendChart = format === "trend";
   const xAxisData = rows.map((row) => toDisplayValue(row[0]));
-  const legend = isTrendChart ? buildLegendWithDefaultIcon(input.legend, "circle") : input.legend;
+  const baseLegend = resolveLegendDefault(input.type, input.legend);
+  const legendWithDefaultIcon = buildLegendWithDefaultIcon(baseLegend, "circle");
+  const titleVisible = hasVisibleChartTitle(input.options);
+  const legend = buildRadarLegendDefault(input.type, legendWithDefaultIcon, titleVisible);
+  const coloredSeries = applyGenericPalette(input.type, baseSeries, palette);
+  const legendVisible = isLegendVisible(legend);
+  const legendAdjustedSeries = applyPieLegendLayout(input.type, coloredSeries, legendVisible);
+  const labelAdjustedSeries = applyTopLabelDefaults(input.type, legendAdjustedSeries);
+  const layoutAdjustedSeries = applyNonGridSeriesLayoutDefaults(input.type, labelAdjustedSeries, {
+    legendVisible,
+    titleVisible,
+  });
+  const series = applySeriesOptions(layoutAdjustedSeries, input.seriesOptions);
+  const defaultOptions = mergeChartOptions(
+    buildThemeOption(input.theme, { ...input.themeOverrides, palette }) as Record<string, unknown>,
+    buildNonGridLayoutDefaults(input.type, { legendVisible, titleVisible }) as Record<string, unknown>,
+  ) as EChartsOption;
+  const options = applyRadarIndicatorSafety(input.type, mergeChartOptions(
+    defaultOptions as Record<string, unknown>,
+    input.options as Record<string, unknown> | undefined,
+  ) as EChartsOption);
 
   return buildBaseOption({
     legend,
-    options: {
-      ...buildThemeOption(input.theme, { ...input.themeOverrides, palette }),
-      ...input.options,
-    },
+    legendDefaults: buildDataLegendDefaults(input.type),
+    options,
     series,
     tooltip: input.tooltip,
+    tooltipDefaults: buildTooltipDefaults({ format, series }),
     tooltipTrigger: inferTooltipTrigger(input.type, format),
     xAxis:
       isAxisTopChart || isTrendChart

@@ -22,15 +22,27 @@
 | `SankeyChart` | `data`는 node 목록, `links` 또는 `series[].links`는 흐름 관계를 따른다. links 누락 시 fallback을 표시한다. | dedicated component validation, public API export, package contract, `verify:full` script contract. | 예제 렌더링, 메뉴 전환, 10초 interval flow data update, nonblank canvas. | link/node 수 증가 시 layout 계산 비용과 canvas paint 유지 여부를 확인한다. | cycle 또는 invalid link 입력에 대한 사용자 오류 메시지는 별도 합의가 필요하다. |
 | `WordCloud` | `data` 필수. `series` 생략 시 기본 wordCloud series를 생성한다. 색상은 `dataIndex` 기준으로 `colors` 또는 TOP palette를 적용한다. | public API export, no Next.js runtime import, lazy-load import safety, color helper, `verify:full` script contract. | 예제 렌더링, 메뉴 전환, browser-only extension load, nonblank canvas. | keyword 수 증가 시 layout 시간이 길어질 수 있으므로 대량 fixture가 필요하다. | SSR import safety는 현재 package import 중심이며 실제 framework SSR fixture는 후속이다. |
 | `GaugeChart` | `data` 필수. `series` 생략 시 기본 gauge series를 생성한다. `min`, `max`, `unit`은 간결 API로 제공한다. | public API export, numeric normalization, package contract, `verify:full` script contract. | 예제 렌더링, 메뉴 전환, 5초 interval metric update, nonblank canvas. | 단일 지표 chart라 대량 데이터보다 반복 update와 option patch 안정성을 본다. | 오타 호환 export는 유지하지 않는다. |
-| `SunburstChart` | `data` 필수. ECharts Sunburst `children` 계층 구조를 유지한다. | public API export, sunburst option defaults, package contract, `verify:full` script contract. | 예제 렌더링, 메뉴 전환, 5초 interval hierarchy update, nonblank canvas. | 계층 depth와 node 수 증가 시 label overlap과 hover 가독성을 확인한다. | 오타 호환 export는 유지하지 않는다. |
+| `SunburstChart` | `data` 필수. ECharts Sunburst `children` 계층 구조를 유지한다. | public API export, sunburst option defaults, package contract, `verify:full` script contract. | 예제 렌더링, 메뉴 전환, hierarchy update, nonblank canvas. | 계층 depth와 node 수 증가 시 label overlap과 hover 가독성을 확인한다. | 오타 호환 export는 유지하지 않는다. |
 | `RadarChart` | `indicators`가 `options.radar.indicator`로 매핑된다. `data`는 ECharts radar series data를 따른다. | native wrapper public API export, validation issue coverage. | 예제 문서와 type playground에서 필수 option 누락 fallback을 확인한다. | 축 수 증가 시 label overlap과 polygon paint를 확인한다. | 복수 radar coordinate 설정은 공식 ECharts option으로 위임한다. |
 | `HeatmapChart` | `xAxisData`, `yAxisData`, `visualMap`, `data`를 native heatmap option으로 매핑한다. | native wrapper public API export, validation issue coverage. | 전체 type smoke matrix에서 canvas render를 확인한다. | matrix size 증가 시 visualMap과 label 밀도를 확인한다. | calendar/geo heatmap은 공식 ECharts option으로 위임한다. |
 | `GraphChart` | `nodes`, `links`, `layout`을 graph series로 매핑한다. | native wrapper public API export, validation issue coverage. | 전체 type smoke matrix에서 canvas render를 확인한다. | force layout node/link 증가 시 layout cost를 확인한다. | 대규모 graph interaction benchmark는 후속 fixture가 필요하다. |
 
 ## Common Runtime Rules
 
+- `GenericChart` supported type coverage: `bar`, `line`, `pie`, `scatter`, `effectScatter`, `candlestick`, `radar`, `heatmap`, `tree`, `treemap`, `sunburst`, `map`, `lines`, `graph`, `boxplot`, `parallel`, `gauge`, `funnel`, `sankey`, `themeRiver`, `pictorialBar`, `custom`, `wordCloud`.
 - `colors?: string[]`은 16진수 색상만 허용하며 `themeOverrides.palette`보다 우선한다.
-- `colors`가 비어 있거나 모두 유효하지 않으면 KMSF TOP palette를 사용한다.
+- `colors`가 비어 있거나 모두 유효하지 않으면 KMSF mint 계열 TOP 10 palette를 사용한다.
+- `legend` 기본값은 chart type별로 관리한다. `bar`, `pictorialBar`, `treemap`, `gauge`, `sankey`, `heatmap`, `funnel`, `sunburst`, `wordCloud`와 `TopChart`의 `bar`/`column`/`treemap` mode는 기본 숨김이고, `pie`는 기본 표시다. 데이터 범례 chart는 표시 시 `scroll`과 `ellipsis` 기본값을 적용한다.
+- Visible legend는 기본 `icon: "circle"`을 사용한다.
+- Pie는 기본 상태에서 우측 세로 scroll legend와 pie drawing area 축소 기본값을 적용해 범례가 chart 영역과 겹치지 않도록 한다.
+- Pie와 Funnel은 기본 label을 숨긴다.
+- Radar는 legend 표시 시 legend를 상단에 두고 chart와 legend 사이 간격 확보를 위해 기본 `radar.center`/`radar.radius`를 조정한다.
+- Title/subtitle 기본값은 빈 문자열이며, 사용자 title/subtitle이 있으면 chart type별 layout 기본값을 조정한다. 사용자 `legend`, `seriesOptions`, `options`가 최종 우선한다.
+- TOP single-series tooltip은 기본 formatter에서 `Item N` 라벨을 사용한다.
+- Line series는 기본 `smooth: true`를 적용한다.
+- 예제 페이지의 renderable chart type은 각 5개 예제를 제공하며, live/variant 예제는 기본 3 Series로 시작한다. `pie`, `treemap`, `gauge`, `funnel`, `wordCloud`, `sunburst`, `themeRiver`는 single-series 예제로 유지한다.
+- 예제 페이지의 line live 예제는 1초 간격 1분 window인 60 row를 사용한다.
+- 예제 페이지의 TOP 계열 live 예제는 5초 간격으로 갱신한다.
 - 필수 설정 누락 시 ECharts 인스턴스를 만들지 않고 chart-local fallback UI를 표시한다.
 - Playwright에서 의도적으로 발생시키는 invalid chart config는 host app 보호 검증용이다. 해당 console error는 테스트 expectation에 명시되어야 하며, 일반 렌더링 테스트에서는 console warning/error를 허용하지 않는다.
 - `map`과 `custom`은 advanced chart로 분류하며, 공식 문서 기반 설정이 필요하다.

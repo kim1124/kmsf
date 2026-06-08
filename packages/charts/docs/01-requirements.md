@@ -2,7 +2,7 @@
 
 ## 목표
 
-KMSF 보일러플레이트를 사용하는 개발자가 Next.js뿐 아니라 일반 React 애플리케이션에서도 사용할 수 있는 차트 컴포넌트 패키지를 만든다.
+KMSF 보일러플레이트를 사용하는 개발자가 Next.js 전용 API 없이 일반 React 애플리케이션에서도 ECharts 기반 차트를 사용할 수 있는 패키지를 제공한다.
 
 ## 기술 스택
 
@@ -15,65 +15,99 @@ KMSF 보일러플레이트를 사용하는 개발자가 Next.js뿐 아니라 일
 - Day.js
 - `echarts-wordcloud`
 
-## 공통 Props
+## Public Components
 
-- `data`: 차트에 표현할 실제 데이터. 필수.
-- `series`: ECharts series 객체 배열. `TrendChart`는 필수, 그 외 차트는 생략 가능.
-- `legend`: 기본값 `true`. `false`면 숨김. 객체 전달 시 ECharts legend 옵션으로 병합.
-- `xAxis`: 기본 X축 프로파일 위에 사용자 옵션 병합.
-- `yAxis`: 기본 Y축 프로파일 위에 사용자 옵션 병합.
-- `options`: 차트 전체 옵션 override.
-- `seriesOptions`: series 단위 override.
-- `labelContraction`: 숫자 라벨 천 단위 콤마 적용. 기본 활성화.
-- `tooltip`: `true`, `false`, ECharts tooltip 객체를 허용.
+- `GenericChart`: `type` 기반 범용 ECharts wrapper
+- `TrendChart`: line/area 추이 차트 전용 wrapper
+- `TopChart`: pie/bar/column/treemap TOP N 차트 전용 wrapper
+- `SankeyChart`: Sankey 흐름 차트 wrapper
+- `WordCloud`: `echarts-wordcloud` 기반 워드 클라우드 wrapper
+- `GaugeChart`: gauge 지표 차트 wrapper
+- `SunburstChart`: sunburst 계층 차트 wrapper
+- `RadarChart`: radar 필수 설정을 단순화한 native-required wrapper
+- `HeatmapChart`: heatmap 필수 설정을 단순화한 native-required wrapper
+- `GraphChart`: graph 필수 설정을 단순화한 native-required wrapper
 
-## 공통 요구사항
+`GuageChart`, `SunbustChart`는 public export가 아니다.
 
-- 브라우저 반응형 동작을 지원한다.
-- 실시간 또는 주기적 데이터 업데이트를 지원한다.
-- `TrendChart`는 특정 위치의 데이터만 갱신할 수 있어야 한다.
-- 10,000개 이상의 데이터 표시를 고려한다.
-- Light, Dark 기본 테마를 제공한다.
-- 공간이 부족한 X축 라벨은 말줄임 처리한다.
-- `TopChart`의 Column 모드는 X축 라벨을 45도 회전한다.
-- X, Y축 라벨에 이미지 또는 아이콘을 적용할 수 있는 커스터마이징 경로를 제공한다.
+## GenericChart Types
 
-## 컴포넌트 요구사항
+`GenericChart`는 `supportedGenericChartTypes` 기준으로 아래 타입을 지원한다.
 
-### TrendChart
+- `bar`
+- `line`
+- `pie`
+- `scatter`
+- `effectScatter`
+- `candlestick`
+- `radar`
+- `heatmap`
+- `tree`
+- `treemap`
+- `sunburst`
+- `map`
+- `lines`
+- `graph`
+- `boxplot`
+- `parallel`
+- `gauge`
+- `funnel`
+- `sankey`
+- `themeRiver`
+- `pictorialBar`
+- `custom`
+- `wordCloud`
 
-- Line, Area 추이 데이터를 표시한다.
-- `series`는 필수이며 객체 배열로 받는다.
-- 데이터 포맷은 `[x, value1, value2, ...]` 배열을 지원한다.
-- `x`는 `YYYY-MM-DD HH:mm:ss` 문자열 또는 `Date` 객체를 허용한다.
-- Line과 Area 간 차트 변환을 지원한다.
-- Zoom 기능과 zoom 전후 이벤트 핸들러를 제공한다.
+`map`과 `custom`은 고급 차트로 분류하며 지도 리소스 등록 또는 `renderItem` 구현은 ECharts 공식 문서를 따른다.
 
-### TopChart
+## Common Props
 
-- Pie, Bar, Column, Treemap 변환을 지원한다.
-- `series`는 선택 사항이다.
-- `series` 생략 시 1개 이상의 기본 series를 생성한다.
-- 데이터 포맷은 `[category, value1, value2, ...]` 배열을 지원한다.
+- `data`: 모든 차트의 필수 데이터 prop.
+- `series`: ECharts series 객체 배열. `TrendChart`는 필수이며, 다른 차트는 안전한 경우 기본 series를 생성한다.
+- `colors`: 유효한 16진수 색상 배열. 값이 없거나 모두 유효하지 않으면 KMSF mint 계열 TOP palette를 사용한다.
+- `legend`: `boolean | LegendComponentOption`. 차트 타입별 기본값과 scroll/ellipsis layout 기본값을 적용한다.
+- `tooltip`: `boolean | TooltipComponentOption`.
+- `xAxis`, `yAxis`: ECharts axis option 또는 option 배열.
+- `options`: ECharts 전체 option override.
+- `seriesOptions`: KMSF가 생성한 series option의 일부 override.
+- `labelContraction`: 숫자 라벨 천 단위 콤마 적용 여부.
+- `theme`: `"light" | "dark" | string`.
+- `themeOverrides`: `backgroundColor`, `fontFamily`, `fontSize`, `palette`, `textColor` override.
+- `loadingFallback`: 최초 렌더링 전 또는 `wordCloud` 확장 로딩 중 표시할 React node.
+- `height`, `className`, `style`: chart container 표현 제어.
 
-### SankeyChart
+사용자가 전달한 `legend`, `seriesOptions`, `options`는 KMSF 기본값보다 우선한다.
 
-- ECharts Sankey 공식 옵션을 기반으로 한다.
-- X, Y축을 사용하지 않는다.
-- `series`와 `data`는 필수다.
-- 계층 또는 재귀 구조는 소비자가 ECharts 포맷으로 전달한다.
+## Data Contracts
 
-### WordCloud
+- Trend row: `[time, value1, value2, ...]`
+- Top row: `[name, value1, value2, ...]`
+- Native-required chart: ECharts 공식 data/series 구조를 따른다.
 
-- ECharts 기본 내장 차트가 아니므로 `echarts-wordcloud` 확장을 사용한다.
-- `series`와 `data`는 필수다.
+`time`은 `YYYY-MM-DD HH:mm:ss` 문자열 또는 `Date` 객체를 허용한다.
 
-### GuageChart
+## Runtime Requirements
 
-- Gauge 옵션을 간결화한다.
-- 소비자는 기본적으로 `series`와 `data` 중심으로 제어한다.
+- 브라우저 반응형 resize를 지원한다.
+- 반복 data/options 갱신을 지원한다.
+- 차트 type 변경 시 stale ECharts option을 피하도록 type별 remount 경로를 유지한다.
+- `data` 또는 chart-specific 필수 설정이 없으면 ECharts 인스턴스를 만들지 않고 chart-local fallback UI를 표시한다.
+- 동일 validation issue는 `[KMSF Charts]` prefix로 console에 1회 기록한다.
+- 10,000개 이상 데이터와 반복 갱신을 baseline 요구사항으로 본다.
+- `TrendChart` line series는 기본 `smooth: true`, `sampling: "lttb"`, `showSymbol: false`를 적용한다.
 
-### SunbustChart
+## Example Requirements
 
-- 계층형 Pie 차트로 ECharts Sunburst 옵션을 간결화한다.
-- 소비자는 기본적으로 `series`와 `data` 중심으로 제어한다.
+- renderable chart type은 각 5개 예제를 제공한다.
+- live/variant 예제는 기본 3 series를 제공한다.
+- `pie`, `treemap`, `gauge`, `funnel`, `wordCloud`, `sunburst`, `themeRiver`는 single-series 예제로 유지한다.
+- line live 예제는 1초 간격, 1분 window, 60 row를 사용한다.
+- TOP 계열 live 예제는 5초 간격으로 갱신한다.
+- 예제 검색은 chart option, chart example, chart docs 문구를 대상으로 한다.
+- inactive chart type은 검색 결과 생성을 위해 ECharts instance를 만들지 않는다.
+
+## Verification Requirements
+
+- 패키지 기본 검증은 `npm --workspace=@kmsf/charts run verify`를 사용한다.
+- 브라우저 포함 전체 gate는 `npm --workspace=@kmsf/charts run verify:full`을 사용한다.
+- 장시간/대용량 검증은 요청 시 `test:soak` 또는 large data Playwright gate로 별도 실행한다.

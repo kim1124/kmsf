@@ -9,21 +9,22 @@ import {
   parseEditableChartData,
   parseEditableOptions,
 } from "../../example/src/data/live-editing";
+import { getInitialLegendState } from "../../example/src/components/ChartExampleCard";
 import { buildGenericChartOption } from "../../src/common/generic-chart";
 
 describe("example chart colors", () => {
   it("uses a deterministic 10 color KMSF palette", () => {
     expect(getExamplePalette()).toEqual([
+      "#064e3b",
+      "#047857",
+      "#059669",
       "#10b981",
-      "#84cc16",
-      "#0ea5e9",
-      "#f97316",
-      "#8b5cf6",
-      "#ef4444",
       "#14b8a6",
-      "#22c55e",
-      "#3b82f6",
-      "#f59e0b",
+      "#0d9488",
+      "#0f766e",
+      "#2dd4bf",
+      "#34d399",
+      "#5eead4",
     ]);
   });
 
@@ -31,9 +32,9 @@ describe("example chart colors", () => {
     const items = Array.from({ length: 12 }, (_, index) => ({ name: `Item ${index + 1}`, value: index + 1 }));
     const coloredItems = applyTopItemPalette(items);
 
-    expect(coloredItems[0]).toMatchObject({ itemStyle: { color: "#10b981" } });
-    expect(coloredItems[9]).toMatchObject({ itemStyle: { color: "#f59e0b" } });
-    expect(coloredItems[10]).toMatchObject({ itemStyle: { color: "#10b981" } });
+    expect(coloredItems[0]).toMatchObject({ itemStyle: { color: "#064e3b" } });
+    expect(coloredItems[9]).toMatchObject({ itemStyle: { color: "#5eead4" } });
+    expect(coloredItems[10]).toMatchObject({ itemStyle: { color: "#064e3b" } });
   });
 
   it("returns the same palette for series-level theme overrides", () => {
@@ -104,5 +105,19 @@ describe("generic tooltip defaults", () => {
     });
 
     expect(option.legend).toMatchObject({ icon: "circle", show: true });
+  });
+});
+
+describe("example legend defaults", () => {
+  it.each(["bar", "pictorialBar", "treemap", "gauge", "sankey", "heatmap", "funnel", "sunburst", "wordCloud"])(
+    "starts with hidden legend for %s examples",
+    (type) => {
+      expect(getInitialLegendState(type)).toBe(false);
+    },
+  );
+
+  it("keeps trend and pie examples visible when the runtime default is visible", () => {
+    expect(getInitialLegendState("line")).toBe(true);
+    expect(getInitialLegendState("pie")).toBe(true);
   });
 });
