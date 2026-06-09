@@ -36,6 +36,8 @@ yarn-error.log*
 
 # Allow .env.example inside templates so scaffolded projects have it.
 !templates/**/.env.example
+!apps/kmsf/.env.example
+!packages/create-kmsf/templates/**/.env.example
 
 # vercel
 .vercel

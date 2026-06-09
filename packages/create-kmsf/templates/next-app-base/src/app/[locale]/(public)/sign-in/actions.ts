@@ -28,7 +28,7 @@ import {
   isManagerUsernameTaken,
 } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
-import { getAppUrl, hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
+import { getAppUrl, hasSupabaseSecretKey, isSupabaseConfigured } from "@/lib/supabase/env";
 
 export type SignInFormState = {
   authError: "auth" | "security" | null;
@@ -248,7 +248,7 @@ export async function signUpAction(
     | null = null;
   let shouldSignIn = false;
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { data: createData, error: createError } = await admin.auth.admin.createUser({
       email: normalizedEmail,

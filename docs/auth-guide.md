@@ -85,12 +85,13 @@ KMSF_AUTH_PROVIDER=supabase
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_API_KEY=
+SUPABASE_SECRET_KEY=
 ```
 
 주의:
 
-- `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용이다.
+- `SUPABASE_SECRET_KEY`는 서버 전용이다.
 - 브라우저에서 접근 가능한 값만 `NEXT_PUBLIC_` 접두사를 사용한다.
 - Google Client Secret은 Supabase Dashboard에 저장하고 앱 `.env`에는 넣지 않는다.
 

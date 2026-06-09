@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type ManagerProfile = {
@@ -35,7 +35,7 @@ export async function ensureManagerProfile(input: {
   email: string;
   avatarUrl?: string | null;
 }) {
-  if (!hasSupabaseServiceRoleKey()) {
+  if (!hasSupabaseSecretKey()) {
     return;
   }
 
@@ -54,7 +54,7 @@ export async function ensureManagerProfile(input: {
 }
 
 export const isInitialSetupRequired = cache(async () => {
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { count, error } = await admin
       .from("manager")
@@ -109,7 +109,7 @@ export async function findManagerLoginEmail(identifier: string) {
     return normalized;
   }
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { data, error } = await admin
       .from("manager")
@@ -157,7 +157,7 @@ export async function isManagerUsernameTaken(username: string) {
     return false;
   }
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { data, error } = await admin
       .from("manager")
@@ -195,7 +195,7 @@ export async function isManagerUsernameTaken(username: string) {
 export async function isAuthEmailTaken(email: string) {
   const normalized = email.trim().toLowerCase();
 
-  if (!normalized || !hasSupabaseServiceRoleKey()) {
+  if (!normalized || !hasSupabaseSecretKey()) {
     return false;
   }
 

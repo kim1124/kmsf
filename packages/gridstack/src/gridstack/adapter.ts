@@ -90,7 +90,14 @@ export function createDashboardGridAdapter<TData>(
     lastPointer = { clientX: event.clientX, clientY: event.clientY };
   };
 
-  const forceInteractionEnd = (event?: MouseEvent, shouldDispatchFinalMove = false) => {
+  const findActiveInteractionItem = () =>
+    element.querySelector<GridItemHTMLElement>(".grid-stack-item.ui-resizable-resizing, .grid-stack-item.ui-draggable-dragging") ??
+    activeInteractionItem;
+
+  const hasActiveInteractionClass = (item: GridItemHTMLElement | undefined) =>
+    Boolean(item?.classList.contains("ui-resizable-resizing") || item?.classList.contains("ui-draggable-dragging"));
+
+  const scheduleInteractionFallback = (event?: MouseEvent) => {
     if (!isInteracting || forceEndFrame !== undefined) {
       return;
     }
@@ -98,59 +105,57 @@ export function createDashboardGridAdapter<TData>(
     if (event) {
       captureInteractionPointer(event);
     }
+    if (!lastPointer) {
+      return;
+    }
+
+    const point = { ...lastPointer };
 
     forceEndFrame = window.requestAnimationFrame(() => {
       forceEndFrame = undefined;
-      if (isInteracting) {
-        stopInteraction();
+      if (!isInteracting) {
+        return;
       }
-    });
 
-    const point = lastPointer ?? { clientX: 0, clientY: 0 };
-    const forcedInteractionItem =
-      activeInteractionItem ??
-      element.querySelector<GridItemHTMLElement>(".grid-stack-item.ui-resizable-resizing, .grid-stack-item.ui-draggable-dragging") ??
-      undefined;
-    if (shouldDispatchFinalMove) {
+      const forcedInteractionItem = findActiveInteractionItem();
+      if (!hasActiveInteractionClass(forcedInteractionItem)) {
+        stopInteraction();
+        return;
+      }
+
       document.dispatchEvent(
-        new MouseEvent("mousemove", {
+        new MouseEvent("mouseup", {
           bubbles: true,
           cancelable: true,
+          button: 0,
           buttons: 0,
           clientX: point.clientX,
           clientY: point.clientY,
         }),
       );
-    }
-    document.dispatchEvent(
-      new MouseEvent("mouseup", {
-        bubbles: true,
-        cancelable: true,
-        button: 0,
-        buttons: 0,
-        clientX: point.clientX,
-        clientY: point.clientY,
-      }),
-    );
-    forcedInteractionItem?.dispatchEvent(
-      new MouseEvent("mouseout", {
-        bubbles: true,
-        cancelable: true,
-        clientX: point.clientX,
-        clientY: point.clientY,
-        relatedTarget: null,
-      }),
-    );
-    forcedInteractionItem?.classList.remove("ui-resizable-autohide");
-    pendingForcedRevealItem = forcedInteractionItem;
-    pendingForcedRevealId =
-      forcedInteractionItem?.getAttribute("data-widget-id") ?? forcedInteractionItem?.getAttribute("gs-id") ?? undefined;
+      forcedInteractionItem?.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          cancelable: true,
+          clientX: point.clientX,
+          clientY: point.clientY,
+          relatedTarget: null,
+        }),
+      );
+      forcedInteractionItem?.classList.remove("ui-resizable-autohide");
+      pendingForcedRevealItem = forcedInteractionItem;
+      pendingForcedRevealId =
+        forcedInteractionItem?.getAttribute("data-widget-id") ?? forcedInteractionItem?.getAttribute("gs-id") ?? undefined;
+      if (isInteracting && finishInteractionFrame === undefined) {
+        stopInteraction();
+      }
+    });
   };
 
   const handleDocumentMouseMove = (event: MouseEvent) => {
     captureInteractionPointer(event);
     if (event.buttons === 0) {
-      forceInteractionEnd(event);
+      scheduleInteractionFallback(event);
     }
   };
 
@@ -160,14 +165,12 @@ export function createDashboardGridAdapter<TData>(
       return;
     }
     if (event.buttons === 0) {
-      forceInteractionEnd(event, true);
+      scheduleInteractionFallback(event);
     }
   };
 
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "hidden") {
-      forceInteractionEnd();
-    }
+  const handleInteractionRelease = (event: MouseEvent | PointerEvent) => {
+    scheduleInteractionFallback(event);
   };
 
   const attachInteractionGuards = () => {
@@ -177,7 +180,8 @@ export function createDashboardGridAdapter<TData>(
     interactionGuardsAttached = true;
     document.addEventListener("mousemove", handleDocumentMouseMove, true);
     document.documentElement.addEventListener("mouseleave", handleDocumentMouseLeave, true);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("mouseup", handleInteractionRelease, true);
+    window.addEventListener("pointerup", handleInteractionRelease, true);
   };
 
   const detachInteractionGuards = () => {
@@ -187,11 +191,12 @@ export function createDashboardGridAdapter<TData>(
     interactionGuardsAttached = false;
     document.removeEventListener("mousemove", handleDocumentMouseMove, true);
     document.documentElement.removeEventListener("mouseleave", handleDocumentMouseLeave, true);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("mouseup", handleInteractionRelease, true);
+    window.removeEventListener("pointerup", handleInteractionRelease, true);
   };
 
   const findPendingForcedRevealItem = () => {
-    if (pendingForcedRevealItem?.isConnected) {
+    if (pendingForcedRevealItem?.isConnected && pendingForcedRevealItem.gridstackNode) {
       return pendingForcedRevealItem;
     }
     if (!pendingForcedRevealId) {
@@ -199,7 +204,8 @@ export function createDashboardGridAdapter<TData>(
     }
     return [...element.querySelectorAll<GridItemHTMLElement>(".grid-stack-item")].find(
       (item) =>
-        item.getAttribute("data-widget-id") === pendingForcedRevealId || item.getAttribute("gs-id") === pendingForcedRevealId,
+        item.gridstackNode &&
+        (item.getAttribute("data-widget-id") === pendingForcedRevealId || item.getAttribute("gs-id") === pendingForcedRevealId),
     );
   };
 

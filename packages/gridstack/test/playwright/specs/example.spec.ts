@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("renders the gridstack example dashboard", async ({ page }) => {
   await page.goto("/");
 
+  await expect(page.locator("body")).toHaveCSS("font-size", "12px");
+  await expect(page.locator("body")).toHaveCSS("font-family", /Spoqa Han Sans Neo/);
   await expect(page.getByRole("heading", { name: "@kmsf/gridstack" })).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-sales")).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-traffic")).toBeVisible();

@@ -20,7 +20,7 @@
 
 프론트엔드 아키텍처 레벨의 보안 가드레일:
 1. 세션 검증의 선 처리: `middleware.ts` 또는 Root Server Layout에서 진입 점퍼 검증을 먼저 수행하여 인가되지 않은 컴포넌트 트리가 렌더링되는 것 자체를 차단합니다.
-2. 클라이언트 노출 주의: 브라우저에 주입되어도 안전한 토큰만 `NEXT_PUBLIC_` 접두사를 붙이며, `SUPABASE_SERVICE_ROLE_KEY` 같은 어드민 권한은 서버(Server Actions, Route Handlers) 환경 외에 절대 혼용하지 않습니다.
+2. 클라이언트 노출 주의: 브라우저에 주입되어도 안전한 토큰만 `NEXT_PUBLIC_` 접두사를 붙이며, `SUPABASE_SECRET_KEY` 같은 어드민 권한은 서버(Server Actions, Route Handlers) 환경 외에 절대 혼용하지 않습니다.
 3. 데이터 패치 안정성: Supabase DB RLS(Row Level Security) 정책을 전제하고 개발하여, 악의적인 클라이언트 데이터 변조 시도가 있더라도 DB단에서 즉각 차단되는 구조가 되어야 합니다.
 
 ## Supabase 권장 폴더 구조
@@ -47,7 +47,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+SUPABASE_SECRET_KEY="your-secret-key"
 ```
 
 ## 인증 로직 아키텍처 초안
