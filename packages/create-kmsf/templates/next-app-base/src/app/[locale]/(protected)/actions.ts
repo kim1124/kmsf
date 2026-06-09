@@ -15,7 +15,7 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { updateManagerProfile } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
-import { getAppUrl, hasSupabaseServiceRoleKey, isSupabaseConfigured } from "@/lib/supabase/env";
+import { getAppUrl, hasSupabaseSecretKey, isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function signOutAction(formData: FormData) {
@@ -116,7 +116,7 @@ export async function deleteAccountAction(formData: FormData) {
     redirect(`/settings?accountError=validation`);
   }
 
-  if (!hasSupabaseServiceRoleKey()) {
+  if (!hasSupabaseSecretKey()) {
     redirect(`/settings?accountError=service-role`);
   }
 

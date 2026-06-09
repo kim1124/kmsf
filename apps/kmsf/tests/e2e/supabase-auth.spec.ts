@@ -77,6 +77,21 @@ async function signInWithUsername(
   await page.waitForURL("**/dashboard", { timeout: 20000 });
 }
 
+async function signInFromCurrentPage(
+  page: import("@playwright/test").Page,
+  input: {
+    password: string;
+    username: string;
+  },
+) {
+  if (!page.url().includes("/sign-in")) {
+    await page.goto("/sign-in");
+    await page.waitForLoadState("networkidle");
+  }
+
+  await signInWithUsername(page, input);
+}
+
 async function deleteCurrentAccount(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
   await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
@@ -93,42 +108,56 @@ test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member
   const memberUsername = `kim${runId.slice(-8)}`;
   const memberEmail = `${memberUsername}@mailinator.com`;
   const memberPassword = "kim112400@!";
+  const adminPassword = "admin00@!";
+  let createdInitialAdmin = false;
 
-  const createdAdminUsername = await createInitialAdminIfRequired(page, {
-    email: adminEmail,
-    password: "admin00@!",
-    username: "admin",
-  });
+  try {
+    const createdAdminUsername = await createInitialAdminIfRequired(page, {
+      email: adminEmail,
+      password: adminPassword,
+      username: "admin",
+    });
 
-  if (createdAdminUsername) {
+    createdInitialAdmin = Boolean(createdAdminUsername);
+
+    if (createdAdminUsername) {
+      await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
+      await expectMainPages(page, createdAdminUsername);
+      await signOut(page);
+    }
+
+    await signUpMember(page, {
+      email: memberEmail,
+      password: memberPassword,
+      username: memberUsername,
+    });
     await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
-    await expectMainPages(page, createdAdminUsername);
-    await signOut(page);
+    await expectMainPages(page, memberUsername);
+
+    await page.getByRole("button", { name: "프로필 메뉴" }).click();
+    await expect(page.getByText(memberUsername).first()).toBeVisible();
+    await page.getByRole("button", { name: "로그아웃", exact: true }).click();
+    await page.waitForURL("**/sign-in", { timeout: 10000 });
+
+    await signInWithUsername(page, {
+      password: memberPassword,
+      username: memberUsername,
+    });
+    await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
+    await deleteCurrentAccount(page);
+
+    await page.locator("#login-username").fill(memberUsername);
+    await page.locator("#login-password").fill(memberPassword);
+    await page.getByRole("button", { name: "로그인", exact: true }).click();
+    await expect(page).toHaveURL(/\/sign-in/);
+    await expect(page.getByText("ID 또는 비밀번호가 올바르지 않습니다.")).toBeVisible();
+  } finally {
+    if (createdInitialAdmin) {
+      await signInFromCurrentPage(page, {
+        password: adminPassword,
+        username: "admin",
+      });
+      await deleteCurrentAccount(page);
+    }
   }
-
-  await signUpMember(page, {
-    email: memberEmail,
-    password: memberPassword,
-    username: memberUsername,
-  });
-  await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
-  await expectMainPages(page, memberUsername);
-
-  await page.getByRole("button", { name: "프로필 메뉴" }).click();
-  await expect(page.getByText(memberUsername).first()).toBeVisible();
-  await page.getByRole("button", { name: "로그아웃", exact: true }).click();
-  await page.waitForURL("**/sign-in", { timeout: 10000 });
-
-  await signInWithUsername(page, {
-    password: memberPassword,
-    username: memberUsername,
-  });
-  await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
-  await deleteCurrentAccount(page);
-
-  await page.locator("#login-username").fill(memberUsername);
-  await page.locator("#login-password").fill(memberPassword);
-  await page.getByRole("button", { name: "로그인", exact: true }).click();
-  await expect(page).toHaveURL(/\/sign-in/);
-  await expect(page.getByText("ID 또는 비밀번호가 올바르지 않습니다.")).toBeVisible();
 });

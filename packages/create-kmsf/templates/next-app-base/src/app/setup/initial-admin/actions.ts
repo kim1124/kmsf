@@ -13,7 +13,7 @@ import {
   type AccountFieldErrors,
   type AccountFields,
 } from "@/lib/auth/validation";
-import { hasSupabaseServiceRoleKey } from "@/lib/supabase/env";
+import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import {
   buildManagerRecord,
   isAuthEmailTaken,
@@ -99,7 +99,7 @@ export async function createInitialAdminAction(
       }
     | null = null;
 
-  if (hasSupabaseServiceRoleKey()) {
+  if (hasSupabaseSecretKey()) {
     const admin = createSupabaseAdminClient();
     const { data: createData, error: createError } = await admin.auth.admin.createUser({
       email: normalizedEmail,

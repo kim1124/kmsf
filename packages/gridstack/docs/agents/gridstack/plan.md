@@ -6,6 +6,7 @@
 - 2026-05-27: active drag/resize 중 React prop sync가 GridStack engine에 즉시 반영되지 않도록 adapter sync를 지연한다.
 - 2026-06-08: 위젯 resize 중 GridLayout/browser boundary 이탈로 stop event가 누락되는 경로를 Playwright로 재현하고, adapter-level browser-exit guard를 검토한다. Detailed plan: `docs/agents/gridstack/260608_103051_plan.md`.
 - 2026-06-08: 실행 가능한 구현 계획을 `docs/agents/gridstack/260608_103645_plan.md`에 작성했다. 사용자 결정이 필요한 항목은 없으며, 구현은 RED E2E부터 시작한다.
+- 2026-06-09: 공식 GridStack 데모와 같은 native-first interaction parity를 drag와 resize 모두에 적용하는 계획을 `docs/agents/gridstack/2026-06-09-native-interaction-plan.md`에 작성했다. 사용자 결정 항목은 모두 닫혔으며, 구현은 RED Playwright coverage부터 시작한다.
 
 ## 2026-05-27 Resize Interaction Plan
 
@@ -24,6 +25,18 @@
 5. If GridStack stop does not arrive by the next animation frame, fallback to adapter `stopInteraction()` to flush pending commit/sync.
 6. Verify with focused Chromium Playwright tests, then `npm --workspace=@kmsf/gridstack run verify:full`.
 7. Implementation status: completed after RED/GREEN Playwright validation and package verification.
+
+## 2026-06-09 Native Interaction Parity Plan
+
+1. Apply the interaction parity fix to both widget drag movement and resize.
+2. Keep GridStack as the primary owner of active pointer movement and use adapter logic only for observation, deferred sync, and stale-state recovery.
+3. Add RED Playwright coverage for drag and resize when leaving the grid area and browser boundary.
+4. Treat button-down boundary exit, blur, and visibility loss as observation-only signals; do not end the interaction from those signals.
+5. On observable release-like signals, wait one tick for GridStack's native `dragstop` or `resizestop` before running fallback.
+6. Use synthetic cleanup and `prepareDragDrop(item, true)` only when stale active state remains after the release-gated delayed check.
+7. Keep this behavior as the package default without adding a public option.
+8. Run focused E2E, package verification, and headed/manual playground confirmation before reporting completion.
+9. Implementation status: adapter and Playwright coverage completed; `verify:full` passed after escalated rerun. Headed/manual tool control remained blocked, and headed automated run was blocked by an unrelated favicon 404 diagnostic.
 
 ## Planning Rules
 

@@ -43,6 +43,13 @@ async function readGridEngineColumn(grid: Locator): Promise<number> {
 async function readWidgetInteractionState(widget: Locator) {
   return widget.evaluate((element) => ({
     isResizing: element.classList.contains("ui-resizable-resizing"),
+    isDragging:
+      element.classList.contains("ui-draggable-dragging") ||
+      [...document.querySelectorAll<HTMLElement>(".grid-stack-item.ui-draggable-dragging")].some(
+        (item) =>
+          item.getAttribute("data-widget-id") === element.getAttribute("data-widget-id") ||
+          item.getAttribute("gs-id") === element.getAttribute("gs-id"),
+      ),
     hasInlinePosition: (element as HTMLElement).style.position === "absolute",
   }));
 }
@@ -66,18 +73,34 @@ async function simulateBrowserBoundaryExit(page: Page, clientX: number, clientY:
   }, { x: clientX, y: clientY });
 }
 
-async function simulateBrowserBoundaryRelease(page: Page, clientX: number, clientY: number) {
-  await page.evaluate(({ x, y }) => {
-    document.dispatchEvent(
-      new MouseEvent("mousemove", {
-        bubbles: true,
-        cancelable: true,
-        buttons: 0,
-        clientX: x,
-        clientY: y,
-      }),
-    );
-  }, { x: clientX, y: clientY });
+async function dispatchReleaseLikeMoveAndReadState(widget: Locator, clientX: number, clientY: number) {
+  return widget.evaluate(
+    (element, point) => {
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          bubbles: true,
+          cancelable: true,
+          buttons: 0,
+          clientX: point.x,
+          clientY: point.y,
+        }),
+      );
+
+      const activeDragItems = [...document.querySelectorAll<HTMLElement>(".grid-stack-item.ui-draggable-dragging")];
+
+      return {
+        isResizing: element.classList.contains("ui-resizable-resizing"),
+        isDragging:
+          element.classList.contains("ui-draggable-dragging") ||
+          activeDragItems.some(
+            (item) =>
+              item.getAttribute("data-widget-id") === element.getAttribute("data-widget-id") ||
+              item.getAttribute("gs-id") === element.getAttribute("gs-id"),
+          ),
+      };
+    },
+    { x: clientX, y: clientY },
+  );
 }
 
 async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
@@ -90,6 +113,21 @@ async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: n
   await page.mouse.down();
   await page.mouse.move(box.x + 56 + deltaX, box.y + 24 + deltaY, { steps: 12 });
   await page.mouse.up();
+}
+
+async function startWidgetDrag(page: Page, widget: Locator) {
+  const box = await widget.boundingBox();
+  if (!box) {
+    throw new Error("Widget bounding box is not available");
+  }
+
+  const startX = box.x + 56;
+  const startY = box.y + 24;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+
+  return { startX, startY };
 }
 
 async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
@@ -151,6 +189,59 @@ async function resizeWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY
           clientY: startY + delta.y,
         }),
       );
+    },
+    { x: deltaX, y: deltaY },
+  );
+}
+
+async function dragWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: number) {
+  return widget.evaluate(
+    (element, delta) => {
+      const dragTarget = element.querySelector<HTMLElement>(".grid-stack-item-content") ?? element;
+      const rect = dragTarget.getBoundingClientRect();
+      const startX = rect.left + 56;
+      const startY = rect.top + 24;
+
+      dragTarget.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: startX,
+          clientY: startY,
+        }),
+      );
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          bubbles: true,
+          cancelable: true,
+          buttons: 1,
+          clientX: startX + delta.x,
+          clientY: startY + delta.y,
+        }),
+      );
+
+      const didStart =
+        element.classList.contains("ui-draggable-dragging") ||
+        [...document.querySelectorAll<HTMLElement>(".grid-stack-item.ui-draggable-dragging")].some(
+          (item) =>
+            item.getAttribute("data-widget-id") === element.getAttribute("data-widget-id") ||
+            item.getAttribute("gs-id") === element.getAttribute("gs-id"),
+        );
+
+      document.dispatchEvent(
+        new MouseEvent("mouseup", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 0,
+          clientX: startX + delta.x,
+          clientY: startY + delta.y,
+        }),
+      );
+
+      return didStart;
     },
     { x: deltaX, y: deltaY },
   );
@@ -533,7 +624,8 @@ test("finalizes widget resize when the pointer leaves the browser boundary", asy
     await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(true);
     await expect.poll(() => readGridEngineColumn(grid)).toBe(6);
 
-    await simulateBrowserBoundaryRelease(page, releaseX, releaseY);
+    const stateAfterReleaseSignal = await dispatchReleaseLikeMoveAndReadState(sales, releaseX, releaseY);
+    expect(stateAfterReleaseSignal.isResizing).toBe(true);
 
     await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(false);
     await expect(grid).toHaveAttribute("data-columns", "12");
@@ -550,6 +642,49 @@ test("finalizes widget resize when the pointer leaves the browser boundary", asy
       const layout = await readWidgetLayout(sales);
       return layout.w !== afterForcedEnd.w || layout.h !== afterForcedEnd.h;
     }).toBe(true);
+    expect(diagnostics).toEqual([]);
+  } finally {
+    await page.mouse.up().catch(() => undefined);
+  }
+});
+
+test("finalizes widget drag when the pointer leaves the browser boundary", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/");
+
+  const sales = page.getByTestId("dashboard-widget-sales");
+  const beforeDrag = await readWidgetLayout(sales);
+
+  try {
+    const { startX, startY } = await startWidgetDrag(page, sales);
+    await page.mouse.move(startX + 140, startY + 160, { steps: 8 });
+
+    await expect.poll(async () => (await readWidgetInteractionState(sales)).isDragging).toBe(true);
+
+    const releaseX = startX + 900;
+    const releaseY = startY + 420;
+    await simulateBrowserBoundaryExit(page, releaseX, releaseY);
+
+    await expect.poll(async () => (await readWidgetInteractionState(sales)).isDragging).toBe(true);
+
+    const stateAfterReleaseSignal = await dispatchReleaseLikeMoveAndReadState(sales, releaseX, releaseY);
+    expect(stateAfterReleaseSignal.isDragging).toBe(true);
+
+    await expect.poll(async () => (await readWidgetInteractionState(sales)).isDragging).toBe(false);
+    await expect.poll(async () => {
+      const layout = await readWidgetLayout(sales);
+      return layout.x !== beforeDrag.x || layout.y !== beforeDrag.y;
+    }).toBe(true);
+
+    await page.mouse.up().catch(() => undefined);
+    await page.bringToFront();
+
+    const didStartFollowUpDrag = await dragWidgetWithDomEvents(sales, 120, 120);
+    expect(didStartFollowUpDrag).toBe(true);
+    await expect.poll(async () => (await readWidgetInteractionState(sales)).isDragging).toBe(false);
     expect(diagnostics).toEqual([]);
   } finally {
     await page.mouse.up().catch(() => undefined);
@@ -582,6 +717,36 @@ test("finishes widget resize after leaving the grid area", async ({ page }, test
   await expect.poll(async () => {
     const layout = await readWidgetLayout(sales);
     return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
+  }).toBe(true);
+  expect(diagnostics).toEqual([]);
+});
+
+test("finishes widget drag after leaving the grid area", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+
+  const diagnostics = collectBrowserDiagnostics(page);
+
+  await page.goto("/");
+
+  const grid = page.getByTestId("dashboard-grid");
+  const sales = page.getByTestId("dashboard-widget-sales");
+  const beforeDrag = await readWidgetLayout(sales);
+  const gridBox = await grid.boundingBox();
+
+  if (!gridBox) {
+    throw new Error("Grid bounding box is not available");
+  }
+
+  const { startX, startY } = await startWidgetDrag(page, sales);
+
+  await page.mouse.move(startX + 120, startY + 120, { steps: 8 });
+  await page.mouse.move(gridBox.x + gridBox.width + 80, startY + 120, { steps: 8 });
+  await page.mouse.up();
+
+  await expect.poll(async () => (await readWidgetInteractionState(sales)).isDragging).toBe(false);
+  await expect.poll(async () => {
+    const layout = await readWidgetLayout(sales);
+    return layout.x !== beforeDrag.x || layout.y !== beforeDrag.y;
   }).toBe(true);
   expect(diagnostics).toEqual([]);
 });

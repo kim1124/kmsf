@@ -1,4 +1,6 @@
 .kmsf-dashboard-grid {
+  --kmsf-font-family-base: "Spoqa Han Sans Neo", "SpoqaHanSans", system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --kmsf-font-size-base: 12px;
   --kmsf-dashboard-accent: var(--kmsf-color-accent, #10b981);
   --kmsf-dashboard-accent-soft: var(--kmsf-color-surface-muted, #e9f7f3);
   --kmsf-dashboard-danger: var(--kmsf-color-danger, #dc2626);
@@ -11,6 +13,8 @@
   --kmsf-dashboard-muted: var(--kmsf-color-foreground, #536674);
   --kmsf-dashboard-radius: var(--kmsf-radius-md, 8px);
   --kmsf-dashboard-header-min-height: 44px;
+  font-family: var(--kmsf-font-family-base);
+  font-size: var(--kmsf-font-size-base);
 }
 
 .kmsf-dashboard-grid .grid-stack-item-content {
@@ -54,7 +58,7 @@
 }
 
 .kmsf-dashboard-widget__title {
-  font-size: 14px;
+  font-size: var(--kmsf-font-size-base);
   line-height: 1.25;
   min-width: 0;
   overflow: hidden;
@@ -79,7 +83,7 @@
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--kmsf-font-size-base);
   height: 26px;
   justify-content: center;
   line-height: 1.2;

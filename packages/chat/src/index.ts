@@ -1,0 +1,18 @@
+export * from "./adapters/local/local-chat-store";
+export * from "./adapters/local/local-setup-store";
+export * from "./adapters/ollama/ollama-client";
+export * from "./adapters/supabase/supabase-chat-store";
+export * from "./components/ChatComposer";
+export * from "./components/ChatMessageList";
+export * from "./components/ChatSettingsDialog";
+export * from "./components/ChatSettingsPage";
+export * from "./components/ChatSetupPage";
+export * from "./components/ChatShell";
+export * from "./components/ChatSidebar";
+export * from "./components/ChatStatusBar";
+export * from "./core/chat-state";
+export * from "./core/errors";
+export * from "./core/setup-state";
+export * from "./core/types";
+
+export const kmsfChatVersion = "0.1.0";
