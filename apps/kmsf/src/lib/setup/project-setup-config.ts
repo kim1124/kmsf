@@ -2,12 +2,17 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import type { AuthProviderKind } from "@/lib/auth/providers/auth-provider";
+import {
+  normalizeGnbLayoutConfig,
+  type GnbLayoutConfig,
+} from "@/lib/layout/gnb-layout-config";
 
 const PROJECT_SETUP_CONFIG_VERSION = 1;
 const DEFAULT_SETUP_CONFIG_FILE = "setup.config.json";
 
 export type ProjectSetupConfig = {
   authProvider: AuthProviderKind;
+  gnbLayout: GnbLayoutConfig;
   updatedAt: string;
   version: typeof PROJECT_SETUP_CONFIG_VERSION;
 };
@@ -41,6 +46,7 @@ function parseProjectSetupConfig(value: unknown): ProjectSetupConfig | null {
 
   return {
     authProvider: candidate.authProvider,
+    gnbLayout: normalizeGnbLayoutConfig(candidate.gnbLayout),
     updatedAt: candidate.updatedAt,
     version: PROJECT_SETUP_CONFIG_VERSION,
   };
@@ -67,9 +73,11 @@ export async function readProjectSetupConfig() {
 
 export async function writeProjectSetupConfig(
   authProvider: ProjectSetupConfig["authProvider"],
+  gnbLayout?: GnbLayoutConfig,
 ) {
   const config: ProjectSetupConfig = {
     authProvider,
+    gnbLayout: normalizeGnbLayoutConfig(gnbLayout),
     updatedAt: new Date().toISOString(),
     version: PROJECT_SETUP_CONFIG_VERSION,
   };

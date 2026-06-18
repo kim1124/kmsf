@@ -6,10 +6,11 @@ export type ProtectedRouteId =
   | "data-table-sample"
   | "settings"
   | "settings.accounts"
+  | "settings.gnb"
   | "settings.reset"
   | "settings.system";
 
-export type SettingsSection = "accounts" | "reset" | "system";
+export type SettingsSection = "accounts" | "gnb" | "reset" | "system";
 
 export function isLevel3Admin(user: AppSessionUser | null | undefined) {
   return user?.role === "admin" && user.level === 3;
@@ -61,7 +62,8 @@ export function resolveSettingsSection(
   user: AppSessionUser | null | undefined,
   section: string | undefined,
 ): SettingsSection {
-  const requested = section === "accounts" || section === "reset" ? section : "system";
+  const requested =
+    section === "accounts" || section === "gnb" || section === "reset" ? section : "system";
 
   return canAccessSettingsSection(user, requested) ? requested : "system";
 }

@@ -167,6 +167,28 @@
           "badge": "준비 중"
         }
       },
+      "layout": {
+        "title": "GNB 설정",
+        "description": "초기 프로젝트 프레임워크에서 사용할 GNB 영역을 선택합니다. 기본값은 TOP, Left Side, Footer입니다.",
+        "regions": {
+          "top": {
+            "title": "TOP",
+            "description": "상단 Header 영역에 브랜드, 주요 메뉴, 유틸리티 버튼을 표시합니다."
+          },
+          "left": {
+            "title": "Left Side",
+            "description": "좌측 Aside 영역에 접이식 주요 메뉴와 계정 메뉴를 표시합니다."
+          },
+          "right": {
+            "title": "Right Side",
+            "description": "우측 Side 영역을 보조 GNB 영역으로 표시합니다."
+          },
+          "footer": {
+            "title": "Footer",
+            "description": "하단 Footer 영역에 시간 정보와 하단 GNB를 표시합니다."
+          }
+        }
+      },
       "admin": {
         "title": "Admin 관리 계정",
         "description": "KMSF를 처음 관리할 계정 정보를 입력합니다.",

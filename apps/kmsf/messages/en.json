@@ -167,6 +167,28 @@
           "badge": "Planned"
         }
       },
+      "layout": {
+        "title": "GNB settings",
+        "description": "Choose the GNB regions for the initial project framework. TOP, Left Side, and Footer are selected by default.",
+        "regions": {
+          "top": {
+            "title": "TOP",
+            "description": "Show brand, primary navigation, and utility buttons in the top header."
+          },
+          "left": {
+            "title": "Left Side",
+            "description": "Show collapsible primary navigation and the account menu in the left aside."
+          },
+          "right": {
+            "title": "Right Side",
+            "description": "Show a right side region as a secondary GNB area."
+          },
+          "footer": {
+            "title": "Footer",
+            "description": "Show server time and bottom GNB in the footer region."
+          }
+        }
+      },
       "admin": {
         "title": "Admin account",
         "description": "Enter the first account that will manage KMSF.",

@@ -41,6 +41,7 @@ describe("access policy", () => {
     const admin = user({ level: 3, role: "admin" });
 
     expect(canAccessRoute(member, "dashboard")).toBe(true);
+    expect(canAccessRoute(member, "settings.gnb")).toBe(true);
     expect(canAccessRoute(member, "settings.accounts")).toBe(false);
     expect(canAccessRoute(member, "settings.reset")).toBe(false);
     expect(canAccessRoute(admin, "settings.accounts")).toBe(true);
@@ -49,6 +50,7 @@ describe("access policy", () => {
 
   it("falls back to system settings when a user cannot access a requested section", () => {
     expect(resolveSettingsSection(user({ role: "member", level: 1 }), "reset")).toBe("system");
+    expect(resolveSettingsSection(user({ role: "member", level: 1 }), "gnb")).toBe("gnb");
     expect(resolveSettingsSection(user({ role: "admin", level: 3 }), "reset")).toBe("reset");
   });
 });

@@ -37,7 +37,13 @@ async function expectTranslatedValidation(
   await page.waitForLoadState("networkidle");
 
   if (page.url().includes("/setup/initial-admin")) {
-    await clickInitialSetupNext(page);
+    for (let step = 0; step < 2; step += 1) {
+      if ((await page.locator("#initial-admin-email").count()) > 0) {
+        break;
+      }
+
+      await clickInitialSetupNext(page);
+    }
   }
 
   const isInitialSetupPage = page.url().includes("/setup/initial-admin");

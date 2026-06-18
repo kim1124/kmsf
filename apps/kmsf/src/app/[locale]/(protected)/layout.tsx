@@ -9,6 +9,7 @@ import { formatAppSessionExpiryRoute } from "@/lib/auth/app-session";
 import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
 import { canAccessRoute, type ProtectedRouteId } from "@/lib/auth/access-policy";
 import { getCurrentUser } from "@/lib/auth/session";
+import { readProjectSetupConfig } from "@/lib/setup/project-setup-config";
 import { getCsrfToken } from "@/lib/security/csrf";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
 
@@ -27,6 +28,7 @@ export default async function ProtectedLayout({
   const user = await getCurrentUser();
   const theme = await getThemeCookie();
   const csrfToken = await getCsrfToken();
+  const setupConfig = await readProjectSetupConfig();
   // eslint-disable-next-line react-hooks/purity -- server-rendered footer seed must use request-time clock
   const initialServerTime = Date.now();
 
@@ -85,6 +87,7 @@ export default async function ProtectedLayout({
       initialTheme={theme}
       initialServerTime={initialServerTime}
       locale={locale}
+      gnbLayout={setupConfig?.gnbLayout}
       navItems={navItems.filter((item) => canAccessRoute(user, item.routeId))}
       user={user}
     >

@@ -1,6 +1,16 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Database, Loader2, Server } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Database,
+  Loader2,
+  PanelBottom,
+  PanelLeft,
+  PanelRight,
+  Server,
+  PanelTop,
+} from "lucide-react";
 import { startTransition, useActionState, useMemo, useState } from "react";
 
 import {
@@ -13,6 +23,11 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import type { AuthProviderKind } from "@/lib/auth/providers/auth-provider";
 import type { RuntimeAuthProviderResult } from "@/lib/auth/providers/runtime-auth-provider";
 import {
+  DEFAULT_GNB_REGIONS,
+  GNB_REGIONS,
+  type GnbRegion,
+} from "@/lib/layout/gnb-layout-config";
+import {
   createEmptyAccountFieldErrors,
   getLiveAccountFieldErrors,
   INITIAL_ADMIN_USERNAME,
@@ -22,7 +37,7 @@ import {
 } from "@/lib/auth/validation";
 import { cn } from "@/lib/utils";
 
-type SetupStep = "provider" | "admin" | "processing";
+type SetupStep = "provider" | "layout" | "admin" | "processing";
 
 type InitialAdminFormValues = Pick<AccountFields, "email" | "password" | "passwordConfirm">;
 type InitialAdminClientFieldErrors = Pick<
@@ -43,6 +58,9 @@ type InitialAdminFormProps = {
     supabaseUnavailable: string;
     localTitle: string;
     localDescription: string;
+    layoutTitle: string;
+    layoutDescription: string;
+    layoutRegions: Record<GnbRegion, { description: string; title: string }>;
     serverDbTitle: string;
     serverDbDescription: string;
     serverDbBadge: string;
@@ -103,6 +121,7 @@ const initialState: InitialAdminFormState = {
     displayName: INITIAL_ADMIN_DISPLAY_NAME,
     ...emptyInitialAdminFormValues,
     authProvider: "local-json",
+    gnbRegions: [...DEFAULT_GNB_REGIONS],
   },
   fieldErrors: {
     ...createEmptyAccountFieldErrors(),
@@ -127,6 +146,22 @@ function getInitialAdminFieldErrors(
 
 function hasFieldError(fieldErrors: object) {
   return Object.values(fieldErrors).some(Boolean);
+}
+
+function getLayoutRegionIcon(region: GnbRegion) {
+  if (region === "left") {
+    return <PanelLeft className="h-5 w-5" />;
+  }
+
+  if (region === "right") {
+    return <PanelRight className="h-5 w-5" />;
+  }
+
+  if (region === "footer") {
+    return <PanelBottom className="h-5 w-5" />;
+  }
+
+  return <PanelTop className="h-5 w-5" />;
 }
 
 function getErrorMessage(
@@ -214,6 +249,9 @@ export function InitialAdminForm({
   const [selectedProvider, setSelectedProvider] = useState<AuthProviderKind>(
     canUseSupabase ? "supabase" : "local-json",
   );
+  const [selectedGnbRegions, setSelectedGnbRegions] = useState<GnbRegion[]>([
+    ...DEFAULT_GNB_REGIONS,
+  ]);
   const [formValues, setFormValues] =
     useState<InitialAdminFormValues>(emptyInitialAdminFormValues);
   const [clientErrors, setClientErrors] =
@@ -228,7 +266,18 @@ export function InitialAdminForm({
       setSelectedProvider("local-json");
     }
 
-    setStep("admin");
+    setStep("layout");
+  }
+
+  function toggleGnbRegion(region: GnbRegion) {
+    setSelectedGnbRegions((regions) => {
+      if (regions.includes(region)) {
+        const nextRegions = regions.filter((value) => value !== region);
+        return nextRegions.length > 0 ? nextRegions : regions;
+      }
+
+      return GNB_REGIONS.filter((value) => value === region || regions.includes(value));
+    });
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -263,12 +312,16 @@ export function InitialAdminForm({
             1. {labels.providerTitle}
           </span>
           <span>/</span>
+          <span className={cn(visibleStep === "layout" && "text-accent")}>
+            2. {labels.layoutTitle}
+          </span>
+          <span>/</span>
           <span className={cn(visibleStep === "admin" && "text-accent")}>
-            2. {labels.adminTitle}
+            3. {labels.adminTitle}
           </span>
           <span>/</span>
           <span className={cn(visibleStep === "processing" && "text-accent")}>
-            3. {labels.processingTitle}
+            4. {labels.processingTitle}
           </span>
         </div>
         <CardTitle className="mt-3 text-2xl md:text-3xl">{labels.title}</CardTitle>
@@ -335,10 +388,66 @@ export function InitialAdminForm({
         </section>
       ) : null}
 
+      {visibleStep === "layout" ? (
+        <section className="px-6 py-6 md:px-8">
+          <CardTitle>{labels.layoutTitle}</CardTitle>
+          <CardDescription className="mt-2">{labels.layoutDescription}</CardDescription>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            {GNB_REGIONS.map((region) => {
+              const checked = selectedGnbRegions.includes(region);
+              const regionLabels = labels.layoutRegions[region];
+
+              return (
+                <label
+                  key={region}
+                  className={cn(
+                    "flex min-h-[7rem] cursor-pointer gap-4 rounded-[var(--kmsf-radius-lg)] border border-border bg-surface p-4 transition-colors",
+                    checked && "border-accent bg-panel-hover",
+                  )}
+                >
+                  <input
+                    checked={checked}
+                    className="mt-1 h-4 w-4 accent-[var(--kmsf-color-accent)]"
+                    name="setup-gnb-region"
+                    onChange={() => toggleGnbRegion(region)}
+                    type="checkbox"
+                    value={region}
+                  />
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--kmsf-radius-md)] border border-border bg-panel text-accent">
+                    {getLayoutRegionIcon(region)}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-foreground">
+                      {regionLabels.title}
+                    </span>
+                    <span className="mt-2 block text-sm leading-6 text-foreground/65">
+                      {regionLabels.description}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 flex justify-end gap-2">
+            <Button onClick={() => setStep("provider")} type="button" variant="secondary">
+              {labels.previous}
+            </Button>
+            <Button onClick={() => setStep("admin")} type="button">
+              {labels.next}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       {visibleStep === "admin" ? (
         <form action={submitInitialSetup} className="px-6 py-6 md:px-8" noValidate>
           <input type="hidden" name="csrfToken" value={csrfToken} />
           <input type="hidden" name="authProvider" value={selectedProvider} />
+          {selectedGnbRegions.map((region) => (
+            <input key={region} type="hidden" name="gnbRegions" value={region} />
+          ))}
 
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -416,7 +525,7 @@ export function InitialAdminForm({
           <div className="mt-8 flex justify-end gap-2">
             <Button
               disabled={isPending}
-              onClick={() => setStep("provider")}
+              onClick={() => setStep("layout")}
               type="button"
               variant="secondary"
             >
