@@ -29,6 +29,11 @@ test("header brand, footer clock, and active navigation behave correctly", async
   const dashboardLink = page.getByRole("link", { name: "KMSF" });
   await expect(dashboardLink).toBeVisible();
   await expect(page.getByText(/^현재 시간 : \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)).toBeVisible();
+  await expect(page.getByLabel("상단 GNB")).toHaveCount(0);
+  await expect(page.getByLabel("하단 GNB")).toHaveCount(0);
+  await expect(
+    page.locator("aside").getByRole("link", { name: "설정", exact: true }),
+  ).toBeVisible();
 
   await expect(page.locator("header").getByRole("button", { name: "프로필 메뉴" })).toHaveCount(0);
   const asideProfileButton = page.locator("aside").getByRole("button", { name: "프로필 메뉴" });
@@ -43,12 +48,14 @@ test("header brand, footer clock, and active navigation behave correctly", async
   expect(popoverBox).not.toBeNull();
   expect(popoverBox!.x).toBeGreaterThan(triggerBox!.x + triggerBox!.width - 1);
 
-  await page.getByRole("link", { name: /설정|Settings/ }).click();
+  const sideSettingsLink = page.locator("aside").getByRole("link", {
+    name: "설정",
+    exact: true,
+  });
+
+  await sideSettingsLink.click();
   await expect(page).toHaveURL(/\/settings$/);
-  await expect(page.getByRole("link", { name: /설정|Settings/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(sideSettingsLink).toHaveAttribute("aria-current", "page");
 
   await dashboardLink.click();
   await expect(page).toHaveURL(/\/dashboard$/);

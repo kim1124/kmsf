@@ -4,6 +4,7 @@ import {
   linkGoogleIdentityAction,
   unlinkGoogleIdentityAction,
 } from "@/app/[locale]/(protected)/actions";
+import { GnbLayoutSettingsPanel } from "@/components/settings/gnb-layout-settings-panel";
 import { SystemResetPanel } from "@/components/settings/system-reset-panel";
 import { Button } from "@/components/ui/button";
 import type { AccountDirectoryResult } from "@/lib/auth/account-directory";
@@ -64,6 +65,32 @@ const copy = {
       title: "Google account linking",
       unavailable: "Google linking is unavailable in Local DB mode or without Supabase setup.",
       unlink: "Unlink Google",
+    },
+    gnb: {
+      description:
+        "Choose which desktop GNB regions are visible in this browser. Left Side and all mobile regions remain available.",
+      fixed: "Always visible",
+      menu: "GNB settings",
+      reset: "Restore default",
+      regions: {
+        footer: {
+          description: "Show the desktop footer status area. Mobile footer navigation remains visible.",
+          title: "Footer",
+        },
+        left: {
+          description: "Keep the primary page menu available on desktop.",
+          title: "Left Side",
+        },
+        right: {
+          description: "Show the secondary right-side GNB area on desktop.",
+          title: "Right Side",
+        },
+        top: {
+          description: "Show the desktop top utility area.",
+          title: "TOP",
+        },
+      },
+      title: "GNB settings",
     },
     notConfigured: "Not configured",
     reset: {
@@ -149,6 +176,32 @@ const copy = {
       title: "Google 계정 연결",
       unavailable: "Local DB 또는 Supabase 미설정 환경에서는 Google 계정 연결을 사용할 수 없습니다.",
       unlink: "Google 연결 해제",
+    },
+    gnb: {
+      description:
+        "이 브라우저에서 표시할 데스크톱 GNB 영역을 선택합니다. Left Side와 모바일 영역은 항상 유지됩니다.",
+      fixed: "항상 표시",
+      menu: "GNB 설정",
+      reset: "기본값 복원",
+      regions: {
+        footer: {
+          description: "데스크톱 Footer 상태 영역을 표시합니다. 모바일 Footer navigation은 유지됩니다.",
+          title: "Footer",
+        },
+        left: {
+          description: "데스크톱 기본 페이지 메뉴를 항상 표시합니다.",
+          title: "Left Side",
+        },
+        right: {
+          description: "데스크톱 우측 보조 GNB 영역을 표시합니다.",
+          title: "Right Side",
+        },
+        top: {
+          description: "데스크톱 상단 utility 영역을 표시합니다.",
+          title: "TOP",
+        },
+      },
+      title: "GNB 설정",
     },
     notConfigured: "미설정",
     reset: {
@@ -292,6 +345,11 @@ export function SettingsPageContent({
             href="/settings?section=system"
             label={t.systemMenu}
           />
+          <SettingsMenuLink
+            active={activeSection === "gnb"}
+            href="/settings?section=gnb"
+            label={t.gnb.menu}
+          />
           {canManageAccounts ? (
             <SettingsMenuLink
               active={activeSection === "accounts"}
@@ -319,6 +377,12 @@ export function SettingsPageContent({
                 : null
             }
             labels={t.reset}
+          />
+        ) : activeSection === "gnb" ? (
+          <GnbLayoutSettingsPanel
+            labels={t.gnb}
+            setupLayout={setupConfig?.gnbLayout}
+            username={user?.username ?? "anonymous"}
           />
         ) : activeSection === "accounts" && canManageAccounts ? (
           <article className="content-panel p-6">

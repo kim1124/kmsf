@@ -21,6 +21,7 @@ export async function completeInitialSetupWizard(
   account: InitialSetupAccount,
 ) {
   await clickInitialSetupNext(page);
+  await clickInitialSetupNext(page);
   await page.locator("#initial-admin-email").fill(account.email);
   await page.locator("#initial-admin-password").fill(account.password);
   await page.locator("#initial-admin-password-confirm").fill(account.password);

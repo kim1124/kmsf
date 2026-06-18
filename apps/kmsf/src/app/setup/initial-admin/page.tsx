@@ -50,6 +50,26 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
           }),
           localDescription: t("steps.provider.local.description"),
           localTitle: t("steps.provider.local.title"),
+          layoutDescription: t("steps.layout.description"),
+          layoutRegions: {
+            footer: {
+              description: t("steps.layout.regions.footer.description"),
+              title: t("steps.layout.regions.footer.title"),
+            },
+            left: {
+              description: t("steps.layout.regions.left.description"),
+              title: t("steps.layout.regions.left.title"),
+            },
+            right: {
+              description: t("steps.layout.regions.right.description"),
+              title: t("steps.layout.regions.right.title"),
+            },
+            top: {
+              description: t("steps.layout.regions.top.description"),
+              title: t("steps.layout.regions.top.title"),
+            },
+          },
+          layoutTitle: t("steps.layout.title"),
           next: t("next"),
           password: t("password"),
           passwordConfirm: t("passwordConfirm"),

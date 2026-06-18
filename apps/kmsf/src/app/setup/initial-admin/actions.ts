@@ -19,6 +19,10 @@ import {
   type AccountFields,
 } from "@/lib/auth/validation";
 import type { AuthProviderKind } from "@/lib/auth/providers/auth-provider";
+import {
+  normalizeGnbRegions,
+  type GnbRegion,
+} from "@/lib/layout/gnb-layout-config";
 import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import {
   isAuthEmailTaken,
@@ -35,6 +39,7 @@ type InitialSetupAuthProvider = AuthProviderKind;
 type InitialAdminFields = AccountFields & {
   authProvider: InitialSetupAuthProvider;
   displayName: string;
+  gnbRegions: GnbRegion[];
 };
 
 type InitialAdminFieldErrors = AccountFieldErrors & {
@@ -79,6 +84,7 @@ export async function createInitialAdminAction(
   const fields = {
     authProvider: normalizeInitialSetupAuthProvider(formData.get("authProvider")),
     displayName: INITIAL_ADMIN_DISPLAY_NAME,
+    gnbRegions: normalizeGnbRegions(formData.getAll("gnbRegions")),
     username: INITIAL_ADMIN_USERNAME,
     email: sanitizeEmailInput(String(formData.get("email") ?? "")),
     password: String(formData.get("password") ?? ""),
@@ -116,7 +122,7 @@ export async function createInitialAdminAction(
     let account: Awaited<ReturnType<typeof createLocalJsonAccount>>;
 
     try {
-      await writeProjectSetupConfig("local-json");
+      await writeProjectSetupConfig("local-json", { enabledRegions: fields.gnbRegions });
       resetRuntimeAuthProviderCache();
       account = await createLocalJsonAccount({
         displayName: INITIAL_ADMIN_DISPLAY_NAME,
@@ -236,7 +242,7 @@ export async function createInitialAdminAction(
   }
 
   try {
-    await writeProjectSetupConfig("supabase");
+    await writeProjectSetupConfig("supabase", { enabledRegions: fields.gnbRegions });
     resetRuntimeAuthProviderCache();
   } catch (error) {
     console.error("createInitialAdminAction setup config write failed", { error });

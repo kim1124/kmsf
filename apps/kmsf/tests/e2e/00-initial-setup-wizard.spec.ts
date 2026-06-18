@@ -43,6 +43,15 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
 
   await page.getByRole("button", { name: "다음", exact: true }).click();
 
+  await expect(page.getByRole("heading", { name: "GNB 설정" })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /TOP/ })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /Left Side/ })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /Right Side/ })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /Footer/ })).toBeChecked();
+
+  await page.getByRole("checkbox", { name: /Right Side/ }).check();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+
   await expect(page.getByRole("heading", { name: "Admin 관리 계정" })).toBeVisible();
   await expect(page.getByText("관리자 Level 3")).toBeVisible();
   await expect(page.getByRole("button", { name: "이전", exact: true })).toBeVisible();
