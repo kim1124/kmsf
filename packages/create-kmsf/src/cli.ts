@@ -94,6 +94,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
       targetDir,
       templateDir: findTemplateRoot(),
       authMode: resolved.authMode,
+      selectedPackages: resolved.selectedPackages,
+      gnbRegions: resolved.gnbRegions,
       includeI18n: resolved.includeI18n,
       runInstall: resolved.runInstall,
       runGitInit: resolved.runGitInit,

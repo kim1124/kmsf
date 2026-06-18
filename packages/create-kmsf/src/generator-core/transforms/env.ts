@@ -45,8 +45,8 @@ export async function generateEnvLocal(
   // override provider mode
   content = setOrAddVar(content, "KMSF_AUTH_PROVIDER", options.authMode);
 
-  // generate session secret if local-json
-  if (options.authMode === "local-json") {
+  // generate session secret if local-json can be selected without regenerating env.
+  if (options.authMode === "local-json" || options.authMode === "later") {
     const secret = randomBytes(32).toString("hex");
     content = setOrAddVar(content, "KMSF_LOCAL_AUTH_SESSION_SECRET", secret);
   }

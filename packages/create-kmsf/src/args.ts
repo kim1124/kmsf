@@ -1,9 +1,13 @@
 import { parseArgs } from "node:util";
-import type { AuthMode } from "./generator-core/index.js";
+import type { AuthMode, GnbRegion, KmsfPackageId } from "./generator-core/index.js";
+import { parseGnbRegionList } from "./generator-core/gnb-layout-options.js";
+import { parseKmsfPackageList } from "./generator-core/package-options.js";
 
 export interface ParsedArgs {
   projectName?: string;
   authMode?: AuthMode;
+  selectedPackages?: KmsfPackageId[];
+  gnbRegions?: GnbRegion[];
   includeI18n?: boolean;
   runInstall?: boolean;
   runGitInit?: boolean;
@@ -14,7 +18,7 @@ export interface ParsedArgs {
   version?: boolean;
 }
 
-const VALID_AUTH: ReadonlyArray<AuthMode> = ["local-json", "supabase", "none"];
+const VALID_AUTH: ReadonlyArray<AuthMode> = ["local-json", "supabase", "later", "none"];
 
 export function parseCliArgs(argv: string[]): ParsedArgs {
   const { values, positionals } = parseArgs({
@@ -23,6 +27,9 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
     strict: false,
     options: {
       auth: { type: "string" },
+      layout: { type: "string" },
+      packages: { type: "string" },
+      "no-packages": { type: "boolean" },
       i18n: { type: "boolean" },
       "no-i18n": { type: "boolean" },
       install: { type: "boolean" },
@@ -49,6 +56,16 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
     result.authMode = values.auth as AuthMode;
   }
 
+  if (typeof values.layout === "string") {
+    result.gnbRegions = parseGnbRegionList(values.layout);
+  }
+
+  if (values["no-packages"]) {
+    result.selectedPackages = [];
+  } else if (typeof values.packages === "string") {
+    result.selectedPackages = parseKmsfPackageList(values.packages);
+  }
+
   // boolean toggles: presence of --no-x wins
   if (values["no-i18n"]) result.includeI18n = false;
   else if (values.i18n) result.includeI18n = true;
@@ -71,7 +88,10 @@ export const HELP_TEXT = `
 Usage: npx create-kmsf [name] [options]
 
 Options:
-  --auth=<mode>           local-json (default) | supabase | none
+  --auth=<mode>           local-json (default) | supabase | later | none
+  --layout=<list>         comma-separated GNB regions: top,left,right,footer
+  --packages=<list>       comma-separated KMSF packages: gridstack,data-table,charts,chat
+  --no-packages           include no optional KMSF packages
   --no-i18n               skip ko/en i18n setup
   --no-install            skip npm install
   --no-git                skip git init

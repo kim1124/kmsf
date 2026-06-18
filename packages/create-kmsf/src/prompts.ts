@@ -1,11 +1,23 @@
 import prompts from "prompts";
-import { validateProjectName, type AuthMode } from "./generator-core/index.js";
+import {
+  validateProjectName,
+  type AuthMode,
+  type GnbRegion,
+  type KmsfPackageId,
+} from "./generator-core/index.js";
+import {
+  DEFAULT_GNB_REGION_IDS,
+  GNB_REGION_IDS,
+} from "./generator-core/gnb-layout-options.js";
+import { KMSF_PACKAGE_OPTIONS } from "./generator-core/package-options.js";
 
 import type { ParsedArgs } from "./args.js";
 
 export interface ResolvedOptions {
   projectName: string;
   authMode: AuthMode;
+  selectedPackages: KmsfPackageId[];
+  gnbRegions: GnbRegion[];
   includeI18n: boolean;
   runInstall: boolean;
   runGitInit: boolean;
@@ -31,6 +43,8 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
     const missing = [
       !args.projectName ? "project name" : null,
       !args.authMode ? "--auth" : null,
+      args.selectedPackages === undefined ? "--packages or --no-packages" : null,
+      args.gnbRegions === undefined ? "--layout" : null,
       args.includeI18n === undefined ? "--i18n or --no-i18n" : null,
       args.runInstall === undefined ? "--install or --no-install" : null,
       args.runGitInit === undefined ? "--git or --no-git" : null,
@@ -69,9 +83,38 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
       choices: [
         { title: "local-json (file-backed, no external service)", value: "local-json" },
         { title: "supabase (Supabase Auth)", value: "supabase" },
+        { title: "later (keep auth code, choose provider after scaffold)", value: "later" },
         { title: "none (no auth)", value: "none" },
       ],
       initial: 0,
+    });
+  }
+
+  if (args.selectedPackages === undefined) {
+    questions.push({
+      type: "multiselect",
+      name: "selectedPackages",
+      message: "Optional KMSF packages",
+      choices: KMSF_PACKAGE_OPTIONS.map((option) => ({
+        title: option.title,
+        value: option.id,
+        selected: false,
+      })),
+      hint: "- Space to select. Return to continue.",
+    });
+  }
+
+  if (args.gnbRegions === undefined) {
+    questions.push({
+      type: "multiselect",
+      name: "gnbRegions",
+      message: "GNB layout regions",
+      choices: GNB_REGION_IDS.map((region) => ({
+        title: region,
+        value: region,
+        selected: DEFAULT_GNB_REGION_IDS.includes(region),
+      })),
+      hint: "- Space to select. Return to continue.",
     });
   }
 
@@ -126,6 +169,12 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
   const merged = {
     projectName: args.projectName ?? (answers as { projectName?: string }).projectName,
     authMode: args.authMode ?? (answers as { authMode?: AuthMode }).authMode,
+    selectedPackages:
+      args.selectedPackages ??
+      (answers as { selectedPackages?: KmsfPackageId[] }).selectedPackages,
+    gnbRegions:
+      args.gnbRegions ??
+      (answers as { gnbRegions?: GnbRegion[] }).gnbRegions,
     includeI18n:
       args.includeI18n ?? (answers as { includeI18n?: boolean }).includeI18n,
     runInstall: args.runInstall ?? (answers as { runInstall?: boolean }).runInstall,
@@ -138,6 +187,8 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
   if (
     !merged.projectName ||
     !merged.authMode ||
+    merged.selectedPackages === undefined ||
+    merged.gnbRegions === undefined ||
     merged.includeI18n === undefined ||
     merged.runInstall === undefined ||
     merged.runGitInit === undefined ||
