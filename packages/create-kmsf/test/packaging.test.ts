@@ -19,6 +19,7 @@ async function exists(filePath: string): Promise<boolean> {
 async function readPackageJson(): Promise<{
   dependencies?: Record<string, string>;
   files?: string[];
+  scripts?: Record<string, string>;
 }> {
   return JSON.parse(await readFile(path.join(PACKAGE_ROOT, "package.json"), "utf8"));
 }
@@ -34,6 +35,20 @@ describe("external package contract", () => {
     const pkg = await readPackageJson();
 
     expect(pkg.files).toContain("templates");
+  });
+
+  it("ships the local KMSF smoke verification script", async () => {
+    const pkg = await readPackageJson();
+
+    expect(pkg.files).toContain("scripts");
+    expect(pkg.scripts?.["smoke:kmsf"]).toBe("node scripts/smoke-kmsf.mjs");
+    expect(await exists(path.join(PACKAGE_ROOT, "scripts/smoke-kmsf.mjs"))).toBe(true);
+  });
+
+  it("cleans generated dist before building for pack", async () => {
+    const pkg = await readPackageJson();
+
+    expect(pkg.scripts?.build).toMatch(/rmSync\(['"]dist['"]/);
   });
 
   it("ships the Next.js base template inside create-kmsf", async () => {

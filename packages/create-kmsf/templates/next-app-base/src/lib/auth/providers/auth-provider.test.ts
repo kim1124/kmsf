@@ -25,4 +25,20 @@ describe("auth provider selection", () => {
       }),
     ).toBe("local-json");
   });
+
+  it("requires a concrete provider when auth selection is deferred", () => {
+    expect(() =>
+      getAuthProviderKind({
+        KMSF_AUTH_PROVIDER: "later",
+      }),
+    ).toThrow(/KMSF_AUTH_PROVIDER/);
+  });
+
+  it("rejects unknown provider values", () => {
+    expect(() =>
+      getAuthProviderKind({
+        KMSF_AUTH_PROVIDER: "bogus",
+      }),
+    ).toThrow(/KMSF_AUTH_PROVIDER/);
+  });
 });

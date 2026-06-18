@@ -1,5 +1,11 @@
 /** Auth provider mode chosen at scaffold time. */
-export type AuthMode = "local-json" | "supabase" | "none";
+export type AuthMode = "local-json" | "supabase" | "later" | "none";
+
+/** Optional KMSF packages added to the generated app. */
+export type KmsfPackageId = "gridstack" | "data-table" | "charts" | "chat";
+
+/** GNB regions enabled in the generated app shell. */
+export type GnbRegion = "top" | "left" | "right" | "footer";
 
 /** Package manager detected from npm_config_user_agent. */
 export type PackageManager = "npm" | "pnpm" | "yarn";
@@ -29,6 +35,10 @@ export interface ScaffoldOptions {
   authMode: AuthMode;
   /** Include i18n config and messages/. Default true. */
   includeI18n: boolean;
+  /** Optional KMSF package dependencies to add. */
+  selectedPackages: KmsfPackageId[];
+  /** GNB regions enabled in the generated app shell. */
+  gnbRegions: GnbRegion[];
   /** Run npm install after copy. */
   runInstall: boolean;
   /** Run git init + initial commit. */

@@ -28,12 +28,11 @@ test("header brand, footer clock, and active navigation behave correctly", async
   await expect(dashboardLink).toBeVisible();
   await expect(page.getByText(/^현재 시간 : \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)).toBeVisible();
 
-  await page.getByRole("link", { name: /설정|Settings/ }).click();
+  const settingsLink = page.getByRole("link", { name: /설정|Settings/ }).first();
+
+  await settingsLink.click();
   await expect(page).toHaveURL(/\/settings$/);
-  await expect(page.getByRole("link", { name: /설정|Settings/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(settingsLink).toHaveAttribute("aria-current", "page");
 
   await dashboardLink.click();
   await expect(page).toHaveURL(/\/dashboard$/);

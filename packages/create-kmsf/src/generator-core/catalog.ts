@@ -14,7 +14,7 @@ export const TEMPLATE_CATALOG: Record<"next-app-base", TemplateEntry> = {
     id: "next-app-base",
     relativePath: "templates/next-app-base",
     name: "Next.js admin dashboard (single app)",
-    supportedAuthModes: ["local-json", "supabase", "none"],
+    supportedAuthModes: ["local-json", "supabase", "later", "none"],
   },
 };
 

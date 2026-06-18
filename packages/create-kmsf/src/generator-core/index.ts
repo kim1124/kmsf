@@ -20,6 +20,8 @@ import path from "node:path";
 import { copyDir } from "./copy.js";
 import { applyAuthMode } from "./transforms/auth-mode.js";
 import { transformPackageJson } from "./transforms/package-json.js";
+import { applyI18nMode } from "./transforms/i18n.js";
+import { applyGnbLayoutMode } from "./transforms/gnb-layout.js";
 import { generateEnvLocal } from "./transforms/env.js";
 import { substituteTokens } from "./transforms/tokens.js";
 import { runGitInit } from "./post-install/git-init.js";
@@ -113,7 +115,18 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   await transformPackageJson(path.join(options.targetDir, "package.json"), {
     projectName: options.projectName,
     authMode: options.authMode,
+    selectedPackages: options.selectedPackages,
   });
+  options.logger.stepDone();
+
+  if (!options.includeI18n) {
+    options.logger.step("Configuring i18n: ko only");
+    await applyI18nMode(options.targetDir, { includeI18n: options.includeI18n });
+    options.logger.stepDone();
+  }
+
+  options.logger.step("Configuring GNB layout");
+  await applyGnbLayoutMode(options.targetDir, { gnbRegions: options.gnbRegions });
   options.logger.stepDone();
 
   options.logger.step("Substituting tokens");
@@ -175,8 +188,11 @@ export type {
   ScaffoldOptions,
   ScaffoldResult,
   ScaffoldLogger,
+  KmsfPackageId,
+  GnbRegion,
 } from "./types.js";
 export { TEMPLATE_CATALOG, getTemplate } from "./catalog.js";
+export { KMSF_PACKAGE_OPTIONS, KMSF_PACKAGE_IDS, parseKmsfPackageList } from "./package-options.js";
 export {
   ScaffoldError,
   InvalidProjectNameError,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm, access } from "node:fs/promises";
+import { mkdtemp, rm, access, readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -40,6 +40,10 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+async function readJson<T>(p: string): Promise<T> {
+  return JSON.parse(await readFile(p, "utf8")) as T;
+}
+
 describe("integration smoke", () => {
   it("scaffolds a local-json project end-to-end (no install)", async () => {
     const projectName = "smoke-app";
@@ -47,7 +51,7 @@ describe("integration smoke", () => {
 
     const result = spawnSync(
       "node",
-      [BIN, projectName, "--auth=local-json", "--no-i18n", "--no-install", "--no-git", "--no-playwright", "--silent"],
+      [BIN, projectName, "--auth=local-json", "--layout=top,left,footer", "--no-i18n", "--no-packages", "--no-install", "--no-git", "--no-playwright", "--silent"],
       { cwd: workDir, encoding: "utf8" },
     );
 
@@ -59,7 +63,39 @@ describe("integration smoke", () => {
     expect(await exists(path.join(projectPath, "src/lib/auth/local-session.server.ts"))).toBe(true);
     expect(await exists(path.join(projectPath, "src/lib/supabase"))).toBe(false);
     expect(await exists(path.join(projectPath, "src/app/sign-in"))).toBe(false);
+    expect(await exists(path.join(projectPath, "src/app/(protected)/settings/page.tsx"))).toBe(true);
     expect(await exists(path.join(projectPath, "proxy.ts"))).toBe(false);
+    expect(await exists(path.join(projectPath, "messages/en.json"))).toBe(false);
+    expect(await exists(path.join(projectPath, "src/components/layout/_components/language-toggle.tsx"))).toBe(false);
+
+    const generatedPackage = await readJson<{ scripts?: Record<string, string> }>(
+      path.join(projectPath, "package.json"),
+    );
+    expect(generatedPackage.scripts?.verify).not.toContain("language-toggle.spec.ts");
+    await expect(readFile(path.join(projectPath, "src/lib/layout/gnb-layout-config.ts"), "utf8")).resolves.toContain(
+      '["top", "left", "footer"]',
+    );
+
+    const localJsonOnlyFiles = [
+      "src/app/page.tsx",
+      "src/app/(protected)/actions.ts",
+      "src/app/(protected)/layout.tsx",
+      "src/app/(public)/sign-in/actions.ts",
+      "src/app/(public)/sign-up/page.tsx",
+      "src/lib/auth/session.ts",
+      "src/lib/security/csrf.ts",
+    ];
+
+    for (const rel of localJsonOnlyFiles) {
+      const content = await readFile(path.join(projectPath, rel), "utf8");
+
+      expect(content).not.toContain("@/lib/supabase");
+      expect(content).not.toContain("google-identity");
+    }
+
+    await expect(
+      readFile(path.join(projectPath, "src/app/(public)/sign-up/page.tsx"), "utf8"),
+    ).resolves.not.toContain("params");
   }, 30000);
 
   it("scaffolds a none-auth project", async () => {
@@ -68,7 +104,7 @@ describe("integration smoke", () => {
 
     const result = spawnSync(
       "node",
-      [BIN, projectName, "--auth=none", "--no-i18n", "--no-install", "--no-git", "--no-playwright", "--silent"],
+      [BIN, projectName, "--auth=none", "--layout=top,left,footer", "--no-i18n", "--no-packages", "--no-install", "--no-git", "--no-playwright", "--silent"],
       { cwd: workDir, encoding: "utf8" },
     );
 
@@ -77,11 +113,40 @@ describe("integration smoke", () => {
     expect(await exists(path.join(projectPath, "src/components/auth"))).toBe(false);
   }, 30000);
 
+  it("scaffolds a later-auth project with selected KMSF package dependencies", async () => {
+    const projectName = "later-package-app";
+    const projectPath = path.join(workDir, projectName);
+
+    const result = spawnSync(
+      "node",
+      [BIN, projectName, "--auth=later", "--layout=top,left,footer", "--i18n", "--packages=charts,gridstack", "--no-install", "--no-git", "--no-playwright", "--silent"],
+      { cwd: workDir, encoding: "utf8" },
+    );
+
+    expect(result.status).toBe(0);
+    expect(await exists(path.join(projectPath, "src/lib/supabase"))).toBe(true);
+    expect(await exists(path.join(projectPath, "src/lib/auth/providers/local-json-auth-store.ts"))).toBe(true);
+
+    const envLocal = await readFile(path.join(projectPath, ".env.local"), "utf8");
+    expect(envLocal).toContain("KMSF_AUTH_PROVIDER=later");
+    expect(envLocal).toMatch(/KMSF_LOCAL_AUTH_SESSION_SECRET=[a-f0-9]{64}/);
+
+    const generatedPackage = await readJson<{
+      dependencies?: Record<string, string>;
+    }>(path.join(projectPath, "package.json"));
+    expect(generatedPackage.dependencies).toMatchObject({
+      "@kmsf/charts": "^0.1.0",
+      "@kmsf/gridstack": "^1.0.0",
+      "@supabase/ssr": expect.any(String),
+      "@supabase/supabase-js": expect.any(String),
+    });
+  }, 30000);
+
   it("rejects non-empty target", async () => {
     const projectName = "smoke-app"; // already exists from first test
     const result = spawnSync(
       "node",
-      [BIN, projectName, "--auth=local-json", "--no-i18n", "--no-install", "--no-git", "--no-playwright", "--silent"],
+      [BIN, projectName, "--auth=local-json", "--layout=top,left,footer", "--no-i18n", "--no-packages", "--no-install", "--no-git", "--no-playwright", "--silent"],
       { cwd: workDir, encoding: "utf8" },
     );
     expect(result.status).toBe(1);

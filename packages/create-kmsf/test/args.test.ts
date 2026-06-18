@@ -12,6 +12,8 @@ describe("parseCliArgs", () => {
     expect(r.authMode).toBe("local-json");
     const r2 = parseCliArgs(["my-app", "--auth", "supabase"]);
     expect(r2.authMode).toBe("supabase");
+    const r3 = parseCliArgs(["my-app", "--auth=later"]);
+    expect(r3.authMode).toBe("later");
   });
 
   it("rejects invalid --auth value", () => {
@@ -24,6 +26,32 @@ describe("parseCliArgs", () => {
     expect(r.runGitInit).toBe(false);
     expect(r.runPlaywrightInstall).toBe(false);
     expect(r.includeI18n).toBe(false);
+  });
+
+  it("parses selected KMSF packages", () => {
+    const r = parseCliArgs(["x", "--packages=gridstack,data-table,charts,chat"]);
+
+    expect(r.selectedPackages).toEqual(["gridstack", "data-table", "charts", "chat"]);
+  });
+
+  it("supports explicit empty package selection", () => {
+    const r = parseCliArgs(["x", "--no-packages"]);
+
+    expect(r.selectedPackages).toEqual([]);
+  });
+
+  it("rejects invalid package values", () => {
+    expect(() => parseCliArgs(["x", "--packages=charts,bogus"])).toThrow(/packages/);
+  });
+
+  it("parses selected GNB layout regions", () => {
+    const r = parseCliArgs(["x", "--layout=top,left,footer"]);
+
+    expect(r.gnbRegions).toEqual(["top", "left", "footer"]);
+  });
+
+  it("rejects invalid GNB layout regions", () => {
+    expect(() => parseCliArgs(["x", "--layout=top,bogus"])).toThrow(/layout/);
   });
 
   it("defaults booleans to undefined when no flag", () => {

@@ -12,10 +12,11 @@ Then open <http://localhost:3000>.
 
 ## Auth modes
 
-This project was scaffolded with one of three auth modes (see `KMSF_AUTH_PROVIDER` in `.env.local`):
+This project was scaffolded with one of four auth modes (see `KMSF_AUTH_PROVIDER` in `.env.local`):
 
 - `local-json` — file-backed auth store at `./.local/auth.db.json` (no external service)
 - `supabase` — Supabase Auth (set `NEXT_PUBLIC_SUPABASE_URL` and friends in `.env.local`)
+- `later` — auth code is present, but you must set `KMSF_AUTH_PROVIDER` to `local-json` or `supabase` before running the app
 - `none` — auth removed entirely
 
 ## Scripts
@@ -32,4 +33,4 @@ This project was scaffolded with one of three auth modes (see `KMSF_AUTH_PROVIDE
 
 - Edit `src/app/[locale]/(protected)/dashboard/page.tsx` for the home view
 - Add new routes under `src/app/[locale]/(protected)/`
-- Translations: `messages/{ko,en}.json`
+- Translations: `messages/{ko,en}.json` when i18n is enabled, or `messages/ko.json` for a ko-only scaffold

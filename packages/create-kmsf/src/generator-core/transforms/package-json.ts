@@ -1,9 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { AuthMode } from "../types.js";
+import { KMSF_PACKAGE_OPTIONS } from "../package-options.js";
+import type { AuthMode, KmsfPackageId } from "../types.js";
 
 export interface TransformPackageJsonOptions {
   projectName: string;
   authMode: AuthMode;
+  selectedPackages?: KmsfPackageId[];
 }
 
 const SUPABASE_DEP_KEYS = ["@supabase/ssr", "@supabase/supabase-js"];
@@ -38,10 +40,21 @@ export async function transformPackageJson(
 
   pkg.name = validated;
 
-  if (options.authMode !== "supabase") {
+  if (options.authMode !== "supabase" && options.authMode !== "later") {
     if (pkg.dependencies) {
       for (const key of SUPABASE_DEP_KEYS) {
         delete pkg.dependencies[key];
+      }
+    }
+  }
+
+  const selectedPackages = new Set(options.selectedPackages ?? []);
+  if (selectedPackages.size > 0) {
+    pkg.dependencies ??= {};
+
+    for (const option of KMSF_PACKAGE_OPTIONS) {
+      if (selectedPackages.has(option.id)) {
+        pkg.dependencies[option.packageName] = option.version;
       }
     }
   }
