@@ -95,7 +95,6 @@ export function AppShell({
   const showRight = hasGnbRegion(normalizedGnbLayout, "right");
   const showFooter = hasGnbRegion(normalizedGnbLayout, "footer");
   const showTopProfile = !showLeft;
-  const showRightProfile = !showLeft && !showTop;
   const showFooterProfile = !showLeft && !showTop && !showRight;
 
   function renderNavLink(item: NavItem, className: string, iconClassName = "h-6 w-6") {
@@ -160,36 +159,10 @@ export function AppShell({
           </main>
 
           {showRight ? (
-            <aside className="hidden w-56 shrink-0 border-l border-border bg-surface p-3 md:flex md:flex-col">
-              <div
-                className={cn(
-                  "mb-3 flex items-center gap-2 border-b border-border pb-3",
-                  showRightProfile && "justify-between",
-                )}
-              >
-                <span className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
-                  GNB
-                </span>
-                {showRightProfile ? (
-                  <ProfileMenu
-                    csrfToken={csrfToken}
-                    locale={locale}
-                    popoverAlign="end"
-                    popoverSide="left"
-                    user={user}
-                  />
-                ) : null}
-              </div>
-              <nav aria-label="우측 GNB" className="flex flex-col gap-1">
-                {navItems.map((item) =>
-                  renderNavLink(
-                    item,
-                    "flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/70 transition-colors hover:bg-panel-hover hover:text-foreground",
-                    "h-4 w-4",
-                  ),
-                )}
-              </nav>
-            </aside>
+            <aside
+              aria-label="우측 GNB"
+              className="hidden w-56 shrink-0 border-l border-border bg-surface p-3 md:flex md:flex-col"
+            />
           ) : null}
         </div>
 

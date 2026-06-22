@@ -109,6 +109,7 @@
   "description": "",
   "confirmEmail": "Please verify your email and sign in again.",
   "accountDeleted": "Your account has been deleted.",
+  "registered": "Your account has been created. Please sign in.",
   "sessionExpired": "Your session ended after one hour of inactivity. Please sign in again.",
   "settingsReset": "Settings reset is complete. Please sign in again.",
   "username": "ID",

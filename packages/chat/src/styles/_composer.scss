@@ -1,0 +1,23 @@
+.kmsf-chat-composer {
+  align-items: stretch;
+  border-top: 1px solid var(--kmsf-chat-border);
+  background: var(--kmsf-chat-surface);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.kmsf-chat-composer textarea {
+  height: 52px;
+  max-height: 160px;
+  min-height: 52px;
+  resize: none;
+}
+
+.kmsf-chat-composer button {
+  height: 52px;
+  min-height: 52px;
+  min-width: 52px;
+  padding: 0;
+}

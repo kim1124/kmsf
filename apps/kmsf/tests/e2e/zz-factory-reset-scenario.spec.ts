@@ -57,6 +57,10 @@ async function signUpMember(page: Page, account: ScenarioAccount) {
   await page.locator("#sign-up-password").fill(account.password);
   await page.locator("#sign-up-password-confirm").fill(account.password);
   await page.getByRole("button", { name: "회원 가입", exact: true }).click();
+  await page.waitForURL("**/sign-in?success=registered", { timeout: 20_000 });
+  await page.locator("#login-username").fill(account.username);
+  await page.locator("#login-password").fill(account.password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
   await page.waitForURL("**/dashboard", { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
 }
@@ -78,14 +82,15 @@ async function updateCurrentAccount(page: Page, nextAccount: ScenarioAccount) {
   await expect(profileDialog).toBeHidden({ timeout: 20_000 });
 }
 
-async function deleteCurrentAccount(page: Page) {
+async function deleteCurrentAccount(page: Page, password: string) {
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
   await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
   await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
-  await page.locator("#delete-account-confirmation").fill("DELETE");
+  await page.locator("#delete-account-password").fill(password);
   await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();
   await page.waitForURL("**/sign-in?success=deleted", { timeout: 20_000 });
-  await expect(page.getByText("회원 탈퇴가 완료되었습니다.")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("회원 탈퇴가 완료되었습니다.");
+  await expect(page).toHaveURL(/\/sign-in$/);
 }
 
 async function readLocalDbAccounts() {
@@ -153,7 +158,7 @@ test("level3 admin, member lifecycle, and factory reset work end to end", async 
   await signOut(page);
   await expectSignInRejected(page, memberAccount);
   await signIn(page, updatedMemberAccount);
-  await deleteCurrentAccount(page);
+  await deleteCurrentAccount(page, memberAccount.password);
   await expectSignInRejected(page, updatedMemberAccount);
   await expect
     .poll(async () =>

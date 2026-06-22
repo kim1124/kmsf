@@ -8,16 +8,23 @@ async function expectBaseTypography(page: Page) {
 }
 
 async function signUpMember(page: Page, runId: string) {
+  const username = `typo${runId.slice(-8)}`;
+  const password = "member00@!";
+
   await page.goto("/sign-up");
   await page.waitForLoadState("networkidle");
   await expectBaseTypography(page);
   await expect(page.getByRole("heading", { name: "회원 가입" })).toBeVisible();
 
-  await page.locator("#sign-up-username").fill(`typo${runId.slice(-8)}`);
+  await page.locator("#sign-up-username").fill(username);
   await page.locator("#sign-up-email").fill(`typo_${runId}@mailinator.com`);
-  await page.locator("#sign-up-password").fill("member00@!");
-  await page.locator("#sign-up-password-confirm").fill("member00@!");
+  await page.locator("#sign-up-password").fill(password);
+  await page.locator("#sign-up-password-confirm").fill(password);
   await page.getByRole("button", { name: "회원 가입", exact: true }).click();
+  await page.waitForURL("**/sign-in?success=registered", { timeout: 20_000 });
+  await page.locator("#login-username").fill(username);
+  await page.locator("#login-password").fill(password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
   await page.waitForURL("**/dashboard", { timeout: 20_000 });
 }
 

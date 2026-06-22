@@ -18,6 +18,7 @@ type FieldWithTooltipProps = {
   defaultValue?: string;
   value?: string;
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
+  onBlur?: React.FocusEventHandler<HTMLInputElement>;
   errorText?: string | null;
   tooltipTrigger?: "icon";
 };
@@ -34,6 +35,7 @@ export function FieldWithTooltip({
   defaultValue,
   value,
   onChange,
+  onBlur,
   errorText,
   tooltipTrigger = "icon",
 }: FieldWithTooltipProps) {
@@ -53,6 +55,7 @@ export function FieldWithTooltip({
       placeholder={placeholder}
       type={type}
       value={value}
+      onBlur={onBlur}
       onChange={onChange}
     />
   );

@@ -1,0 +1,104 @@
+.kmsf-chat-sidebar {
+  border-right: 1px solid var(--kmsf-chat-border);
+  background: var(--kmsf-chat-surface);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.kmsf-chat-sidebar__header,
+.kmsf-chat-sidebar__footer {
+  display: grid;
+}
+
+.kmsf-chat-sidebar__header-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.kmsf-chat-sidebar[data-collapsed="true"] {
+  padding: 12px 10px;
+}
+
+.kmsf-chat-sidebar[data-collapsed="true"] .kmsf-chat-sidebar__header-actions {
+  grid-template-columns: 1fr;
+}
+
+.kmsf-chat-sidebar[data-collapsed="true"] .kmsf-chat-sidebar__new,
+.kmsf-chat-sidebar[data-collapsed="true"] .kmsf-chat-settings-button {
+  min-width: 38px;
+  padding-inline: 0;
+}
+
+.kmsf-chat-sidebar__list {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 0;
+}
+
+.kmsf-chat-sidebar__empty {
+  color: var(--kmsf-chat-muted-foreground);
+  font-size: 13px;
+  margin: 0;
+  padding: 8px 4px;
+}
+
+.kmsf-chat-sidebar[data-collapsed="true"] .kmsf-chat-sidebar__empty,
+.kmsf-chat-sidebar[data-collapsed="true"] .kmsf-chat-connection-card {
+  display: none;
+}
+
+.kmsf-chat-settings-button {
+  width: 100%;
+}
+
+.kmsf-chat-connection-card {
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius);
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.kmsf-chat-connection-card p {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.kmsf-chat-connection-card span,
+.kmsf-chat-connection-card time {
+  color: var(--kmsf-chat-muted-foreground);
+  font-size: 12px;
+}
+
+.kmsf-chat-connection-card strong {
+  align-items: center;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.kmsf-chat-connection-dot {
+  border-radius: var(--kmsf-chat-radius-full);
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+
+.kmsf-chat-connection-dot[data-connected="true"] {
+  background: var(--kmsf-chat-accent);
+}
+
+.kmsf-chat-connection-dot[data-connected="false"] {
+  background: var(--kmsf-chat-danger);
+}

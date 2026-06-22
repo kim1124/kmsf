@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import * as chat from "../../src";
+
 const packageRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 
 function readJson<T>(path: string): T {
@@ -42,18 +44,24 @@ describe("@kmsf/chat package contract", () => {
       "@playwright/test": expect.any(String),
       "@tailwindcss/postcss": expect.any(String),
       "@vitejs/plugin-react": expect.any(String),
+      sass: expect.any(String),
       tailwindcss: expect.any(String),
       typescript: expect.any(String),
       vite: expect.any(String),
       vitest: expect.any(String),
     });
     expect(pkg.scripts).toMatchObject({
-      build: "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+      build: "vite build && tsc -p tsconfig.build.json && sass src/styles/index.scss dist/styles.css --no-source-map",
       lint: "tsc --noEmit",
       "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
       "test:run": "vitest run",
       verify: "npm run lint && npm run test:run && npm run build",
       "verify:full": "npm run verify && npm run test:e2e",
     });
+  });
+
+  it("exports the floating chatbot entry point", () => {
+    expect(chat).toHaveProperty("ChatFloatingButton");
+    expect(chat).toHaveProperty("createLocalChatStore");
   });
 });

@@ -1,0 +1,120 @@
+.kmsf-chat-root,
+.kmsf-chat-root * {
+  box-sizing: border-box;
+}
+
+.kmsf-chat-root {
+  --kmsf-chat-background: var(--kmsf-color-background, #ffffff);
+  --kmsf-chat-foreground: var(--kmsf-color-foreground, #111827);
+  --kmsf-chat-surface: var(--kmsf-color-surface, #ffffff);
+  --kmsf-chat-surface-muted: var(--kmsf-color-surface-muted, #f6fcfa);
+  --kmsf-chat-panel: var(--kmsf-color-panel, #ffffff);
+  --kmsf-chat-panel-hover: var(--kmsf-color-panel-hover, #e8f8f2);
+  --kmsf-chat-border: var(--kmsf-color-border, rgba(57, 99, 88, 0.18));
+  --kmsf-chat-ring: var(--kmsf-color-ring, rgba(45, 212, 191, 0.2));
+  --kmsf-chat-accent: var(--kmsf-color-accent, #10b981);
+  --kmsf-chat-accent-soft: var(--kmsf-color-accent-soft, #dff8ef);
+  --kmsf-chat-accent-foreground: var(--kmsf-color-accent-foreground, #ffffff);
+  --kmsf-chat-danger: var(--kmsf-color-danger, #ef4444);
+  --kmsf-chat-muted-foreground: var(--kmsf-color-muted-foreground, #586070);
+  --kmsf-chat-radius-sm: var(--kmsf-radius-sm, 0.375rem);
+  --kmsf-chat-radius: var(--kmsf-radius-md, 0.75rem);
+  --kmsf-chat-radius-lg: var(--kmsf-radius-lg, 1rem);
+  --kmsf-chat-radius-full: var(--kmsf-radius-full, 9999px);
+  --kmsf-chat-shadow-panel: var(--kmsf-shadow-panel, 0 12px 32px rgba(16, 185, 129, 0.04));
+  --kmsf-chat-shadow-overlay: var(--kmsf-shadow-overlay, 0 24px 80px rgba(15, 23, 42, 0.28));
+  --kmsf-chat-motion: var(--kmsf-motion-fast, 180ms);
+  min-height: 100vh;
+  background: var(--kmsf-chat-background);
+  color: var(--kmsf-chat-foreground);
+  color-scheme: light;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.kmsf-chat-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.kmsf-chat-error {
+  color: var(--kmsf-chat-danger);
+  font-size: 13px;
+  margin: 0;
+}
+
+.kmsf-chat-field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kmsf-chat-field input,
+.kmsf-chat-field select,
+.kmsf-chat-composer textarea {
+  width: 100%;
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius-sm);
+  background: var(--kmsf-chat-surface);
+  color: var(--kmsf-chat-foreground);
+  font: inherit;
+  min-height: 40px;
+  padding: 9px 11px;
+}
+
+.kmsf-chat-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.kmsf-chat-icon-button,
+.kmsf-chat-settings-button,
+.kmsf-chat-sidebar__new,
+.kmsf-chat-primary,
+.kmsf-chat-dialog button,
+.kmsf-chat-composer button,
+.kmsf-chat-floating__button,
+.kmsf-chat-floating__form button,
+.kmsf-chat-toggle-button,
+.kmsf-chat-thread-select,
+.kmsf-chat-thread-action {
+  align-items: center;
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius-sm);
+  background: var(--kmsf-chat-surface);
+  color: var(--kmsf-chat-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.kmsf-chat-icon-button {
+  min-width: 38px;
+  padding: 0;
+}
+
+.kmsf-chat-primary,
+.kmsf-chat-composer button,
+.kmsf-chat-floating__button,
+.kmsf-chat-floating__form button {
+  background: var(--kmsf-chat-accent);
+  border-color: var(--kmsf-chat-accent);
+  color: var(--kmsf-chat-accent-foreground);
+}
+
+.kmsf-chat-primary:disabled,
+.kmsf-chat-composer button:disabled,
+.kmsf-chat-floating__form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

@@ -75,6 +75,10 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
 
   const [formValues, setFormValues] = useState(createEmptySignInFields);
   const [clientErrors, setClientErrors] = useState(createEmptySignInFieldErrors);
+  const [touchedFields, setTouchedFields] = useState<Record<keyof typeof formValues, boolean>>({
+    password: false,
+    username: false,
+  });
   const [dismissedLockMessage, setDismissedLockMessage] = useState<string | null>(null);
   const lockedMessage = messages.locked.replace(
     "{seconds}",
@@ -90,13 +94,32 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
     setClientErrors(getLiveSignInFieldErrors(newValues));
   }
 
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const field = e.target.name as keyof typeof formValues;
+    setTouchedFields((current) => ({ ...current, [field]: true }));
+  }
+
+  function getVisibleError(field: keyof typeof formValues) {
+    return (
+      (touchedFields[field]
+        ? getErrorMessage(field, clientErrors[field], messages.fieldErrors)
+        : null) ?? getErrorMessage(field, state.fieldErrors[field], messages.fieldErrors)
+    );
+  }
+
   return (
     <>
       <form
         action={(formData) => {
           setDismissedLockMessage(null);
+          const nextErrors = getLiveSignInFieldErrors(formValues);
+          setClientErrors(nextErrors);
 
-          if (Object.values(clientErrors).some(Boolean)) {
+          if (Object.values(nextErrors).some(Boolean)) {
+            setTouchedFields({
+              password: true,
+              username: true,
+            });
             return;
           }
 
@@ -111,10 +134,8 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
         autoComplete="username"
         value={formValues.username}
         onChange={handleChange}
-        errorText={
-          getErrorMessage("username", clientErrors.username, messages.fieldErrors) ??
-          getErrorMessage("username", state.fieldErrors.username, messages.fieldErrors)
-        }
+        onBlur={handleBlur}
+        errorText={getVisibleError("username")}
         id="login-username"
         label={labels.username}
         maxLength={32}
@@ -125,10 +146,8 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
         autoComplete="current-password"
         value={formValues.password}
         onChange={handleChange}
-        errorText={
-          getErrorMessage("password", clientErrors.password, messages.fieldErrors) ??
-          getErrorMessage("password", state.fieldErrors.password, messages.fieldErrors)
-        }
+        onBlur={handleBlur}
+        errorText={getVisibleError("password")}
         id="login-password"
         label={labels.password}
         maxLength={32}
@@ -143,7 +162,7 @@ export function SignInForm({ locale, csrfToken, labels, tooltips, messages }: Si
         </div>
       ) : null}
       <div className="grid gap-3 pt-2">
-        <Button disabled={isPending || Object.values(clientErrors).some(Boolean)} type="submit">
+        <Button disabled={isPending} type="submit">
           {labels.submit}
         </Button>
       </div>

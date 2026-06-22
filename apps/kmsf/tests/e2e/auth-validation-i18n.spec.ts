@@ -55,6 +55,12 @@ async function expectTranslatedValidation(
     await page.locator("#login-username").fill("kim");
   }
   await page.locator(passwordSelector).fill("1234");
+  await expect(
+    page.getByText(isInitialSetupPage ? expectedEmailMessage : expectedUsernameMessage, {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(page.getByText(expectedPasswordMessage, { exact: true })).toHaveCount(0);
   await page.locator("body").click();
 
   await expect(

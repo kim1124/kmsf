@@ -1,8 +1,10 @@
 export type ChatProvider = "ollama";
-export type ChatStorageMode = "local" | "supabase";
+export type ChatStorageMode = "local" | "local-db" | "supabase";
+export type ChatLocalDbType = "lowdb-json";
 export type ChatRole = "system" | "user" | "assistant";
 export type ChatMessageStatus = "pending" | "complete" | "error" | "aborted";
 export type ModelDiscoveryStatus = "idle" | "loading" | "ready" | "error";
+export type ChatThreadSource = "main" | "floating";
 
 export interface ChatUserIdentity {
   id: string;
@@ -12,8 +14,12 @@ export interface ChatUserIdentity {
 
 export interface ChatModelSettings {
   baseUrl: string;
+  localDbEndpoint?: string;
+  localDbPath?: string;
+  localDbType?: ChatLocalDbType;
   manualModelEntryAllowed: boolean;
   manualModelName?: string;
+  modelConnectedAt?: string;
   modelDiscoveryStatus: ModelDiscoveryStatus;
   provider: ChatProvider;
   selectedModel: string | null;
@@ -23,6 +29,7 @@ export interface ChatModelSettings {
 export interface ChatThread {
   createdAt: string;
   id: string;
+  source?: ChatThreadSource;
   title: string;
   updatedAt: string;
 }
@@ -67,4 +74,20 @@ export interface StorageLike {
 export interface StoreResult<T> {
   error?: ChatPackageError;
   items: T;
+}
+
+export interface StoreItemResult<T> {
+  error?: ChatPackageError;
+  item: T | null;
+}
+
+export interface ChatHistoryStore {
+  deleteMessages(threadId: string): void | Promise<unknown>;
+  deleteThread(threadId: string): void | Promise<unknown>;
+  loadMessages(threadId: string): StoreResult<ChatMessage[]> | Promise<StoreResult<ChatMessage[]>>;
+  loadSettings(): StoreItemResult<ChatModelSettings> | Promise<StoreItemResult<ChatModelSettings>>;
+  loadThreads(): StoreResult<ChatThread[]> | Promise<StoreResult<ChatThread[]>>;
+  saveMessages(threadId: string, messages: ChatMessage[]): void | Promise<unknown>;
+  saveSettings(settings: ChatModelSettings): void | Promise<unknown>;
+  saveThreads(threads: ChatThread[]): void | Promise<unknown>;
 }

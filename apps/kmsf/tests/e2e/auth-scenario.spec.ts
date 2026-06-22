@@ -96,6 +96,12 @@ async function signUpMember(
   await gotoAndSettle(page, "/sign-up", expectNoBrowserIssues);
   await fillAccountForm(page, "sign-up", account);
   await page.getByRole("button", { name: "회원 가입", exact: true }).click();
+  await page.waitForURL("**/sign-in?success=registered", { timeout: 20_000 });
+  await expect(page.getByRole("status")).toContainText("회원 가입이 완료되었습니다.");
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await page.locator("#login-username").fill(account.username);
+  await page.locator("#login-password").fill(account.password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
   await page.waitForURL("**/dashboard", { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
   await expectNoBrowserIssues(`member-created:${account.username}`);
@@ -146,14 +152,19 @@ async function expectMainPages(
 async function deleteCurrentAccount(
   page: Page,
   expectNoBrowserIssues: (checkpoint: string) => Promise<void>,
+  password: string,
 ) {
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
   await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
   await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
-  await page.locator("#delete-account-confirmation").fill("DELETE");
+  await page.locator("#delete-account-password").fill("wrong-password");
+  await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();
+  await expect(page.getByText("비밀번호가 올바르지 않습니다.")).toBeVisible();
+  await page.locator("#delete-account-password").fill(password);
   await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();
   await page.waitForURL("**/sign-in?success=deleted", { timeout: 20_000 });
-  await expect(page.getByText("회원 탈퇴가 완료되었습니다.")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("회원 탈퇴가 완료되었습니다.");
+  await expect(page).toHaveURL(/\/sign-in$/);
   await expectNoBrowserIssues("account-deleted");
 }
 
@@ -190,7 +201,7 @@ test("initial setup, member signup, page navigation, logout, and deletion follow
 
   await signOut(page, expectNoBrowserIssues);
   await signInWithUsername(page, expectNoBrowserIssues, memberAccount);
-  await deleteCurrentAccount(page, expectNoBrowserIssues);
+  await deleteCurrentAccount(page, expectNoBrowserIssues, memberAccount.password);
 
   await page.locator("#login-username").fill(memberAccount.username);
   await page.locator("#login-password").fill(memberAccount.password);

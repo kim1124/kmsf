@@ -5,7 +5,7 @@ import { createLocalSetupStore } from "../../src/adapters/local/local-setup-stor
 import { createDefaultChatSetup } from "../../src/core/setup-state";
 
 class MemoryStorage {
-  private values = new Map<string, string>();
+  readonly values = new Map<string, string>();
 
   getItem(key: string) {
     return this.values.get(key) ?? null;
@@ -62,6 +62,46 @@ describe("local stores", () => {
 
     expect(store.loadThreads().items.map((thread) => thread.id)).toEqual(["new", "old"]);
     expect(store.loadMessages("new").items.map((message) => message.id)).toEqual(["1", "2"]);
+  });
+
+  it("applies custom key prefix to threads and settings", () => {
+    const storage = new MemoryStorage();
+    const store = createLocalChatStore({ keyPrefix: "custom.chat", storage });
+
+    store.saveThreads([]);
+    store.saveSettings({ ...createDefaultChatSetup(), selectedModel: "model-a" });
+
+    expect(storage.values.has("custom.chat.threads")).toBe(true);
+    expect(storage.values.has("custom.chat.settings")).toBe(true);
+    expect(storage.values.has("kmsf.chat.threads")).toBe(false);
+    expect(storage.values.has("kmsf.chat.settings")).toBe(false);
+  });
+
+  it("deletes a thread and its messages from local persistence", () => {
+    const storage = new MemoryStorage();
+    const store = createLocalChatStore({ storage });
+
+    store.saveThreads([
+      { createdAt: "2026-06-08T00:00:00.000Z", id: "thread-1", title: "thread", updatedAt: "2026-06-08T00:00:00.000Z" },
+    ]);
+    store.saveMessages("thread-1", [
+      {
+        content: "message",
+        createdAt: "2026-06-08T00:00:00.000Z",
+        id: "message-1",
+        role: "user",
+        status: "complete",
+        threadId: "thread-1",
+        updatedAt: "2026-06-08T00:00:00.000Z",
+      },
+    ]);
+
+    store.deleteThread("thread-1");
+    store.deleteMessages("thread-1");
+
+    expect(store.loadThreads().items).toEqual([]);
+    expect(store.loadMessages("thread-1").items).toEqual([]);
+    expect(storage.values.has("kmsf.chat.messages.thread-1")).toBe(false);
   });
 
   it("returns safe empty state for corrupt JSON", () => {

@@ -55,6 +55,12 @@ async function signUpMember(
   await page.locator("#sign-up-password").fill(input.password);
   await page.locator("#sign-up-password-confirm").fill(input.password);
   await page.getByRole("button", { name: "회원 가입", exact: true }).click();
+  await page.waitForURL("**/sign-in?success=registered", { timeout: 20000 });
+  await expect(page.getByRole("status")).toContainText("회원 가입이 완료되었습니다.");
+  await expect(page).toHaveURL(/\/sign-in$/);
+  await page.locator("#login-username").fill(input.username);
+  await page.locator("#login-password").fill(input.password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
   await page.waitForURL("**/dashboard", { timeout: 20000 });
 }
 
@@ -92,14 +98,15 @@ async function signInFromCurrentPage(
   await signInWithUsername(page, input);
 }
 
-async function deleteCurrentAccount(page: import("@playwright/test").Page) {
+async function deleteCurrentAccount(page: import("@playwright/test").Page, password: string) {
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
   await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
   await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
-  await page.locator("#delete-account-confirmation").fill("DELETE");
+  await page.locator("#delete-account-password").fill(password);
   await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();
   await page.waitForURL("**/sign-in?success=deleted", { timeout: 20000 });
-  await expect(page.getByText("회원 탈퇴가 완료되었습니다.")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("회원 탈퇴가 완료되었습니다.");
+  await expect(page).toHaveURL(/\/sign-in$/);
 }
 
 test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member deletion", async ({ page }) => {
@@ -144,7 +151,7 @@ test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member
       username: memberUsername,
     });
     await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
-    await deleteCurrentAccount(page);
+    await deleteCurrentAccount(page, memberPassword);
 
     await page.locator("#login-username").fill(memberUsername);
     await page.locator("#login-password").fill(memberPassword);
@@ -157,7 +164,7 @@ test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member
         password: adminPassword,
         username: "admin",
       });
-      await deleteCurrentAccount(page);
+      await deleteCurrentAccount(page, adminPassword);
     }
   }
 });

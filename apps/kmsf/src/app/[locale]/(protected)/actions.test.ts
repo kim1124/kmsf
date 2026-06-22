@@ -7,6 +7,8 @@ const actionMocks = vi.hoisted(() => {
   const clearLocalJsonSessionCookie = vi.fn();
   const clearProjectSetupConfig = vi.fn();
   const createLocalBackup = vi.fn();
+  const deleteUser = vi.fn();
+  const deleteLocalJsonAccount = vi.fn();
   const getCurrentUser = vi.fn();
   const isSupabaseConfigured = vi.fn();
   const hasSupabaseSecretKey = vi.fn();
@@ -35,6 +37,8 @@ const actionMocks = vi.hoisted(() => {
     clearLocalJsonSessionCookie,
     clearProjectSetupConfig,
     createLocalBackup,
+    deleteLocalJsonAccount,
+    deleteUser,
     getCurrentUser,
     hasSupabaseSecretKey,
     insertSupabaseBackup,
@@ -74,6 +78,7 @@ vi.mock("@/lib/auth/providers/runtime-auth-provider", () => ({
 }));
 
 vi.mock("@/lib/auth/providers/local-json-auth-store", () => ({
+  deleteLocalJsonAccount: actionMocks.deleteLocalJsonAccount,
   listLocalJsonAccounts: actionMocks.listLocalJsonAccounts,
   readLocalJsonAuthStoreSnapshot: actionMocks.readLocalJsonAuthStoreSnapshot,
   resetLocalJsonAuthStore: actionMocks.resetLocalJsonAuthStore,
@@ -108,6 +113,11 @@ vi.mock("@/lib/supabase/account-admin", () => ({
 
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: () => ({
+    auth: {
+      admin: {
+        deleteUser: actionMocks.deleteUser,
+      },
+    },
     from: actionMocks.managerFrom,
   }),
 }));
@@ -150,6 +160,14 @@ function buildResetForm(input?: {
   return formData;
 }
 
+function buildDeleteForm(input?: { password?: string }) {
+  const formData = new FormData();
+
+  formData.set("password", input?.password ?? "admin-password");
+
+  return formData;
+}
+
 describe("resetSystemAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -157,6 +175,8 @@ describe("resetSystemAction", () => {
     actionMocks.appendSupabaseAudit.mockResolvedValue(null);
     actionMocks.clearAppSessionCookie.mockResolvedValue(null);
     actionMocks.clearLocalJsonSessionCookie.mockResolvedValue(null);
+    actionMocks.deleteLocalJsonAccount.mockResolvedValue(null);
+    actionMocks.deleteUser.mockResolvedValue({ error: null });
     actionMocks.clearProjectSetupConfig.mockResolvedValue(null);
     actionMocks.createLocalBackup.mockResolvedValue({
       ref: "file:/tmp/kmsf-reset-backup.json",
@@ -341,5 +361,85 @@ describe("resetSystemAction", () => {
         status: "success",
       }),
     );
+  });
+});
+
+describe("deleteAccountAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    actionMocks.clearAppSessionCookie.mockResolvedValue(null);
+    actionMocks.clearLocalJsonSessionCookie.mockResolvedValue(null);
+    actionMocks.getCurrentUser.mockResolvedValue({
+      authMode: "local-json",
+      avatarDataUrl: null,
+      avatarInitials: "AD",
+      displayName: "admin",
+      email: "admin@test.local",
+      id: "local_admin",
+      isAuthenticated: true,
+      level: 3,
+      role: "admin",
+      username: "admin",
+    });
+    actionMocks.hasSupabaseSecretKey.mockReturnValue(true);
+    actionMocks.isSupabaseConfigured.mockReturnValue(true);
+    actionMocks.resolveRuntimeAuthProvider.mockResolvedValue({
+      attempts: 0,
+      provider: "local-json",
+      reason: "explicit-local-json",
+    });
+    actionMocks.signOut.mockResolvedValue(null);
+    actionMocks.verifyCsrfToken.mockResolvedValue(true);
+    actionMocks.verifyLocalJsonAccountPassword.mockResolvedValue(true);
+    actionMocks.verifySupabaseAccountPassword.mockResolvedValue(true);
+  });
+
+  it("keeps the dialog open with an inline password error for local-json rejection", async () => {
+    actionMocks.verifyLocalJsonAccountPassword.mockResolvedValueOnce(false);
+    const { deleteAccountAction } = await import("./actions");
+
+    await expect(
+      deleteAccountAction({ error: null }, buildDeleteForm({ password: "wrong-password" })),
+    ).resolves.toEqual({ error: "password" });
+
+    expect(actionMocks.clearLocalJsonSessionCookie).not.toHaveBeenCalled();
+    expect(actionMocks.clearAppSessionCookie).not.toHaveBeenCalled();
+    expect(actionMocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("verifies the current Supabase password before deleting the account", async () => {
+    actionMocks.getCurrentUser.mockResolvedValueOnce({
+      authMode: "supabase",
+      avatarDataUrl: null,
+      avatarInitials: "AD",
+      displayName: "admin",
+      email: "admin@test.local",
+      id: "manager-1",
+      isAuthenticated: true,
+      level: 3,
+      role: "admin",
+      username: "admin",
+    });
+    actionMocks.resolveRuntimeAuthProvider.mockResolvedValueOnce({
+      attempts: 1,
+      provider: "supabase",
+      reason: "supabase-ready",
+    });
+    actionMocks.managerFrom.mockReturnValueOnce({
+      delete: vi.fn(() => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      })),
+    });
+    const { deleteAccountAction } = await import("./actions");
+
+    await expect(
+      deleteAccountAction({ error: null }, buildDeleteForm({ password: "admin-password" })),
+    ).rejects.toThrow("REDIRECT:/sign-in?success=deleted");
+
+    expect(actionMocks.verifySupabaseAccountPassword).toHaveBeenCalledWith(
+      "admin@test.local",
+      "admin-password",
+    );
+    expect(actionMocks.deleteUser).toHaveBeenCalledWith("manager-1");
   });
 });

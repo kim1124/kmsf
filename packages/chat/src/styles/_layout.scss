@@ -1,0 +1,209 @@
+.kmsf-chat-setup {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.kmsf-chat-setup__panel {
+  display: grid;
+  width: min(100%, 560px);
+  gap: 18px;
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius);
+  background: var(--kmsf-chat-surface);
+  padding: 24px;
+  box-shadow: var(--kmsf-chat-shadow-panel);
+}
+
+.kmsf-chat-setup__header h1,
+.kmsf-chat-main__header h1,
+.kmsf-chat-settings-page h2,
+.kmsf-chat-dialog h2,
+.kmsf-chat-playground-topbar h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.kmsf-chat-setup__header p,
+.kmsf-chat-playground-topbar p {
+  margin: 6px 0 0;
+  color: var(--kmsf-chat-muted-foreground);
+}
+
+.kmsf-chat-storage {
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius);
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.kmsf-chat-storage label {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+}
+
+.kmsf-chat-storage-card {
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius-sm);
+  padding: 10px;
+}
+
+.kmsf-chat-storage-card span {
+  display: grid;
+  gap: 3px;
+}
+
+.kmsf-chat-storage-card small,
+.kmsf-chat-field small {
+  color: var(--kmsf-chat-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.kmsf-chat-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.kmsf-chat-status-banner {
+  border-bottom: 1px solid var(--kmsf-chat-border);
+  background: var(--kmsf-chat-surface-muted);
+  color: var(--kmsf-chat-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 14px;
+}
+
+.kmsf-chat-playground-topbar {
+  align-items: center;
+  border-bottom: 1px solid var(--kmsf-chat-border);
+  background: var(--kmsf-chat-surface);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+
+.kmsf-chat-playground-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.kmsf-chat-playground-meta span {
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius-full);
+  color: var(--kmsf-chat-muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.kmsf-chat-shell {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 0;
+  transition: grid-template-columns var(--kmsf-chat-motion) ease;
+}
+
+.kmsf-chat-shell[data-sidebar-collapsed="true"] {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+.kmsf-chat-main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.kmsf-chat-main__header {
+  align-items: center;
+  border-bottom: 1px solid var(--kmsf-chat-border);
+  background: var(--kmsf-chat-surface);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.kmsf-chat-toggle-button[aria-pressed="true"] {
+  background: var(--kmsf-chat-accent);
+  border-color: var(--kmsf-chat-accent);
+  color: var(--kmsf-chat-accent-foreground);
+}
+
+.kmsf-chat-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.kmsf-chat-status span {
+  align-items: center;
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius-full);
+  color: var(--kmsf-chat-muted-foreground);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.kmsf-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+}
+
+.kmsf-chat-empty {
+  color: var(--kmsf-chat-muted-foreground);
+  margin: auto;
+}
+
+.kmsf-chat-message {
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius);
+  max-width: min(760px, 100%);
+  padding: 12px;
+}
+
+.kmsf-chat-message--user {
+  align-self: flex-end;
+  background: var(--kmsf-chat-accent);
+  color: var(--kmsf-chat-accent-foreground);
+}
+
+.kmsf-chat-message--assistant {
+  align-self: flex-start;
+  background: var(--kmsf-chat-surface);
+}
+
+.kmsf-chat-message__role {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.kmsf-chat-message p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.kmsf-chat-settings-page {
+  margin: 20px;
+}

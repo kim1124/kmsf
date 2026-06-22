@@ -394,27 +394,39 @@ export async function updateProfileAction(formData: FormData) {
   return { success: true };
 }
 
-export async function deleteAccountAction(formData: FormData) {
+export type DeleteAccountFormState = {
+  error: "delete" | "password" | "security" | "service-role" | "validation" | null;
+};
+
+export async function deleteAccountAction(
+  _prevState: DeleteAccountFormState,
+  formData: FormData,
+): Promise<DeleteAccountFormState> {
   if (!(await verifyCsrfToken(formData))) {
-    redirect(`/settings?accountError=security`);
+    return { error: "security" };
   }
 
-  const confirmation = String(formData.get("confirmation") ?? "").trim().toUpperCase();
+  const password = String(formData.get("password") ?? "");
 
-  if (confirmation !== "DELETE") {
-    redirect(`/settings?accountError=validation`);
+  if (!password) {
+    return { error: "password" };
   }
 
   const runtimeProvider = await resolveRuntimeAuthProvider();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    redirect(`/sign-in`);
+  }
 
   if (runtimeProvider.provider === "local-json") {
-    const { deleteLocalJsonAccount } = await import(
+    const { deleteLocalJsonAccount, verifyLocalJsonAccountPassword } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
-    const currentUser = await getCurrentUser();
+    const passwordValid = await verifyLocalJsonAccountPassword(currentUser.id, password);
 
-    if (!currentUser) {
-      redirect(`/sign-in`);
+    if (!passwordValid) {
+      return { error: "password" };
     }
 
     await deleteLocalJsonAccount(currentUser.id);
@@ -425,17 +437,27 @@ export async function deleteAccountAction(formData: FormData) {
   }
 
   if (!isSupabaseConfigured()) {
-    redirect(`/settings?accountError=validation`);
+    return { error: "validation" };
   }
 
   if (!hasSupabaseSecretKey()) {
-    redirect(`/settings?accountError=service-role`);
+    return { error: "service-role" };
   }
 
-  const currentUser = await getCurrentUser();
+  let passwordValid = false;
 
-  if (!currentUser) {
-    redirect(`/sign-in`);
+  try {
+    passwordValid = await verifySupabaseAccountPassword(currentUser.email, password);
+  } catch (error) {
+    console.error("deleteAccountAction Supabase password verification failed", {
+      error,
+      userId: currentUser.id,
+    });
+    return { error: "password" };
+  }
+
+  if (!passwordValid) {
+    return { error: "password" };
   }
 
   const admin = createSupabaseAdminClient();
@@ -450,7 +472,7 @@ export async function deleteAccountAction(formData: FormData) {
       status: deleteAuthError.status ?? null,
       userId: currentUser.id,
     });
-    redirect(`/settings?accountError=delete`);
+    return { error: "delete" };
   }
 
   const { error: deleteManagerError } = await admin.from("manager").delete().eq("id", currentUser.id);
