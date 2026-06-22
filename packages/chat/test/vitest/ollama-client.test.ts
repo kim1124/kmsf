@@ -76,4 +76,19 @@ describe("ollama client", () => {
       }),
     );
   });
+
+  it("throws a normalized error when chat response fails", async () => {
+    const fetch = vi.fn(async () => new Response("failed", { status: 500 }));
+    const client = createOllamaClient({ baseUrl: "http://localhost:11434", fetch });
+
+    await expect(
+      client.streamChat({
+        messages: [{ content: "hello", role: "user" }],
+        model: "manual-model",
+      }),
+    ).rejects.toMatchObject({
+      code: "ollama_chat_error",
+      message: "Ollama chat failed with 500.",
+    });
+  });
 });

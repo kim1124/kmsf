@@ -64,4 +64,20 @@ describe("supabase chat store", () => {
       items: [],
     });
   });
+
+  it("deletes threads and messages with user ownership filters", async () => {
+    const query = createTableMock({ data: null, error: null });
+    const client = { from: vi.fn(() => query) };
+    const store = createSupabaseChatStore({ client, user: { id: "user-1" } });
+
+    await store.deleteMessages("thread-1");
+    await store.deleteThread("thread-1");
+
+    expect(client.from).toHaveBeenCalledWith("kmsf_chat_messages");
+    expect(client.from).toHaveBeenCalledWith("kmsf_chat_threads");
+    expect(query.delete).toHaveBeenCalledTimes(2);
+    expect(query.eq).toHaveBeenCalledWith("thread_id", "thread-1");
+    expect(query.eq).toHaveBeenCalledWith("id", "thread-1");
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+  });
 });

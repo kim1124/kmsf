@@ -26,6 +26,16 @@ type SupabaseChatStoreOptions = {
 
 export function createSupabaseChatStore(options: SupabaseChatStoreOptions) {
   return {
+    async deleteMessages(threadId: string) {
+      const query = options.client.from("kmsf_chat_messages").delete?.();
+      const response = await query?.eq("thread_id", threadId).eq("user_id", options.user.id);
+      return toWriteResult(response);
+    },
+    async deleteThread(threadId: string) {
+      const query = options.client.from("kmsf_chat_threads").delete?.();
+      const response = await query?.eq("id", threadId).eq("user_id", options.user.id);
+      return toWriteResult(response);
+    },
     async loadMessages(threadId: string) {
       const response = await options.client
         .from("kmsf_chat_messages")
@@ -34,6 +44,14 @@ export function createSupabaseChatStore(options: SupabaseChatStoreOptions) {
         .eq("user_id", options.user.id)
         .order("created_at", { ascending: true });
       return toItemsResult<ChatMessage>(response);
+    },
+    async loadSettings() {
+      const response = await options.client
+        .from("kmsf_chat_settings")
+        .select("settings")
+        .eq("user_id", options.user.id)
+        .order("updated_at", { ascending: false });
+      return toSettingsResult(response);
     },
     async loadThreads() {
       const response = await options.client
@@ -74,6 +92,7 @@ export function createSupabaseChatStore(options: SupabaseChatStoreOptions) {
       const values = threads.map((thread) => ({
         created_at: thread.createdAt,
         id: thread.id,
+        source: thread.source ?? "main",
         title: thread.title,
         updated_at: thread.updatedAt,
         user_id: options.user.id,
@@ -92,6 +111,19 @@ function toItemsResult<T>(response: SupabaseResponse<unknown>) {
     };
   }
   return { items: Array.isArray(response.data) ? (response.data as T[]) : [] };
+}
+
+function toSettingsResult(response: SupabaseResponse<unknown>) {
+  if (response.error) {
+    return {
+      error: createChatError("supabase_storage_error", getErrorMessage(response.error), response.error),
+      item: null,
+    };
+  }
+  const row = Array.isArray(response.data) ? response.data[0] : null;
+  const settings = row && typeof row === "object" && "settings" in row ? row.settings : null;
+
+  return { item: settings as ChatModelSettings | null };
 }
 
 function toWriteResult(response: SupabaseResponse<unknown> | SupabaseQuery | undefined) {

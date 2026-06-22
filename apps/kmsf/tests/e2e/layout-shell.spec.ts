@@ -20,9 +20,14 @@ test("header brand, footer clock, and active navigation behave correctly", async
     await page.waitForLoadState("networkidle");
     await page.locator("#sign-up-username").fill(`member${runId.slice(-6)}`);
     await page.locator("#sign-up-email").fill(`member_${runId}@mailinator.com`);
-    await page.locator("#sign-up-password").fill("member00@!");
-    await page.locator("#sign-up-password-confirm").fill("member00@!");
+    const password = "member00@!";
+    await page.locator("#sign-up-password").fill(password);
+    await page.locator("#sign-up-password-confirm").fill(password);
     await page.getByRole("button", { name: "회원 가입", exact: true }).click();
+    await page.waitForURL("**/sign-in?success=registered", { timeout: 20_000 });
+    await page.locator("#login-username").fill(`member${runId.slice(-6)}`);
+    await page.locator("#login-password").fill(password);
+    await page.getByRole("button", { name: "로그인", exact: true }).click();
     await page.waitForURL("**/dashboard", { timeout: 20_000 });
   }
 

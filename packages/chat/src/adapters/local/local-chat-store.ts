@@ -1,8 +1,13 @@
 import { createChatError, getErrorMessage } from "../../core/errors";
-import type { ChatMessage, ChatModelSettings, ChatThread, StorageLike, StoreResult } from "../../core/types";
-
-const THREADS_KEY = "kmsf.chat.threads";
-const SETTINGS_KEY = "kmsf.chat.settings";
+import type {
+  ChatHistoryStore,
+  ChatMessage,
+  ChatModelSettings,
+  ChatThread,
+  StorageLike,
+  StoreItemResult,
+  StoreResult,
+} from "../../core/types";
 
 type LocalChatStoreOptions = {
   keyPrefix?: string;
@@ -11,27 +16,40 @@ type LocalChatStoreOptions = {
 
 export function createLocalChatStore(options: LocalChatStoreOptions) {
   const prefix = options.keyPrefix ?? "kmsf.chat";
+  const threadsKey = `${prefix}.threads`;
+  const settingsKey = `${prefix}.settings`;
 
-  return {
+  const store = {
+    deleteMessages(threadId: string) {
+      options.storage.removeItem(`${prefix}.messages.${threadId}`);
+    },
+    deleteThread(threadId: string) {
+      const threads = readList(options.storage, threadsKey, sortThreads).items.filter(
+        (thread) => thread.id !== threadId,
+      );
+      options.storage.setItem(threadsKey, JSON.stringify(threads));
+    },
     loadMessages(threadId: string): StoreResult<ChatMessage[]> {
       return readList(options.storage, `${prefix}.messages.${threadId}`, sortMessages);
     },
     loadSettings() {
-      return readItem<ChatModelSettings>(options.storage, SETTINGS_KEY);
+      return readItem<ChatModelSettings>(options.storage, settingsKey);
     },
     loadThreads(): StoreResult<ChatThread[]> {
-      return readList(options.storage, THREADS_KEY, sortThreads);
+      return readList(options.storage, threadsKey, sortThreads);
     },
     saveMessages(threadId: string, messages: ChatMessage[]) {
       options.storage.setItem(`${prefix}.messages.${threadId}`, JSON.stringify(messages));
     },
     saveSettings(settings: ChatModelSettings) {
-      options.storage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      options.storage.setItem(settingsKey, JSON.stringify(settings));
     },
     saveThreads(threads: ChatThread[]) {
-      options.storage.setItem(THREADS_KEY, JSON.stringify(threads));
+      options.storage.setItem(threadsKey, JSON.stringify(threads));
     },
-  };
+  } satisfies ChatHistoryStore;
+
+  return store;
 }
 
 function readList<T>(storage: StorageLike, key: string, sort: (items: T[]) => T[]): StoreResult<T[]> {
@@ -46,7 +64,7 @@ function readList<T>(storage: StorageLike, key: string, sort: (items: T[]) => T[
   }
 }
 
-function readItem<T>(storage: StorageLike, key: string) {
+function readItem<T>(storage: StorageLike, key: string): StoreItemResult<T> {
   try {
     const raw = storage.getItem(key);
     return { item: raw ? (JSON.parse(raw) as T) : null };

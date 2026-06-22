@@ -18,8 +18,12 @@ export function createDefaultChatSetup(overrides: SetupOverrides = {}): ChatMode
   const modelDiscoveryStatus = overrides.modelDiscoveryStatus ?? "idle";
   return {
     baseUrl: overrides.baseUrl ?? DEFAULT_OLLAMA_BASE_URL,
+    localDbEndpoint: overrides.localDbEndpoint,
+    localDbPath: overrides.localDbPath,
+    localDbType: overrides.localDbType ?? "lowdb-json",
     manualModelEntryAllowed: overrides.manualModelEntryAllowed ?? modelDiscoveryStatus === "error",
     manualModelName: overrides.manualModelName,
+    modelConnectedAt: overrides.modelConnectedAt,
     modelDiscoveryStatus,
     provider: "ollama",
     selectedModel: overrides.selectedModel ?? null,
@@ -31,8 +35,49 @@ export function canSubmitPrompt(settings: ChatModelSettings) {
   return getEffectiveModel(settings) !== null;
 }
 
+export function canSubmitLocalLlmChat(settings: ChatModelSettings) {
+  return settings.provider === "ollama" && settings.baseUrl.trim().length > 0 && canSubmitPrompt(settings);
+}
+
 export function getEffectiveModel(settings: ChatModelSettings) {
   return normalizeModelName(settings.selectedModel) ?? normalizeModelName(settings.manualModelName) ?? null;
+}
+
+export function markModelDiscoveryReady(settings: ChatModelSettings, connectedAt: string): ChatModelSettings {
+  return {
+    ...settings,
+    manualModelEntryAllowed: true,
+    modelConnectedAt: connectedAt,
+    modelDiscoveryStatus: "ready",
+  };
+}
+
+export function getLlmConnectionStatus(settings: ChatModelSettings) {
+  const connected = settings.modelDiscoveryStatus === "ready" && Boolean(settings.modelConnectedAt);
+
+  return {
+    connected,
+    connectedAt: connected ? settings.modelConnectedAt ?? null : null,
+    label: connected ? "성공" : "실패",
+  };
+}
+
+export function formatConnectionTimestamp(date = new Date()) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return [
+    date.getFullYear(),
+    "-",
+    pad(date.getMonth() + 1),
+    "-",
+    pad(date.getDate()),
+    " ",
+    pad(date.getHours()),
+    ":",
+    pad(date.getMinutes()),
+    ":",
+    pad(date.getSeconds()),
+  ].join("");
 }
 
 export function validateChatSetup(settings: ChatModelSettings, context: ValidationContext = {}) {

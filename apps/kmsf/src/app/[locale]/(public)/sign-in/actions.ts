@@ -288,10 +288,9 @@ export async function signUpAction(
     const { createLocalJsonAccount, LocalJsonAuthStoreError } = await import(
       "@/lib/auth/providers/local-json-auth-store"
     );
-    let account;
 
     try {
-      account = await createLocalJsonAccount({
+      await createLocalJsonAccount({
         username: parsed.data.username,
         email: parsed.data.email,
         password: parsed.data.password,
@@ -311,9 +310,7 @@ export async function signUpAction(
       return buildSignUpState(fields, { authError: "auth" });
     }
 
-    await setLocalJsonSessionCookie(account.id);
-    await touchAppSessionCookie();
-    redirect(`/dashboard`);
+    redirect(`/sign-in?success=registered`);
   }
 
   if (!parsed.success || !isSupabaseConfigured()) {
@@ -346,10 +343,9 @@ export async function signUpAction(
         status?: number;
       }
     | null = null;
-  let shouldSignIn = false;
 
   if (hasSupabaseSecretKey()) {
-    const { error: createError, user } = await createSupabaseAccountWithManager({
+    const { error: createError } = await createSupabaseAccountWithManager({
       email: normalizedEmail,
       password: parsed.data.password,
       role: "member",
@@ -357,8 +353,6 @@ export async function signUpAction(
     });
 
     error = createError;
-    shouldSignIn = !createError;
-    shouldSignIn = Boolean(user);
   } else {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -372,7 +366,10 @@ export async function signUpAction(
     });
 
     error = signUpError;
-    shouldSignIn = Boolean(data.session);
+
+    if (data.session) {
+      await supabase.auth.signOut();
+    }
   }
 
   if (error) {
@@ -405,23 +402,5 @@ export async function signUpAction(
     return buildSignUpState(fields, { authError: "auth" });
   }
 
-  if (!shouldSignIn) {
-    redirect(`/sign-in?success=confirm-email`);
-  }
-
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: normalizedEmail,
-    password: parsed.data.password,
-  });
-
-  if (signInError) {
-    redirect(`/sign-in?error=auth`);
-  }
-
-  if (signInData.user) {
-    await touchManagerLastSignedIn(signInData.user.id);
-  }
-
-  await touchAppSessionCookie();
-  redirect(`/dashboard`);
+  redirect(`/sign-in?success=registered`);
 }

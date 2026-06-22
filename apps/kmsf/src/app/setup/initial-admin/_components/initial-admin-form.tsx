@@ -11,7 +11,7 @@ import {
   Server,
   PanelTop,
 } from "lucide-react";
-import { startTransition, useActionState, useMemo, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 
 import {
   createInitialAdminAction,
@@ -256,8 +256,12 @@ export function InitialAdminForm({
     useState<InitialAdminFormValues>(emptyInitialAdminFormValues);
   const [clientErrors, setClientErrors] =
     useState<InitialAdminClientFieldErrors>(emptyInitialAdminClientErrors);
+  const [touchedFields, setTouchedFields] = useState<Record<keyof InitialAdminFormValues, boolean>>({
+    email: false,
+    password: false,
+    passwordConfirm: false,
+  });
 
-  const accountHasErrors = useMemo(() => hasFieldError(clientErrors), [clientErrors]);
   const serverReturnedErrors = state.authError || hasFieldError(state.fieldErrors);
   const visibleStep = !isPending && step === "processing" && serverReturnedErrors ? "admin" : step;
 
@@ -288,11 +292,29 @@ export function InitialAdminForm({
     setClientErrors(getInitialAdminFieldErrors(newValues));
   }
 
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const field = e.target.name as keyof InitialAdminFormValues;
+    setTouchedFields((current) => ({ ...current, [field]: true }));
+  }
+
+  function getVisibleError(field: keyof InitialAdminFormValues) {
+    return (
+      (touchedFields[field]
+        ? getErrorMessage(field, clientErrors[field], messages.fieldErrors)
+        : null) || getErrorMessage(field, state.fieldErrors[field], messages.fieldErrors)
+    );
+  }
+
   function submitInitialSetup(formData: FormData) {
     const nextErrors = getInitialAdminFieldErrors(formValues);
     setClientErrors(nextErrors);
 
     if (hasFieldError(nextErrors)) {
+      setTouchedFields({
+        email: true,
+        password: true,
+        passwordConfirm: true,
+      });
       return;
     }
 
@@ -462,27 +484,23 @@ export function InitialAdminForm({
 
           <div className="mt-6 grid gap-4">
             <FieldWithTooltip
-              errorText={
-                getErrorMessage("email", clientErrors.email, messages.fieldErrors) ||
-                getErrorMessage("email", state.fieldErrors.email, messages.fieldErrors)
-              }
+              errorText={getVisibleError("email")}
               id="initial-admin-email"
               label={labels.email}
               name="email"
+              onBlur={handleBlur}
               onChange={handleChange}
               tooltip={tooltips.email}
               type="text"
               value={formValues.email}
             />
             <FieldWithTooltip
-              errorText={
-                getErrorMessage("password", clientErrors.password, messages.fieldErrors) ||
-                getErrorMessage("password", state.fieldErrors.password, messages.fieldErrors)
-              }
+              errorText={getVisibleError("password")}
               id="initial-admin-password"
               label={labels.password}
               maxLength={32}
               name="password"
+              onBlur={handleBlur}
               onChange={handleChange}
               placeholder="****"
               tooltip={tooltips.password}
@@ -490,22 +508,12 @@ export function InitialAdminForm({
               value={formValues.password}
             />
             <FieldWithTooltip
-              errorText={
-                getErrorMessage(
-                  "passwordConfirm",
-                  clientErrors.passwordConfirm,
-                  messages.fieldErrors,
-                ) ||
-                getErrorMessage(
-                  "passwordConfirm",
-                  state.fieldErrors.passwordConfirm,
-                  messages.fieldErrors,
-                )
-              }
+              errorText={getVisibleError("passwordConfirm")}
               id="initial-admin-password-confirm"
               label={labels.passwordConfirm}
               maxLength={32}
               name="passwordConfirm"
+              onBlur={handleBlur}
               onChange={handleChange}
               placeholder="****"
               tooltip={tooltips.passwordConfirm}
@@ -531,7 +539,7 @@ export function InitialAdminForm({
             >
               {labels.previous}
             </Button>
-            <Button disabled={isPending || accountHasErrors} type="submit">
+            <Button disabled={isPending} type="submit">
               {labels.next}
             </Button>
           </div>

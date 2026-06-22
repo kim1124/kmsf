@@ -95,6 +95,12 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
 
   const [formValues, setFormValues] = useState(createEmptyAccountFields);
   const [clientErrors, setClientErrors] = useState(createEmptyAccountFieldErrors);
+  const [touchedFields, setTouchedFields] = useState<Record<keyof typeof formValues, boolean>>({
+    email: false,
+    password: false,
+    passwordConfirm: false,
+    username: false,
+  });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
@@ -109,10 +115,35 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
     setClientErrors(getLiveAccountFieldErrors(newValues));
   }
 
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const field = e.target.name as keyof typeof formValues;
+    setTouchedFields((current) => ({ ...current, [field]: true }));
+  }
+
+  function getVisibleError(field: keyof typeof formValues) {
+    return (
+      (touchedFields[field]
+        ? getErrorMessage(field, clientErrors[field], messages.fieldErrors)
+        : null) || getErrorMessage(field, state.fieldErrors[field], messages.fieldErrors)
+    );
+  }
+
   return (
     <>
     <form action={(formData) => {
-      if (Object.values(clientErrors).some(Boolean)) return;
+      const nextErrors = getLiveAccountFieldErrors(formValues);
+      setClientErrors(nextErrors);
+
+      if (Object.values(nextErrors).some(Boolean)) {
+        setTouchedFields({
+          email: true,
+          password: true,
+          passwordConfirm: true,
+          username: true,
+        });
+        return;
+      }
+
       formAction(formData);
     }} className="mt-6 space-y-4" noValidate>
       <input type="hidden" name="locale" value={locale} />
@@ -120,10 +151,8 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
       <FieldWithTooltip
         value={formValues.username}
         onChange={handleChange}
-        errorText={
-          getErrorMessage("username", clientErrors.username, messages.fieldErrors) ||
-          getErrorMessage("username", state.fieldErrors.username, messages.fieldErrors)
-        }
+        onBlur={handleBlur}
+        errorText={getVisibleError("username")}
         id="sign-up-username"
         label={labels.username}
         maxLength={32}
@@ -133,10 +162,8 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
       <FieldWithTooltip
         value={formValues.email}
         onChange={handleChange}
-        errorText={
-          getErrorMessage("email", clientErrors.email, messages.fieldErrors) ||
-          getErrorMessage("email", state.fieldErrors.email, messages.fieldErrors)
-        }
+        onBlur={handleBlur}
+        errorText={getVisibleError("email")}
         id="sign-up-email"
         label={labels.email}
         name="email"
@@ -146,10 +173,8 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
       <FieldWithTooltip
         value={formValues.password}
         onChange={handleChange}
-        errorText={
-          getErrorMessage("password", clientErrors.password, messages.fieldErrors) ||
-          getErrorMessage("password", state.fieldErrors.password, messages.fieldErrors)
-        }
+        onBlur={handleBlur}
+        errorText={getVisibleError("password")}
         id="sign-up-password"
         label={labels.password}
         maxLength={32}
@@ -161,10 +186,8 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
       <FieldWithTooltip
         value={formValues.passwordConfirm}
         onChange={handleChange}
-        errorText={
-          getErrorMessage("passwordConfirm", clientErrors.passwordConfirm, messages.fieldErrors) ||
-          getErrorMessage("passwordConfirm", state.fieldErrors.passwordConfirm, messages.fieldErrors)
-        }
+        onBlur={handleBlur}
+        errorText={getVisibleError("passwordConfirm")}
         id="sign-up-password-confirm"
         label={labels.passwordConfirm}
         maxLength={32}
@@ -182,7 +205,7 @@ export function SignUpForm({ locale, csrfToken, labels, tooltips, messages }: Si
       ) : null}
       <Button
         className="w-full"
-        disabled={isPending || Object.values(clientErrors).some(Boolean)}
+        disabled={isPending}
         type="submit"
       >
         {labels.submit}

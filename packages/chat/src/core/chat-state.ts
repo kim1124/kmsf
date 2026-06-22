@@ -121,6 +121,76 @@ export function abortAssistantTurn(state: ChatState, input: MessageTarget): Chat
   return { ...updated, pendingAssistantMessageId: null };
 }
 
+export function removeThreadFromState(state: ChatState, threadId: string): ChatState {
+  const { [threadId]: _removedMessages, ...messagesByThread } = state.messagesByThread;
+
+  return {
+    ...state,
+    activeThreadId: state.activeThreadId === threadId ? null : state.activeThreadId,
+    messagesByThread,
+    pendingAssistantMessageId:
+      state.activeThreadId === threadId ? null : state.pendingAssistantMessageId,
+    threads: state.threads.filter((thread) => thread.id !== threadId),
+  };
+}
+
+export function renameThreadInState(
+  state: ChatState,
+  input: {
+    now: string;
+    threadId: string;
+    title: string;
+  },
+): ChatState {
+  const title = input.title.trim();
+
+  if (!title) {
+    return state;
+  }
+
+  return {
+    ...state,
+    threads: state.threads.map((thread) =>
+      thread.id === input.threadId
+        ? {
+            ...thread,
+            title,
+            updatedAt: input.now,
+          }
+        : thread,
+    ),
+  };
+}
+
+export function createFloatingThread(title: string, timestamp = new Date().toISOString()): ChatThread {
+  return {
+    createdAt: timestamp,
+    id: `thread-${createId()}`,
+    source: "floating",
+    title: createThreadTitle(title),
+    updatedAt: timestamp,
+  };
+}
+
+export function mergeClosedFloatingThread(
+  threads: ChatThread[],
+  thread: ChatThread,
+  messages: ChatMessage[],
+  closedAt = new Date().toISOString(),
+) {
+  if (messages.length === 0) {
+    return threads;
+  }
+
+  const savedThread = {
+    ...thread,
+    updatedAt: closedAt,
+  };
+  const otherThreads = threads.filter((candidate) => candidate.id !== thread.id);
+
+  return [savedThread, ...otherThreads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 function requireActiveThread(state: ChatState) {
   if (!state.activeThreadId) {
     throw new Error("Active thread is required.");
@@ -131,6 +201,10 @@ function requireActiveThread(state: ChatState) {
 function createThreadTitle(content: string) {
   const title = content.trim().replace(/\s+/g, " ");
   return title.length > 32 ? `${title.slice(0, 32)}...` : title || "New chat";
+}
+
+function createId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function appendMessage(

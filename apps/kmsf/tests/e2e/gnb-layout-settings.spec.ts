@@ -48,7 +48,9 @@ test("runtime GNB settings are account-scoped, immediate, persistent, and deskto
   ).toBeVisible();
 
   await rightToggle.check();
-  await expect(page.getByLabel("우측 GNB")).toBeVisible();
+  const rightGnb = page.getByRole("complementary", { name: "우측 GNB" });
+  await expect(rightGnb).toBeVisible();
+  await expect(rightGnb.getByRole("link")).toHaveCount(0);
 
   const storageValue = await page.evaluate(() =>
     window.localStorage.getItem("kmsf:gnb-layout:admin"),
@@ -60,7 +62,7 @@ test("runtime GNB settings are account-scoped, immediate, persistent, and deskto
   await page.reload();
   await page.waitForLoadState("networkidle");
   await expect(page.locator("header")).toBeHidden();
-  await expect(page.getByLabel("우측 GNB")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "우측 GNB" })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator("header")).toBeVisible();

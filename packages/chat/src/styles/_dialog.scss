@@ -1,0 +1,44 @@
+.kmsf-chat-dialog {
+  background: rgb(15 23 42 / 36%);
+  display: grid;
+  inset: 0;
+  padding: 20px;
+  place-items: center;
+  position: fixed;
+  z-index: 50;
+}
+
+.kmsf-chat-dialog__panel,
+.kmsf-chat-settings-page {
+  background: var(--kmsf-chat-surface);
+  border: 1px solid var(--kmsf-chat-border);
+  border-radius: var(--kmsf-chat-radius);
+  display: grid;
+  gap: 16px;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 18px;
+  width: min(100%, 640px);
+}
+
+.kmsf-chat-dialog__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.kmsf-chat-dialog__description {
+  color: var(--kmsf-chat-muted-foreground);
+  margin: 0;
+}
+
+.kmsf-chat-danger-button {
+  background: var(--kmsf-chat-danger);
+  border-color: var(--kmsf-chat-danger);
+  color: var(--kmsf-chat-accent-foreground);
+}
+
+.kmsf-chat-local-db-fields {
+  display: grid;
+  gap: 12px;
+}

@@ -1,0 +1,34 @@
+@media (max-width: 720px) {
+  .kmsf-chat-playground-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .kmsf-chat-shell,
+  .kmsf-chat-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: 1fr;
+  }
+
+  .kmsf-chat-sidebar {
+    border-bottom: 1px solid var(--kmsf-chat-border);
+    border-right: 0;
+  }
+
+  .kmsf-chat-sidebar__list {
+    display: none;
+  }
+
+  .kmsf-chat-main__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .kmsf-chat-composer {
+    grid-template-columns: 1fr;
+  }
+
+  .kmsf-chat-floating {
+    bottom: 88px;
+    right: 16px;
+  }
+}

@@ -7,6 +7,7 @@ import {
 } from "@/app/[locale]/(public)/sign-in/actions";
 import { GoogleMark } from "@/components/auth/_components/google-mark";
 import { SignInForm } from "@/components/auth/_components/sign-in-form";
+import { SignInSuccessToast } from "@/components/auth/_components/sign-in-success-toast";
 import { Button } from "@/components/ui/button";
 import { formatAppSessionExpiryRoute } from "@/lib/auth/app-session";
 import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
@@ -32,6 +33,12 @@ export default async function SignInPage({
   const t = await getTranslations({ locale, namespace: "auth" });
   const supabaseReady = runtimeProvider.provider === "supabase";
   const csrfToken = await getCsrfToken();
+  const successToastMessage =
+    success === "deleted"
+      ? t("accountDeleted")
+      : success === "registered"
+        ? t("registered")
+        : null;
 
   if (user) {
     if (!(await isRequestAppSessionActive())) {
@@ -47,6 +54,7 @@ export default async function SignInPage({
 
   return (
     <main className="h-[100dvh] overflow-y-auto bg-background">
+      <SignInSuccessToast message={successToastMessage} />
       <div className="flex min-h-full flex-col items-center justify-center p-4 py-12">
         <section className="w-full max-w-md rounded-[var(--kmsf-radius-auth)] border border-border bg-surface p-8 text-foreground shadow-[var(--kmsf-shadow-panel)] dark:shadow-none">
         <div className="text-center">
@@ -56,12 +64,6 @@ export default async function SignInPage({
         {success === "confirm-email" ? (
           <div className="mt-5 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-foreground">
             {t("confirmEmail")}
-          </div>
-        ) : null}
-
-        {success === "deleted" ? (
-          <div className="mt-5 rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-foreground">
-            {t("accountDeleted")}
           </div>
         ) : null}
 

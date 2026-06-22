@@ -3,6 +3,7 @@ export * from "./adapters/local/local-setup-store";
 export * from "./adapters/ollama/ollama-client";
 export * from "./adapters/supabase/supabase-chat-store";
 export * from "./components/ChatComposer";
+export * from "./components/ChatFloatingButton";
 export * from "./components/ChatMessageList";
 export * from "./components/ChatSettingsDialog";
 export * from "./components/ChatSettingsPage";
@@ -11,7 +12,10 @@ export * from "./components/ChatShell";
 export * from "./components/ChatSidebar";
 export * from "./components/ChatStatusBar";
 export * from "./core/chat-state";
+export * from "./core/composer-state";
 export * from "./core/errors";
+export * from "./core/floating-preferences";
+export * from "./core/settings-state";
 export * from "./core/setup-state";
 export * from "./core/types";
 

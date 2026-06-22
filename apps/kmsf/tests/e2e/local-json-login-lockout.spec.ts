@@ -95,11 +95,8 @@ test("local-json blocks login for 300 seconds after 3 failed attempts", async ({
   await page.locator("#sign-up-password").fill(lockoutAccount.password);
   await page.locator("#sign-up-password-confirm").fill(lockoutAccount.password);
   await page.getByRole("button", { name: "회원 가입", exact: true }).click();
-  await page.waitForURL("**/dashboard", { timeout: 20_000 });
-
-  await page.getByRole("button", { name: "프로필 메뉴" }).click();
-  await page.getByRole("button", { name: "로그아웃", exact: true }).click();
-  await page.waitForURL("**/sign-in", { timeout: 20_000 });
+  await page.waitForURL("**/sign-in?success=registered", { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/sign-in$/);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.locator("#login-username").fill(lockoutAccount.username);

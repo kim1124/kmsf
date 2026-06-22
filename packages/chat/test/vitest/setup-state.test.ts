@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canSubmitLocalLlmChat,
   canSubmitPrompt,
   createDefaultChatSetup,
+  getLlmConnectionStatus,
+  markModelDiscoveryReady,
   resolveInitialSetupState,
   validateChatSetup,
 } from "../../src/core/setup-state";
@@ -13,6 +16,7 @@ describe("setup state", () => {
 
     expect(setup).toMatchObject({
       baseUrl: "http://localhost:11434",
+      localDbType: "lowdb-json",
       provider: "ollama",
       selectedModel: null,
       storageMode: "local",
@@ -23,6 +27,12 @@ describe("setup state", () => {
     expect(canSubmitPrompt(createDefaultChatSetup())).toBe(false);
     expect(canSubmitPrompt({ ...createDefaultChatSetup(), manualModelName: "llama3.2" })).toBe(true);
     expect(canSubmitPrompt({ ...createDefaultChatSetup(), selectedModel: "qwen2.5" })).toBe(true);
+  });
+
+  it("requires Ollama base URL and effective model before local LLM chat can run", () => {
+    expect(canSubmitLocalLlmChat(createDefaultChatSetup())).toBe(false);
+    expect(canSubmitLocalLlmChat({ ...createDefaultChatSetup(), baseUrl: "", selectedModel: "model-a" })).toBe(false);
+    expect(canSubmitLocalLlmChat({ ...createDefaultChatSetup(), selectedModel: "model-a" })).toBe(true);
   });
 
   it("restores a persisted user-selected model without treating it as a default", () => {
@@ -47,6 +57,26 @@ describe("setup state", () => {
     expect(setup.manualModelEntryAllowed).toBe(true);
   });
 
+  it("records model discovery connection time for sidebar status", () => {
+    const setup = markModelDiscoveryReady(createDefaultChatSetup(), "2026-06-19 16:30:45");
+
+    expect(setup).toMatchObject({
+      manualModelEntryAllowed: true,
+      modelConnectedAt: "2026-06-19 16:30:45",
+      modelDiscoveryStatus: "ready",
+    });
+    expect(getLlmConnectionStatus(setup)).toEqual({
+      connected: true,
+      connectedAt: "2026-06-19 16:30:45",
+      label: "성공",
+    });
+    expect(getLlmConnectionStatus(createDefaultChatSetup({ modelDiscoveryStatus: "error" }))).toEqual({
+      connected: false,
+      connectedAt: null,
+      label: "실패",
+    });
+  });
+
   it("validates base URL and Supabase requirements", () => {
     expect(validateChatSetup({ ...createDefaultChatSetup(), baseUrl: "" }).errors).toContainEqual({
       field: "baseUrl",
@@ -67,5 +97,23 @@ describe("setup state", () => {
         },
       ).valid,
     ).toBe(true);
+    expect(validateChatSetup({ ...createDefaultChatSetup(), selectedModel: "m", storageMode: "local-db" }).valid)
+      .toBe(true);
+  });
+
+  it("preserves host-injected local DB endpoint and path settings", () => {
+    const setup = createDefaultChatSetup({
+      localDbEndpoint: "/api/kmsf/chat-history",
+      localDbPath: "apps/kmsf/.local/chat.db.json",
+      storageMode: "local-db",
+    });
+
+    expect(setup).toMatchObject({
+      localDbEndpoint: "/api/kmsf/chat-history",
+      localDbPath: "apps/kmsf/.local/chat.db.json",
+      localDbType: "lowdb-json",
+      storageMode: "local-db",
+    });
+    expect(validateChatSetup({ ...setup, selectedModel: "model-a" }).valid).toBe(true);
   });
 });

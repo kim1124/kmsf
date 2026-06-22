@@ -6,6 +6,8 @@ import {
   completeAssistantTurn,
   createEmptyChatState,
   failAssistantTurn,
+  removeThreadFromState,
+  renameThreadInState,
   startAssistantTurn,
   startUserTurn,
 } from "../../src/core/chat-state";
@@ -100,8 +102,54 @@ describe("chat state", () => {
 
     expect(failed.pendingAssistantMessageId).toBeNull();
     expect(failed.messagesByThread["thread-1"][1]).toMatchObject({
+      role: "assistant",
       error: "Ollama 연결 실패",
       status: "error",
+    });
+  });
+
+  it("removes a thread, its messages, and clears the active thread", () => {
+    const withUser = startUserTurn(createEmptyChatState(), {
+      content: "삭제 대상",
+      messageId: "msg-user-1",
+      now: "2026-06-08T00:00:00.000Z",
+      threadId: "thread-1",
+    });
+
+    const removed = removeThreadFromState(withUser, "thread-1");
+
+    expect(removed.activeThreadId).toBeNull();
+    expect(removed.threads).toEqual([]);
+    expect(removed.messagesByThread["thread-1"]).toBeUndefined();
+  });
+
+  it("renames a thread with trimmed title and updated timestamp", () => {
+    const state = startUserTurn(createEmptyChatState(), {
+      content: "기존 제목",
+      messageId: "msg-user-1",
+      now: "2026-06-08T00:00:00.000Z",
+      threadId: "thread-1",
+    });
+
+    const renamed = renameThreadInState(state, {
+      now: "2026-06-19T16:30:00.000Z",
+      threadId: "thread-1",
+      title: "  새 제목  ",
+    });
+    const unchanged = renameThreadInState(renamed, {
+      now: "2026-06-19T16:31:00.000Z",
+      threadId: "thread-1",
+      title: "   ",
+    });
+
+    expect(renamed.threads[0]).toMatchObject({
+      id: "thread-1",
+      title: "새 제목",
+      updatedAt: "2026-06-19T16:30:00.000Z",
+    });
+    expect(unchanged.threads[0]).toMatchObject({
+      title: "새 제목",
+      updatedAt: "2026-06-19T16:30:00.000Z",
     });
   });
 

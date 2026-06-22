@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 
-import { Database, HardDrive, RefreshCw } from "lucide-react";
+import { Database, HardDrive, RefreshCw, Server } from "lucide-react";
 
 import { canSubmitPrompt } from "../core/setup-state";
 import type { ChatModelSettings } from "../core/types";
@@ -117,6 +117,16 @@ export function ChatSetupPage({
             />
             <Database size={16} />
             Supabase
+          </label>
+          <label>
+            <input
+              checked={settings.storageMode === "local-db"}
+              name="storageMode"
+              type="radio"
+              onChange={() => update({ storageMode: "local-db" })}
+            />
+            <Server size={16} />
+            Local DB
           </label>
         </fieldset>
 

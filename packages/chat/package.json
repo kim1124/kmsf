@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
-    "build": "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "build": "vite build && tsc -p tsconfig.build.json && sass src/styles/index.scss dist/styles.css --no-source-map",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest",
@@ -42,6 +42,7 @@
     "@vitejs/plugin-react": "latest",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "sass": "^1.101.0",
     "tailwindcss": "^4",
     "typescript": "^6.0.3",
     "vite": "latest",
