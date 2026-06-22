@@ -52,6 +52,16 @@ next-env.d.ts
 # gemini
 .gemini/
 
+# local-only agent and harness instructions
+.agents/
+**/AGENTS.md
+**/AGENTS.override.md
+**/CLAUDE.md
+**/GUIDE.md
+**/docs/codex/
+**/docs/superpowers/
+reports/
+
 # local browser and workflow artifacts
 .superpowers/
 apps/kmsf/.local/
