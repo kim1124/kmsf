@@ -51,6 +51,7 @@ test("opens, streams, closes, and saves floating session as recent thread", asyn
 
   await page.getByRole("button", { name: "플로팅 채팅 열기" }).click();
   await expect(page.getByRole("dialog", { name: "플로팅 채팅" })).toBeVisible();
+  await expect(page.locator(".kmsf-chat-floating__backdrop")).toBeVisible();
 
   await page.getByLabel("플로팅 메시지 입력").fill("현재 설정 요약");
   await page.getByRole("button", { name: "플로팅 메시지 전송" }).click();
@@ -104,7 +105,7 @@ test("drags floating chatbot button and restores coordinates after reload", asyn
 
   await page.mouse.move(initialBox!.x + 24, initialBox!.y + 24);
   await page.mouse.down();
-  await page.mouse.move(420, 280, { steps: 5 });
+  await page.mouse.move(420, 460, { steps: 5 });
   await page.mouse.up();
 
   const movedBox = await button.boundingBox();
@@ -119,4 +120,29 @@ test("drags floating chatbot button and restores coordinates after reload", asyn
   expect(restoredBox).not.toBeNull();
   expect(Math.round(restoredBox!.x)).toBe(Math.round(movedBox!.x));
   expect(Math.round(restoredBox!.y)).toBe(Math.round(movedBox!.y));
+
+  await page.getByRole("button", { name: "플로팅 채팅 열기" }).click();
+  const panelBox = await page.getByRole("dialog", { name: "플로팅 채팅" }).boundingBox();
+  expect(panelBox).not.toBeNull();
+  const panelGap = Math.round(restoredBox!.y - (panelBox!.y + panelBox!.height));
+  expect(panelGap).toBeGreaterThanOrEqual(10);
+  expect(panelGap).toBeLessThanOrEqual(14);
+  expect(Math.round(panelBox!.x + panelBox!.width)).toBeLessThanOrEqual(Math.round(restoredBox!.x + restoredBox!.width));
+});
+
+test("keeps floating chatbot open when backdrop is clicked", async ({ page }) => {
+  await page.route("**/api/tags", async (route) => {
+    await route.fulfill({ contentType: "application/json", json: { models: [{ name: "model-a" }] } });
+  });
+
+  await page.goto("/?reset=1");
+  await page.getByLabel("모델 선택").selectOption("model-a");
+  await page.getByRole("button", { name: "채팅 시작" }).click();
+
+  await page.getByRole("button", { name: "플로팅 채팅 열기" }).click();
+  const backdrop = page.locator(".kmsf-chat-floating__backdrop");
+  await expect(backdrop).toBeVisible();
+  await backdrop.click({ position: { x: 10, y: 10 } });
+
+  await expect(page.getByRole("dialog", { name: "플로팅 채팅" })).toBeVisible();
 });

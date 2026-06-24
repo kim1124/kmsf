@@ -9,6 +9,10 @@
     grid-template-columns: 1fr;
   }
 
+  .kmsf-chat-sidebar-resizer {
+    display: none;
+  }
+
   .kmsf-chat-sidebar {
     border-bottom: 1px solid var(--kmsf-chat-border);
     border-right: 0;
@@ -28,7 +32,6 @@
   }
 
   .kmsf-chat-floating {
-    bottom: 88px;
-    right: 16px;
+    max-width: calc(100vw - 32px);
   }
 }

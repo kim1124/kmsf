@@ -1,32 +1,51 @@
 .kmsf-chat-thread-row {
+  --kmsf-chat-thread-action-edge: 4px;
+  --kmsf-chat-thread-action-gap: 4px;
+  --kmsf-chat-thread-action-reserve: 5px;
+  --kmsf-chat-thread-action-size: 38px;
   display: block;
+  min-width: 0;
   position: relative;
   width: 100%;
 }
 
+.kmsf-chat-thread-row:hover,
+.kmsf-chat-thread-row:focus-within {
+  --kmsf-chat-thread-action-reserve: calc(
+    var(--kmsf-chat-thread-action-edge) + var(--kmsf-chat-thread-action-size) +
+      var(--kmsf-chat-thread-action-size) + var(--kmsf-chat-thread-action-gap) + 5px
+  );
+}
+
 .kmsf-chat-thread-row[data-active="true"] {
-  background: var(--kmsf-chat-accent-soft);
+  background: var(--kmsf-chat-accent);
   border-radius: var(--kmsf-chat-radius-sm);
 }
 
 .kmsf-chat-thread-row[data-active="true"] .kmsf-chat-thread-select {
+  background: var(--kmsf-chat-accent);
   border-color: var(--kmsf-chat-accent);
-  color: var(--kmsf-chat-foreground);
+  color: var(--kmsf-chat-accent-foreground);
 }
 
 .kmsf-chat-thread-select {
   justify-content: flex-start;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
+  width: 100%;
+  padding-right: var(--kmsf-chat-thread-action-reserve);
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-  width: 100%;
-  padding-right: 88px;
 }
 
 .kmsf-chat-thread-select span {
+  display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kmsf-chat-thread-rename {
@@ -36,19 +55,19 @@
   font: inherit;
   min-height: 38px;
   min-width: 0;
-  padding: 8px 88px 8px 10px;
+  padding: 8px var(--kmsf-chat-thread-action-reserve) 8px 10px;
   width: 100%;
 }
 
 .kmsf-chat-thread-actions {
   align-items: center;
   display: inline-flex;
-  gap: 4px;
+  gap: var(--kmsf-chat-thread-action-gap);
   justify-content: flex-end;
   opacity: 0;
   pointer-events: none;
   position: absolute;
-  right: 4px;
+  right: var(--kmsf-chat-thread-action-edge);
   top: 50%;
   transform: translateX(10px);
   transition:
@@ -68,9 +87,26 @@
 }
 
 .kmsf-chat-thread-action {
+  background: transparent;
+  border: 0;
+  color: var(--kmsf-chat-foreground);
   min-height: 38px;
   min-width: 38px;
   padding: 0;
+}
+
+.kmsf-chat-thread-action:hover,
+.kmsf-chat-thread-action:focus-visible {
+  background: var(--kmsf-chat-panel-hover);
+}
+
+.kmsf-chat-thread-action--delete {
+  color: var(--kmsf-chat-danger);
+}
+
+.kmsf-chat-thread-action--delete:hover,
+.kmsf-chat-thread-action--delete:focus-visible {
+  background: var(--kmsf-chat-danger-soft);
 }
 
 .kmsf-chat-sidebar[data-collapsed="true"] .kmsf-chat-thread-row {

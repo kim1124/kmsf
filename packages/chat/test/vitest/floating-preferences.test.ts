@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   clampFloatingPosition,
+  calculateFloatingPanelPosition,
   createDefaultFloatingChatPreferences,
   hasMovedPastDragThreshold,
   loadFloatingChatPreferences,
@@ -44,6 +45,41 @@ describe("floating chat preferences", () => {
   it("separates click from drag by movement threshold", () => {
     expect(hasMovedPastDragThreshold({ x: 10, y: 10 }, { x: 13, y: 14 })).toBe(false);
     expect(hasMovedPastDragThreshold({ x: 10, y: 10 }, { x: 20, y: 10 })).toBe(true);
+  });
+
+  it("places the floating panel above the dragged button and clamps it inside the viewport", () => {
+    expect(
+      calculateFloatingPanelPosition({
+        buttonPosition: { x: 420, y: 320 },
+        buttonSize: 48,
+        gap: 12,
+        margin: 16,
+        panelSize: { height: 280, width: 360 },
+        viewport: { height: 720, width: 960 },
+      }),
+    ).toEqual({ x: 108, y: 28 });
+
+    expect(
+      calculateFloatingPanelPosition({
+        buttonPosition: { x: 420, y: 320 },
+        buttonSize: 48,
+        gap: 12,
+        margin: 16,
+        panelSize: { height: 226, width: 360 },
+        viewport: { height: 720, width: 960 },
+      }),
+    ).toEqual({ x: 108, y: 82 });
+
+    expect(
+      calculateFloatingPanelPosition({
+        buttonPosition: { x: 12, y: 20 },
+        buttonSize: 48,
+        gap: 12,
+        margin: 16,
+        panelSize: { height: 280, width: 360 },
+        viewport: { height: 720, width: 960 },
+      }),
+    ).toEqual({ x: 16, y: 80 });
   });
 });
 

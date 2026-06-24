@@ -1,5 +1,5 @@
 import type { CSSProperties, FormEvent, PointerEvent } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { MessageCircle, Send, X } from "lucide-react";
 
@@ -8,6 +8,7 @@ import { createFloatingThread, mergeClosedFloatingThread } from "../core/chat-st
 import { getErrorMessage } from "../core/errors";
 import {
   clampFloatingPosition,
+  calculateFloatingPanelPosition,
   getFloatingChatStorage,
   hasMovedPastDragThreshold,
   loadFloatingChatPreferences,
@@ -16,6 +17,7 @@ import {
 } from "../core/floating-preferences";
 import { canSubmitLocalLlmChat, getEffectiveModel } from "../core/setup-state";
 import type { ChatHistoryStore, ChatMessage, ChatModelSettings, ChatThread } from "../core/types";
+import { PendingDots } from "./ChatMessageList";
 
 type FloatingChatClient = {
   streamChat(input: {
@@ -25,12 +27,24 @@ type FloatingChatClient = {
   }): Promise<{ content: string; thinking: string }>;
 };
 
+type FloatingPanelSize = {
+  height: number;
+  width: number;
+};
+
 const FLOATING_BUTTON_SIZE = 48;
 const FLOATING_BUTTON_MARGIN = 16;
+const FLOATING_BUTTON_RIGHT = 24;
+const FLOATING_BUTTON_BOTTOM = 88;
+const FLOATING_PANEL_GAP = 12;
+const FLOATING_PANEL_HEIGHT = 280;
+const FLOATING_PANEL_WIDTH = 360;
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export type ChatFloatingButtonProps = {
   className?: string;
   client?: FloatingChatClient;
+  onBackdropPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
   onSessionSaved?: (thread: ChatThread, messages: ChatMessage[]) => void;
   settings: ChatModelSettings;
   store: ChatHistoryStore;
@@ -39,6 +53,7 @@ export type ChatFloatingButtonProps = {
 export function ChatFloatingButton({
   className,
   client,
+  onBackdropPointerDown,
   onSessionSaved,
   settings,
   store,
@@ -46,6 +61,7 @@ export function ChatFloatingButton({
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [open, setOpen] = useState(false);
+  const [panelSize, setPanelSize] = useState<FloatingPanelSize | null>(null);
   const [pending, setPending] = useState(false);
   const [position, setPosition] = useState<FloatingChatPosition | null>(() => getInitialFloatingPosition());
   const [thread, setThread] = useState<ChatThread | null>(null);
@@ -56,8 +72,12 @@ export function ChatFloatingButton({
     pointerId: number;
     start: FloatingChatPosition;
   } | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
   const suppressClickRef = useRef(false);
   const model = getEffectiveModel(settings);
+  const panelLayoutSignature = messages
+    .map((message) => `${message.id}:${message.status}:${message.content.length}:${message.error?.length ?? 0}`)
+    .join("|");
   const chatClient = useMemo(
     () => client ?? createOllamaClient({ baseUrl: settings.baseUrl }),
     [client, settings.baseUrl],
@@ -70,6 +90,39 @@ export function ChatFloatingButton({
         top: position.y,
       }
     : undefined;
+  const panelStyle = position ? getFloatingPanelStyle(position, panelSize) : undefined;
+
+  useBrowserLayoutEffect(() => {
+    if (!open) {
+      setPanelSize(null);
+      return;
+    }
+
+    const panel = panelRef.current;
+    if (!panel) {
+      return;
+    }
+
+    const rect = panel.getBoundingClientRect();
+    if (rect.height <= 0 || rect.width <= 0) {
+      return;
+    }
+
+    setPanelSize((current) => {
+      if (
+        current &&
+        Math.abs(current.height - rect.height) < 0.5 &&
+        Math.abs(current.width - rect.width) < 0.5
+      ) {
+        return current;
+      }
+
+      return {
+        height: rect.height,
+        width: rect.width,
+      };
+    });
+  }, [open, panelLayoutSignature, pending, position]);
 
   if (!canSubmitLocalLlmChat(settings) || !model) {
     return null;
@@ -256,35 +309,52 @@ export function ChatFloatingButton({
   return (
     <div className={["kmsf-chat-floating", className].filter(Boolean).join(" ")} style={floatingStyle}>
       {open ? (
-        <section className="kmsf-chat-floating__panel" role="dialog" aria-label="플로팅 채팅">
-          <div className="kmsf-chat-floating__messages">
-            {messages.length === 0 ? (
-              <p className="kmsf-chat-floating__empty">무엇을 도와드릴까요?</p>
-            ) : (
-              messages.map((message) => (
-                <article
-                  className={`kmsf-chat-floating__bubble kmsf-chat-floating__bubble--${message.role}`}
-                  key={message.id}
-                >
-                  <p>{message.content || (message.status === "pending" ? "응답 생성 중" : "")}</p>
-                  {message.error ? <span className="kmsf-chat-error">{message.error}</span> : null}
-                </article>
-              ))
-            )}
-          </div>
-          <form className="kmsf-chat-floating__form" onSubmit={submit}>
-            <input
-              aria-label="플로팅 메시지 입력"
-              disabled={pending}
-              placeholder="메시지 입력"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-            />
-            <button aria-label="플로팅 메시지 전송" disabled={pending || input.trim().length === 0} type="submit">
-              <Send size={16} />
-            </button>
-          </form>
-        </section>
+        <>
+          <div
+            className="kmsf-chat-floating__backdrop"
+            aria-hidden="true"
+            onPointerDown={onBackdropPointerDown}
+          />
+          <section
+            className="kmsf-chat-floating__panel"
+            ref={panelRef}
+            role="dialog"
+            aria-label="플로팅 채팅"
+            style={panelStyle}
+          >
+            <div className="kmsf-chat-floating__messages">
+              {messages.length === 0 ? (
+                <p className="kmsf-chat-floating__empty">무엇을 도와드릴까요?</p>
+              ) : (
+                messages.map((message) => (
+                  <article
+                    className={`kmsf-chat-floating__bubble kmsf-chat-floating__bubble--${message.role}`}
+                    key={message.id}
+                  >
+                    {message.status === "pending" && message.role === "assistant" ? (
+                      <PendingDots />
+                    ) : (
+                      <p>{message.content}</p>
+                    )}
+                    {message.error ? <span className="kmsf-chat-error">{message.error}</span> : null}
+                  </article>
+                ))
+              )}
+            </div>
+            <form className="kmsf-chat-floating__form" onSubmit={submit}>
+              <input
+                aria-label="플로팅 메시지 입력"
+                disabled={pending}
+                placeholder="메시지 입력"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+              />
+              <button aria-label="플로팅 메시지 전송" disabled={pending || input.trim().length === 0} type="submit">
+                <Send size={16} />
+              </button>
+            </form>
+          </section>
+        </>
       ) : null}
       <button
         className="kmsf-chat-floating__button"
@@ -332,7 +402,18 @@ async function resolveItems(result: ReturnType<ChatHistoryStore["loadThreads"]>)
 
 function getInitialFloatingPosition() {
   const position = loadFloatingChatPreferences().position;
-  return position ? clampForViewport(position) : null;
+  if (position) {
+    return clampForViewport(position);
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return clampForViewport({
+    x: window.innerWidth - FLOATING_BUTTON_SIZE - FLOATING_BUTTON_RIGHT,
+    y: window.innerHeight - FLOATING_BUTTON_SIZE - FLOATING_BUTTON_BOTTOM,
+  });
 }
 
 function clampForViewport(position: FloatingChatPosition) {
@@ -349,4 +430,37 @@ function clampForViewport(position: FloatingChatPosition) {
       width: window.innerWidth,
     },
   });
+}
+
+function getFloatingPanelStyle(
+  position: FloatingChatPosition,
+  measuredPanelSize: FloatingPanelSize | null,
+): CSSProperties | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const panelWidth = Math.min(FLOATING_PANEL_WIDTH, window.innerWidth - FLOATING_BUTTON_MARGIN * 2);
+  const panelSize = measuredPanelSize ?? {
+    height: FLOATING_PANEL_HEIGHT,
+    width: panelWidth,
+  };
+  const panelPosition = calculateFloatingPanelPosition({
+    buttonPosition: position,
+    buttonSize: FLOATING_BUTTON_SIZE,
+    gap: FLOATING_PANEL_GAP,
+    margin: FLOATING_BUTTON_MARGIN,
+    panelSize,
+    viewport: {
+      height: window.innerHeight,
+      width: window.innerWidth,
+    },
+  });
+
+  return {
+    left: panelPosition.x,
+    pointerEvents: measuredPanelSize ? undefined : "none",
+    top: panelPosition.y,
+    visibility: measuredPanelSize ? undefined : "hidden",
+  };
 }

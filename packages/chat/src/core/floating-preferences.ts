@@ -22,6 +22,21 @@ type ClampInput = {
   };
 };
 
+type FloatingPanelPositionInput = {
+  buttonPosition: FloatingChatPosition;
+  buttonSize: number;
+  gap: number;
+  margin: number;
+  panelSize: {
+    height: number;
+    width: number;
+  };
+  viewport: {
+    height: number;
+    width: number;
+  };
+};
+
 export function createDefaultFloatingChatPreferences(): FloatingChatPreferences {
   return {
     position: null,
@@ -99,6 +114,25 @@ export function hasMovedPastDragThreshold(
   threshold = 6,
 ) {
   return Math.hypot(current.x - start.x, current.y - start.y) > threshold;
+}
+
+export function calculateFloatingPanelPosition({
+  buttonPosition,
+  buttonSize,
+  gap,
+  margin,
+  panelSize,
+  viewport,
+}: FloatingPanelPositionInput): FloatingChatPosition {
+  const maxX = Math.max(margin, viewport.width - panelSize.width - margin);
+  const maxY = Math.max(margin, viewport.height - panelSize.height - margin);
+  const preferredY = buttonPosition.y - panelSize.height - gap;
+  const fallbackY = buttonPosition.y + buttonSize + gap;
+
+  return {
+    x: clamp(buttonPosition.x + buttonSize - panelSize.width, margin, maxX),
+    y: clamp(preferredY < margin ? fallbackY : preferredY, margin, maxY),
+  };
 }
 
 function clamp(value: number, min: number, max: number) {

@@ -12,12 +12,25 @@ export function ChatMessageList({ messages }: ChatMessageListProps) {
       ) : (
         messages.map((message) => (
           <article className={`kmsf-chat-message kmsf-chat-message--${message.role}`} key={message.id}>
-            <div className="kmsf-chat-message__role">{message.role === "user" ? "User" : "Assistant"}</div>
-            <p>{message.content}</p>
+            {message.status === "pending" && message.role === "assistant" ? (
+              <PendingDots />
+            ) : (
+              <p>{message.content}</p>
+            )}
             {message.error ? <span className="kmsf-chat-error">{message.error}</span> : null}
           </article>
         ))
       )}
     </section>
+  );
+}
+
+export function PendingDots() {
+  return (
+    <span className="kmsf-chat-pending-dots" aria-label="응답 생성 중">
+      <span />
+      <span />
+      <span />
+    </span>
   );
 }

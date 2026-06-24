@@ -10,6 +10,7 @@ import {
   createOllamaClient,
   formatConnectionTimestamp,
   markModelDiscoveryReady,
+  type ChatHistoryStore,
   type ChatModelSettings,
   type ChatSetupState,
 } from "../../src";
@@ -18,7 +19,7 @@ import "./styles.css";
 
 const storage = window.localStorage;
 const setupStore = createLocalSetupStore({ storage });
-const chatStore = createLocalChatStore({ storage });
+const chatStore = createPlaygroundChatStore();
 
 function readInitialSetup() {
   if (new URLSearchParams(window.location.search).has("reset")) {
@@ -28,11 +29,28 @@ function readInitialSetup() {
   return setupStore.tryLoad().item ?? { completed: false, settings: createDefaultChatSetup() };
 }
 
+function createPlaygroundChatStore(): ChatHistoryStore {
+  const store = createLocalChatStore({ storage });
+  const searchParams = new URLSearchParams(window.location.search);
+
+  if (!searchParams.has("slowHistory")) {
+    return store;
+  }
+
+  return {
+    ...store,
+    async loadMessages(threadId) {
+      await new Promise((resolve) => window.setTimeout(resolve, 700));
+      return store.loadMessages(threadId);
+    },
+  };
+}
+
 function ExampleApp() {
   const [setup, setSetup] = useState<ChatSetupState>(() => readInitialSetup());
   const [models, setModels] = useState<string[]>([]);
   const [modelError, setModelError] = useState<string | null>(null);
-  const [setupSuccessMessage, setSetupSuccessMessage] = useState<string | null>(null);
+  const [setupToastMessage, setSetupToastMessage] = useState<string | null>(null);
   const client = useMemo(() => createOllamaClient({ baseUrl: setup.settings.baseUrl }), [setup.settings.baseUrl]);
 
   async function refreshModels() {
@@ -64,6 +82,15 @@ function ExampleApp() {
     void refreshModels();
   }, [client]);
 
+  useEffect(() => {
+    if (!setupToastMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setSetupToastMessage(null), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [setupToastMessage]);
+
   function updateSettings(settings: ChatModelSettings) {
     const next = { ...setup, settings };
     setSetup(next);
@@ -74,7 +101,7 @@ function ExampleApp() {
   function completeSetup() {
     const next = { ...setup, completed: true };
     setSetup(next);
-    setSetupSuccessMessage("로컬 LLM 설정이 완료되었습니다.");
+    setSetupToastMessage("로컬 LLM 설정이 완료되었습니다.");
     setupStore.save(next);
   }
 
@@ -95,9 +122,9 @@ function ExampleApp() {
 
   return (
     <div className="kmsf-chat-root kmsf-chat-app">
-      {setupSuccessMessage ? (
-        <div className="kmsf-chat-status-banner" role="status" aria-live="polite">
-          {setupSuccessMessage}
+      {setupToastMessage ? (
+        <div className="kmsf-chat-toast" role="status" aria-live="polite">
+          {setupToastMessage}
         </div>
       ) : null}
       <header className="kmsf-chat-playground-topbar" aria-label="@kmsf/chat playground">
