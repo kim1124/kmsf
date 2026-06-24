@@ -1,4 +1,4 @@
-import { BarChart3, LayoutDashboard, Settings, TableProperties } from "lucide-react";
+import { BarChart3, FileText, Home, LayoutDashboard, Settings, TableProperties } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -12,6 +12,7 @@ import { getAppLocale } from "@/i18n/current-locale";
 import { getCurrentUser } from "@/lib/auth/session";
 import { readProjectSetupConfig } from "@/lib/setup/project-setup-config";
 import { getCsrfToken } from "@/lib/security/csrf";
+import { discoverAppPageRoutes } from "@/lib/navigation/app-route-discovery";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
 
 type ProtectedLayoutProps = {
@@ -41,7 +42,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
     redirect("/sign-in");
   }
 
-  const navItems: Array<{
+  const staticNavItems: Array<{
     caption: string;
     href: string;
     icon: ReactNode;
@@ -77,6 +78,48 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
       routeId: "settings",
     },
   ];
+  const discoveredNavItems =
+    setupConfig?.menuSourceMode === "app-routes"
+      ? (await discoverAppPageRoutes()).map((route) => ({
+          caption:
+            route.routeId === "dashboard"
+              ? t("dashboardCaption")
+              : route.routeId === "data-table-sample"
+                ? t("tableSampleCaption")
+                : route.routeId === "chart-sample"
+                  ? t("chartSampleCaption")
+                  : route.routeId === "settings"
+                    ? t("settingsCaption")
+                    : route.href,
+          href: route.href,
+          icon:
+            route.routeId === "home" ? (
+              <Home className="h-4 w-4" />
+            ) : route.routeId === "dashboard" ? (
+              <LayoutDashboard className="h-4 w-4" />
+            ) : route.routeId === "data-table-sample" ? (
+              <TableProperties className="h-4 w-4" />
+            ) : route.routeId === "chart-sample" ? (
+              <BarChart3 className="h-4 w-4" />
+            ) : route.routeId === "settings" ? (
+              <Settings className="h-4 w-4" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            ),
+          label:
+            route.routeId === "dashboard"
+              ? t("dashboard")
+              : route.routeId === "data-table-sample"
+                ? t("tableSample")
+                : route.routeId === "chart-sample"
+                  ? t("chartSample")
+                  : route.routeId === "settings"
+                    ? t("settings")
+                    : route.label,
+          routeId: route.routeId,
+        }))
+      : null;
+  const navItems = discoveredNavItems ?? staticNavItems;
 
   return (
     <AppShell
@@ -85,7 +128,10 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
       initialServerTime={initialServerTime}
       locale={locale}
       gnbLayout={setupConfig?.gnbLayout}
-      navItems={navItems.filter((item) => canAccessRoute(user, item.routeId))}
+      navItems={navItems.filter(
+        (item) =>
+          item.routeId === "home" || canAccessRoute(user, item.routeId as ProtectedRouteId),
+      )}
       user={user}
     >
       {children}

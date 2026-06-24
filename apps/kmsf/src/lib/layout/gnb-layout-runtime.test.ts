@@ -9,13 +9,10 @@ import {
 } from "./gnb-layout-runtime";
 
 describe("runtime GNB layout", () => {
-  it("keeps the left side required for runtime settings", () => {
-    expect(normalizeRuntimeGnbRegions(["top", "footer"])).toEqual([
-      "top",
-      "left",
-      "footer",
-    ]);
-    expect(normalizeRuntimeGnbRegions(["right"])).toEqual(["left", "right"]);
+  it("does not force the left side when runtime settings omit it", () => {
+    expect(normalizeRuntimeGnbRegions(["top", "footer"])).toEqual(["top", "footer"]);
+    expect(normalizeRuntimeGnbRegions(["right"])).toEqual(["right"]);
+    expect(normalizeRuntimeGnbRegions([])).toEqual([]);
   });
 
   it("uses a username-scoped local storage key", () => {
@@ -29,7 +26,7 @@ describe("runtime GNB layout", () => {
     });
 
     expect(parseStoredRuntimeGnbLayoutConfig(serialized)).toEqual({
-      enabledRegions: ["left", "right", "footer"],
+      enabledRegions: ["right", "footer"],
       version: 1,
     });
   });
@@ -38,6 +35,6 @@ describe("runtime GNB layout", () => {
     expect(parseStoredRuntimeGnbLayoutConfig("{", { enabledRegions: ["right"] })).toBeNull();
     expect(
       normalizeRuntimeGnbLayoutConfig(null, { enabledRegions: ["right"] }).enabledRegions,
-    ).toEqual(["left", "right"]);
+    ).toEqual(["right"]);
   });
 });

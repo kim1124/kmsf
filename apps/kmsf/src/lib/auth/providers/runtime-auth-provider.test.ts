@@ -176,6 +176,36 @@ describe("runtime auth provider resolution", () => {
     expect(probeSupabase).not.toHaveBeenCalled();
   });
 
+  it("keeps auth disabled when the stored setup profile uses manual auth", async () => {
+    const probeSupabase = vi.fn(async () => undefined);
+    const resolveRuntimeAuthProvider = createRuntimeAuthProviderResolver({
+      probeSupabase,
+      readSetupConfig: async () => ({
+        appConfigStorageMode: "local-storage",
+        authMode: "manual",
+        authProvider: "local-json",
+        dbMode: "none",
+        gnbLayout: { enabledRegions: [] },
+        menuSourceMode: "manual",
+        updatedAt: "2026-06-22T00:00:00.000Z",
+        version: 2,
+      }),
+    });
+
+    const result = await resolveRuntimeAuthProvider({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SECRET_KEY: "secret-key",
+    });
+
+    expect(result).toEqual({
+      provider: "manual",
+      reason: "stored-manual",
+      attempts: 0,
+    });
+    expect(probeSupabase).not.toHaveBeenCalled();
+  });
+
   it("reuses the runtime provider result for the same environment", async () => {
     const probeSupabase = vi.fn(async () => {
       throw new Error("fetch failed");

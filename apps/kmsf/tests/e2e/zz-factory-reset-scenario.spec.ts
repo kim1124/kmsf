@@ -158,7 +158,7 @@ test("level3 admin, member lifecycle, and factory reset work end to end", async 
   await signOut(page);
   await expectSignInRejected(page, memberAccount);
   await signIn(page, updatedMemberAccount);
-  await deleteCurrentAccount(page, memberAccount.password);
+  await deleteCurrentAccount(page, updatedMemberAccount.password);
   await expectSignInRejected(page, updatedMemberAccount);
   await expect
     .poll(async () =>

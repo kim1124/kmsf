@@ -127,20 +127,20 @@
     },
     "tooltips": {
       "username": "Use 5-32 letters, numbers, or an email-style ID.",
-      "password": "Use 6-32 characters with letters, numbers, and special characters."
+      "password": "Use 6-32 characters with letters and special characters."
     },
     "fieldErrors": {
       "username": {
         "invalid": "The ID must be 5-32 letters, numbers, or an email-style value."
       },
       "password": {
-        "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
+        "invalid": "The password must be 6-32 characters and include letters and special characters."
       }
     }
   },
   "initialSetup": {
     "title": "KMSF Initial Setup",
-    "description": "Configure the project auth mode and first administrator account.",
+    "description": "Configure the project layout, database, authentication, and menu behavior.",
     "username": "ID",
     "displayName": "Name",
     "email": "E-mail",
@@ -202,13 +202,16 @@
     },
     "errors": {
       "auth": "We could not create the initial administrator account.",
+      "duplicateUsername": "The admin administrator account already exists. Sign in with the existing account or use the reset flow.",
+      "setupWriteFailed": "We could not save the initial setup file. Check file permissions and the local setup path.",
+      "supabaseUnavailable": "We could not verify the Supabase connection. Check the environment settings and SecretKey.",
       "security": "The security token is invalid. Refresh the page and try again."
     },
     "tooltips": {
       "username": "Use 5-32 letters, numbers, or an email-style ID.",
       "displayName": "The administrator name shown in settings and profile menus.",
       "email": "Enter a valid E-mail address.",
-      "password": "Use 6-32 characters with letters, numbers, and special characters.",
+      "password": "Use 6-32 characters with letters and special characters.",
       "passwordConfirm": "Re-enter the same password once more."
     },
     "fieldErrors": {
@@ -224,7 +227,7 @@
         "duplicate": "This E-mail is already in use."
       },
       "password": {
-        "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
+        "invalid": "The password must be 6-32 characters and include letters and special characters."
       },
       "passwordConfirm": {
         "invalid": "The password confirmation must be at least 6 characters long.",
@@ -249,7 +252,7 @@
     "tooltips": {
       "username": "Use 5-32 letters, numbers, or an email-style ID.",
       "email": "Enter a valid E-mail address.",
-      "password": "Use 6-32 characters with letters, numbers, and special characters.",
+      "password": "Use 6-32 characters with letters and special characters.",
       "passwordConfirm": "Re-enter the same password once more."
     },
     "fieldErrors": {
@@ -262,7 +265,7 @@
         "duplicate": "This E-mail is already in use."
       },
       "password": {
-        "invalid": "The password must be 6-32 characters and include letters, numbers, and special characters."
+        "invalid": "The password must be 6-32 characters and include letters and special characters."
       },
       "passwordConfirm": {
         "invalid": "The password confirmation must be at least 6 characters long.",

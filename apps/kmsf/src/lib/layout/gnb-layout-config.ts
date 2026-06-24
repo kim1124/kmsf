@@ -1,5 +1,5 @@
 export const GNB_REGIONS = ["top", "left", "right", "footer"] as const;
-export const DEFAULT_GNB_REGIONS = ["top", "left", "footer"] as const satisfies readonly GnbRegion[];
+export const DEFAULT_GNB_REGIONS = ["top", "left"] as const satisfies readonly GnbRegion[];
 
 export type GnbRegion = (typeof GNB_REGIONS)[number];
 
@@ -17,9 +17,7 @@ export function normalizeGnbRegions(value: unknown): GnbRegion[] {
   }
 
   const regions = value.filter(isGnbRegion);
-  const uniqueRegions = GNB_REGIONS.filter((region) => regions.includes(region));
-
-  return uniqueRegions.length > 0 ? uniqueRegions : [...DEFAULT_GNB_REGIONS];
+  return GNB_REGIONS.filter((region) => regions.includes(region));
 }
 
 export function normalizeGnbLayoutConfig(value: unknown): GnbLayoutConfig {

@@ -44,10 +44,10 @@ export async function getAccountDirectory(): Promise<AccountDirectoryResult> {
   const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (runtimeProvider.provider === "local-json") {
-    const { listLocalJsonAccounts } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { listKmsfManagedAccounts } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
-    const accounts = await listLocalJsonAccounts();
+    const accounts = await listKmsfManagedAccounts();
 
     return {
       accounts: accounts.map((account) => ({

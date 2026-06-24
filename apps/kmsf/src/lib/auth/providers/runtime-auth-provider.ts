@@ -6,9 +6,11 @@ type AuthProviderEnv = Partial<NodeJS.ProcessEnv>;
 
 export type RuntimeAuthProviderReason =
   | "explicit-local-json"
+  | "explicit-manual"
   | "missing-supabase-credentials"
   | "missing-supabase-service-role"
   | "stored-local-json"
+  | "stored-manual"
   | "supabase-ready"
   | "supabase-unavailable";
 
@@ -66,6 +68,14 @@ export function createRuntimeAuthProviderResolver(
   ): Promise<RuntimeAuthProviderResult> {
     const configuredProvider = getAuthProviderKind(env);
 
+    if (configuredProvider === "manual") {
+      return {
+        provider: "manual",
+        reason: "explicit-manual",
+        attempts: 0,
+      };
+    }
+
     if (env.KMSF_AUTH_PROVIDER === "local-json") {
       return {
         provider: "local-json",
@@ -75,6 +85,14 @@ export function createRuntimeAuthProviderResolver(
     }
 
     const setupConfig = await readSetupConfig();
+
+    if (setupConfig?.authMode === "manual") {
+      return {
+        provider: "manual",
+        reason: "stored-manual",
+        attempts: 0,
+      };
+    }
 
     if (setupConfig?.authProvider === "local-json") {
       return {

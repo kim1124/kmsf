@@ -17,6 +17,7 @@ const actionMocks = vi.hoisted(() => {
   const listAllSupabaseAuthUsers = vi.fn();
   const managerSelect = vi.fn();
   const managerFrom = vi.fn(() => ({ select: managerSelect }));
+  const readKmsfManagedAuthStoreSnapshot = vi.fn();
   const readLocalJsonAuthStoreSnapshot = vi.fn();
   const redirect = vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`);
@@ -47,6 +48,7 @@ const actionMocks = vi.hoisted(() => {
     listLocalJsonAccounts,
     managerFrom,
     managerSelect,
+    readKmsfManagedAuthStoreSnapshot,
     readLocalJsonAuthStoreSnapshot,
     redirect,
     resetLocalJsonAuthStore,
@@ -85,6 +87,14 @@ vi.mock("@/lib/auth/providers/local-json-auth-store", () => ({
   verifyLocalJsonAccountPassword: actionMocks.verifyLocalJsonAccountPassword,
 }));
 
+vi.mock("@/lib/auth/providers/kmsf-managed-auth-store", () => ({
+  deleteKmsfManagedAccount: actionMocks.deleteLocalJsonAccount,
+  listKmsfManagedAccounts: actionMocks.listLocalJsonAccounts,
+  readKmsfManagedAuthStoreSnapshot: actionMocks.readKmsfManagedAuthStoreSnapshot,
+  resetKmsfManagedAuthStore: actionMocks.resetLocalJsonAuthStore,
+  verifyKmsfManagedAccountPassword: actionMocks.verifyLocalJsonAccountPassword,
+}));
+
 vi.mock("@/lib/auth/session", () => ({
   getCurrentUser: actionMocks.getCurrentUser,
 }));
@@ -103,6 +113,7 @@ vi.mock("@/lib/security/csrf", () => ({
 
 vi.mock("@/lib/setup/project-setup-config", () => ({
   clearProjectSetupConfig: actionMocks.clearProjectSetupConfig,
+  readProjectSetupConfig: vi.fn(async () => null),
 }));
 
 vi.mock("@/lib/supabase/account-admin", () => ({
@@ -227,6 +238,13 @@ describe("resetSystemAction", () => {
       loginAuditEvents: [],
       version: 2,
     });
+    actionMocks.readKmsfManagedAuthStoreSnapshot.mockResolvedValue({
+      accounts: [{ id: "local_admin", username: "admin" }],
+      loginAttemptStates: [],
+      loginAuditEvents: [],
+      provider: "local-json",
+      version: 2,
+    });
     actionMocks.managerSelect.mockResolvedValue({
       data: [
         {
@@ -312,6 +330,33 @@ describe("resetSystemAction", () => {
         status: "success",
       }),
     );
+  });
+
+  it("backs up the active KMSF-managed auth store during local-provider reset", async () => {
+    actionMocks.readKmsfManagedAuthStoreSnapshot.mockResolvedValueOnce({
+      accounts: [{ id: "sqlite_admin", username: "admin" }],
+      provider: "sqlite",
+      version: 1,
+    });
+    const { resetSystemAction } = await import("./actions");
+
+    await expect(resetSystemAction(buildResetForm())).rejects.toThrow(
+      "REDIRECT:/setup/initial-admin?reset=success",
+    );
+
+    expect(actionMocks.createLocalBackup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "factory",
+        provider: "local-json",
+        snapshot: expect.objectContaining({
+          authStore: expect.objectContaining({
+            accounts: [{ id: "sqlite_admin", username: "admin" }],
+            provider: "sqlite",
+          }),
+        }),
+      }),
+    );
+    expect(actionMocks.readLocalJsonAuthStoreSnapshot).not.toHaveBeenCalled();
   });
 
   it("backs up and deletes Supabase accounts during factory reset", async () => {

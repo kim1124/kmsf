@@ -22,6 +22,19 @@ export async function completeInitialSetupWizard(
 ) {
   await clickInitialSetupNext(page);
   await clickInitialSetupNext(page);
+  await page.getByRole("radio", { name: /Dev Local DB/ }).check();
+  await clickInitialSetupNext(page);
+  await page.getByRole("radio", { name: /KMSF-managed auth/ }).check();
+  await clickInitialSetupNext(page);
+  const connectedDb = page.getByRole("radio", { name: /연결된 DB|Connected DB/ });
+
+  if ((await connectedDb.count()) > 0) {
+    await connectedDb.check();
+  }
+
+  await clickInitialSetupNext(page);
+  await page.getByRole("radio", { name: /Page 디렉터리|Page directory/ }).check();
+  await clickInitialSetupNext(page);
   await page.locator("#initial-admin-email").fill(account.email);
   await page.locator("#initial-admin-password").fill(account.password);
   await page.locator("#initial-admin-password-confirm").fill(account.password);

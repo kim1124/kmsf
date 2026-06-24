@@ -22,6 +22,7 @@ export function SidebarDrawer({ csrfToken, items, locale, user }: SidebarDrawerP
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLElement>(null);
+  const activeItemRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -32,6 +33,17 @@ export function SidebarDrawer({ csrfToken, items, locale, user }: SidebarDrawerP
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+
+    activeItemRef.current?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [expanded, pathname]);
 
   return (
     <aside
@@ -61,13 +73,14 @@ export function SidebarDrawer({ csrfToken, items, locale, user }: SidebarDrawerP
           </span>
         </button>
 
-        <nav className="flex w-full flex-1 flex-col gap-2">
+        <nav className="flex w-full min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
           {items.map((item) => {
             const active = isNavItemActive(pathname, item.href);
 
             return (
               <Link
                 key={item.href}
+                ref={active ? activeItemRef : undefined}
                 aria-current={active ? "page" : undefined}
                 href={item.href}
                 prefetch={true}

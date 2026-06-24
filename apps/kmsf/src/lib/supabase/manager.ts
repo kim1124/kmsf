@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import type { AppRole } from "@/lib/auth/roles";
+import { readProjectSetupConfig } from "@/lib/setup/project-setup-config";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -106,14 +107,20 @@ export async function touchManagerLastSignedIn(id: string) {
 }
 
 export const isInitialSetupRequired = cache(async () => {
+  const setupConfig = await readProjectSetupConfig();
+
+  if (setupConfig?.authMode === "manual") {
+    return false;
+  }
+
   const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (runtimeProvider.provider === "local-json") {
-    const { hasLocalJsonAccounts } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { hasKmsfManagedAccounts } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
 
-    return !(await hasLocalJsonAccounts());
+    return !(await hasKmsfManagedAccounts());
   }
 
   if (hasSupabaseSecretKey()) {

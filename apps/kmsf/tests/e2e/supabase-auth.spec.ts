@@ -35,7 +35,12 @@ async function createInitialAdminIfRequired(
   }
 
   await completeInitialSetupWizard(page, input);
-  await page.waitForURL("**/dashboard", { timeout: 20000 });
+  await expect(page.getByRole("heading", { name: "설정이 완료되었습니다." })).toBeVisible({
+    timeout: 20000,
+  });
+  await page.goto("/sign-in");
+  await page.waitForLoadState("networkidle");
+  await signInWithUsername(page, input);
 
   return "admin";
 }
@@ -109,6 +114,19 @@ async function deleteCurrentAccount(page: import("@playwright/test").Page, passw
   await expect(page).toHaveURL(/\/sign-in$/);
 }
 
+async function deleteInitialAdminForCleanup(
+  page: import("@playwright/test").Page,
+  password: string,
+) {
+  await page.getByRole("button", { name: "프로필 메뉴" }).click();
+  await page.getByRole("button", { name: "계정 정보 변경", exact: true }).click();
+  await page.getByRole("button", { name: "회원 탈퇴", exact: true }).click();
+  await page.locator("#delete-account-password").fill(password);
+  await page.getByRole("button", { name: "탈퇴 진행", exact: true }).click();
+  await page.waitForURL("**/setup/initial-admin**", { timeout: 20000 });
+  await expect(page.getByRole("heading", { name: "KMSF 초기 설정" })).toBeVisible();
+}
+
 test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member deletion", async ({ page }) => {
   const runId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
   const adminEmail = `admin_${runId}@mailinator.com`;
@@ -164,7 +182,7 @@ test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member
         password: adminPassword,
         username: "admin",
       });
-      await deleteCurrentAccount(page, adminPassword);
+      await deleteInitialAdminForCleanup(page, adminPassword);
     }
   }
 });

@@ -22,7 +22,6 @@ import { cn } from "@/lib/utils";
 
 type GnbLayoutSettingsLabels = {
   description: string;
-  fixed: string;
   reset: string;
   regions: Record<GnbRegion, { description: string; title: string }>;
   title: string;
@@ -84,10 +83,6 @@ export function GnbLayoutSettingsPanel({
   }
 
   function toggleRegion(region: GnbRegion) {
-    if (region === "left") {
-      return;
-    }
-
     const enabledRegions = hasGnbRegion(layout, region)
       ? layout.enabledRegions.filter((value) => value !== region)
       : GNB_REGIONS.filter((value) => value === region || layout.enabledRegions.includes(value));
@@ -117,7 +112,6 @@ export function GnbLayoutSettingsPanel({
       <div className="mt-6 grid gap-3 md:grid-cols-2">
         {GNB_REGIONS.map((region) => {
           const checked = hasGnbRegion(layout, region);
-          const disabled = region === "left";
           const regionLabels = labels.regions[region];
 
           return (
@@ -126,13 +120,12 @@ export function GnbLayoutSettingsPanel({
               className={cn(
                 "flex min-h-[7rem] gap-4 rounded-[var(--kmsf-radius-xl)] border border-border bg-surface p-4 transition-colors",
                 checked && "border-accent bg-panel-hover",
-                disabled ? "cursor-not-allowed opacity-75" : "cursor-pointer",
+                "cursor-pointer",
               )}
             >
               <input
                 checked={checked}
                 className="mt-1 h-4 w-4 accent-[var(--kmsf-color-accent)]"
-                disabled={disabled}
                 onChange={() => toggleRegion(region)}
                 type="checkbox"
               />
@@ -143,9 +136,6 @@ export function GnbLayoutSettingsPanel({
                 <span className="mt-2 block text-sm leading-6 text-foreground/65">
                   {regionLabels.description}
                 </span>
-                {disabled ? (
-                  <span className="mt-2 block text-xs font-medium text-accent">{labels.fixed}</span>
-                ) : null}
               </span>
             </label>
           );

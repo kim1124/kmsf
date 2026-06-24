@@ -54,6 +54,17 @@ describe("accountSchema", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("accepts the agreed initial admin test password", () => {
+    const parsed = accountSchema.safeParse({
+      username: "admin",
+      email: "kim@example.com",
+      password: "admin!@#$",
+      passwordConfirm: "admin!@#$",
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
   it("rejects usernames outside the allowed pattern", () => {
     const parsed = accountSchema.safeParse({
       username: "kim-1124",

@@ -25,10 +25,7 @@ export function normalizeRuntimeGnbRegions(
 ): GnbRegion[] {
   const candidate = Array.isArray(value) ? value : fallbackRegions;
   const regions = candidate.filter(isGnbRegion);
-  const withRequiredLeft = regions.includes("left") ? regions : ["left", ...regions];
-  const uniqueRegions = GNB_REGIONS.filter((region) => withRequiredLeft.includes(region));
-
-  return uniqueRegions.length > 0 ? uniqueRegions : ["left"];
+  return GNB_REGIONS.filter((region) => regions.includes(region));
 }
 
 export function normalizeRuntimeGnbLayoutConfig(

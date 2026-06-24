@@ -2,11 +2,8 @@
 
 import { redirect } from "next/navigation";
 
-import { touchAppSessionCookie } from "@/lib/auth/app-session.server";
-import { setLocalJsonSessionCookie } from "@/lib/auth/local-session.server";
 import {
   resetRuntimeAuthProviderCache,
-  resolveRuntimeAuthProvider,
 } from "@/lib/auth/providers/runtime-auth-provider";
 import { createSupabaseAccountWithManager } from "@/lib/supabase/account-admin";
 import {
@@ -23,23 +20,33 @@ import {
   normalizeGnbRegions,
   type GnbRegion,
 } from "@/lib/layout/gnb-layout-config";
+import type {
+  AppConfigStorageMode,
+  AuthMode,
+  DbMode,
+  MenuSourceMode,
+} from "@/lib/setup/project-setup-config";
 import { hasSupabaseSecretKey } from "@/lib/supabase/env";
 import {
   isAuthEmailTaken,
   isManagerUsernameTaken,
   isInitialSetupRequired,
-  touchManagerLastSignedIn,
 } from "@/lib/supabase/manager";
 import { verifyCsrfToken } from "@/lib/security/csrf";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { writeProjectSetupConfig } from "@/lib/setup/project-setup-config";
+import { checkSupabaseSetupAvailability } from "@/lib/supabase/setup-availability";
 
-type InitialSetupAuthProvider = AuthProviderKind;
+type InitialSetupAuthProvider = Exclude<AuthProviderKind, "manual">;
 
 type InitialAdminFields = AccountFields & {
+  appConfigStorageMode: AppConfigStorageMode;
+  authMode: AuthMode;
   authProvider: InitialSetupAuthProvider;
+  dbMode: DbMode;
   displayName: string;
   gnbRegions: GnbRegion[];
+  menuSourceMode: MenuSourceMode;
 };
 
 type InitialAdminFieldErrors = AccountFieldErrors & {
@@ -47,9 +54,16 @@ type InitialAdminFieldErrors = AccountFieldErrors & {
 };
 
 export type InitialAdminFormState = {
-  authError: "auth.failed" | "security.invalid" | null;
+  authError:
+    | "auth.failed"
+    | "duplicate.username"
+    | "security.invalid"
+    | "setup.write-failed"
+    | "supabase.unavailable"
+    | null;
   fields: InitialAdminFields;
   fieldErrors: InitialAdminFieldErrors;
+  setupComplete: boolean;
 };
 
 const ADMIN_LEVEL = 3;
@@ -70,6 +84,7 @@ function buildState(
       displayName: null,
       ...options?.fieldErrors,
     },
+    setupComplete: false,
   };
 }
 
@@ -77,14 +92,107 @@ function normalizeInitialSetupAuthProvider(value: FormDataEntryValue | null): In
   return value === "supabase" ? "supabase" : "local-json";
 }
 
+function normalizeInitialSetupDbMode(value: FormDataEntryValue | null): DbMode {
+  if (
+    value === "none" ||
+    value === "dev-local-db" ||
+    value === "sqlite" ||
+    value === "external-adapter" ||
+    value === "supabase"
+  ) {
+    return value;
+  }
+
+  return "dev-local-db";
+}
+
+function normalizeInitialSetupAuthMode(
+  value: FormDataEntryValue | null,
+  dbMode: DbMode,
+): AuthMode {
+  if (dbMode === "none") {
+    return "manual";
+  }
+
+  if (dbMode === "supabase") {
+    return value === "manual" ? "manual" : "supabase";
+  }
+
+  return value === "manual" ? "manual" : "kmsf-managed";
+}
+
+function normalizeInitialSetupAppConfigStorageMode(
+  value: FormDataEntryValue | null,
+  dbMode: DbMode,
+): AppConfigStorageMode {
+  if (value === "manual" || value === "local-storage") {
+    return value;
+  }
+
+  if (value === "connected-db" && dbMode !== "none") {
+    return "connected-db";
+  }
+
+  return dbMode === "none" ? "local-storage" : "connected-db";
+}
+
+function normalizeInitialSetupMenuSourceMode(
+  value: FormDataEntryValue | null,
+  dbMode: DbMode,
+  authMode: AuthMode,
+): MenuSourceMode {
+  if (value === "app-routes") {
+    return "app-routes";
+  }
+
+  if (value === "settings-ui" && dbMode !== "none" && authMode !== "manual") {
+    return "settings-ui";
+  }
+
+  return "manual";
+}
+
+async function writeInitialSetupConfig(input: {
+  appConfigStorageMode: AppConfigStorageMode;
+  authMode: AuthMode;
+  dbMode: DbMode;
+  gnbRegions: GnbRegion[];
+  menuSourceMode: MenuSourceMode;
+}) {
+  await writeProjectSetupConfig({
+    appConfigStorageMode: input.appConfigStorageMode,
+    authMode: input.authMode,
+    dbMode: input.dbMode,
+    gnbLayout: { enabledRegions: input.gnbRegions },
+    menuSourceMode: input.menuSourceMode,
+  });
+  resetRuntimeAuthProviderCache();
+}
+
 export async function createInitialAdminAction(
   _prevState: InitialAdminFormState,
   formData: FormData,
 ) {
+  const dbMode = normalizeInitialSetupDbMode(formData.get("dbMode"));
+  const authMode = normalizeInitialSetupAuthMode(formData.get("authMode"), dbMode);
+  const appConfigStorageMode = normalizeInitialSetupAppConfigStorageMode(
+    formData.get("appConfigStorageMode"),
+    dbMode,
+  );
+  const menuSourceMode = normalizeInitialSetupMenuSourceMode(
+    formData.get("menuSourceMode"),
+    dbMode,
+    authMode,
+  );
+  const authProvider = dbMode === "supabase" && authMode === "supabase" ? "supabase" : "local-json";
   const fields = {
-    authProvider: normalizeInitialSetupAuthProvider(formData.get("authProvider")),
+    appConfigStorageMode,
+    authMode,
+    authProvider: normalizeInitialSetupAuthProvider(authProvider),
+    dbMode,
     displayName: INITIAL_ADMIN_DISPLAY_NAME,
     gnbRegions: normalizeGnbRegions(formData.getAll("gnbRegions")),
+    menuSourceMode,
     username: INITIAL_ADMIN_USERNAME,
     email: sanitizeEmailInput(String(formData.get("email") ?? "")),
     password: String(formData.get("password") ?? ""),
@@ -95,6 +203,28 @@ export async function createInitialAdminAction(
     return buildState(fields, { authError: "security.invalid" });
   }
 
+  const shouldCreateAdmin = dbMode !== "none" && authMode !== "manual";
+
+  if (!shouldCreateAdmin) {
+    try {
+      await writeInitialSetupConfig({
+        appConfigStorageMode,
+        authMode: "manual",
+        dbMode,
+        gnbRegions: fields.gnbRegions,
+        menuSourceMode,
+      });
+    } catch (error) {
+      console.error("createInitialAdminAction manual setup config write failed", { error });
+      return buildState(fields, { authError: "setup.write-failed" });
+    }
+
+    return {
+      ...buildState(fields),
+      setupComplete: true,
+    };
+  }
+
   const parsed = accountSchema.safeParse(fields);
 
   if (!parsed.success) {
@@ -103,28 +233,60 @@ export async function createInitialAdminAction(
     });
   }
 
+  const supabaseAvailability =
+    fields.authProvider === "supabase"
+      ? await checkSupabaseSetupAvailability()
+      : null;
+
+  if (supabaseAvailability?.setupState === "remote-initialized") {
+    try {
+      await writeInitialSetupConfig({
+        appConfigStorageMode,
+        authMode: "supabase",
+        dbMode: "supabase",
+        gnbRegions: fields.gnbRegions,
+        menuSourceMode,
+      });
+    } catch (error) {
+      console.error("createInitialAdminAction existing supabase setup link failed", {
+        email: supabaseAvailability.adminEmail,
+        error,
+      });
+      return buildState(fields, { authError: "setup.write-failed" });
+    }
+
+    redirect("/sign-in");
+  }
+
   const setupRequired = await isInitialSetupRequired();
 
   if (!setupRequired) {
     redirect("/sign-in");
   }
 
-  const runtimeProvider = await resolveRuntimeAuthProvider();
+  if (fields.authProvider === "supabase" && !supabaseAvailability?.available) {
+    return buildState(fields, { authError: "supabase.unavailable" });
+  }
+
   const effectiveProvider =
-    fields.authProvider === "supabase" && runtimeProvider.provider === "supabase"
+    fields.authProvider === "supabase" && supabaseAvailability?.available
       ? "supabase"
       : "local-json";
 
   if (effectiveProvider === "local-json") {
-    const { createLocalJsonAccount, LocalJsonAuthStoreError } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { createKmsfManagedAccount } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
-    let account: Awaited<ReturnType<typeof createLocalJsonAccount>>;
 
     try {
-      await writeProjectSetupConfig("local-json", { enabledRegions: fields.gnbRegions });
-      resetRuntimeAuthProviderCache();
-      account = await createLocalJsonAccount({
+      await writeInitialSetupConfig({
+        appConfigStorageMode,
+        authMode,
+        dbMode,
+        gnbRegions: fields.gnbRegions,
+        menuSourceMode,
+      });
+      await createKmsfManagedAccount({
         displayName: INITIAL_ADMIN_DISPLAY_NAME,
         username: parsed.data.username,
         email: parsed.data.email,
@@ -133,9 +295,9 @@ export async function createInitialAdminAction(
         role: "admin",
       });
     } catch (error) {
-      if (error instanceof LocalJsonAuthStoreError) {
+      if (error && typeof error === "object" && "code" in error) {
         if (error.code === "duplicate_username") {
-          return buildState(fields, { authError: "auth.failed" });
+          return buildState(fields, { authError: "duplicate.username" });
         }
 
         return buildState(fields, {
@@ -149,9 +311,10 @@ export async function createInitialAdminAction(
       return buildState(fields, { authError: "auth.failed" });
     }
 
-    await setLocalJsonSessionCookie(account.id);
-    await touchAppSessionCookie();
-    redirect("/dashboard");
+    return {
+      ...buildState(fields),
+      setupComplete: true,
+    };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -162,7 +325,7 @@ export async function createInitialAdminAction(
 
   if (usernameTaken || emailTaken) {
     if (usernameTaken && !emailTaken) {
-      return buildState(fields, { authError: "auth.failed" });
+      return buildState(fields, { authError: "duplicate.username" });
     }
 
     return buildState(fields, {
@@ -228,7 +391,7 @@ export async function createInitialAdminAction(
       ]);
 
       if (conflictUsername && !conflictEmail) {
-        return buildState(fields, { authError: "auth.failed" });
+        return buildState(fields, { authError: "duplicate.username" });
       }
 
       return buildState(fields, {
@@ -242,25 +405,20 @@ export async function createInitialAdminAction(
   }
 
   try {
-    await writeProjectSetupConfig("supabase", { enabledRegions: fields.gnbRegions });
-    resetRuntimeAuthProviderCache();
+    await writeInitialSetupConfig({
+      appConfigStorageMode,
+      authMode: "supabase",
+      dbMode: "supabase",
+      gnbRegions: fields.gnbRegions,
+      menuSourceMode,
+    });
   } catch (error) {
     console.error("createInitialAdminAction setup config write failed", { error });
+    return buildState(fields, { authError: "setup.write-failed" });
   }
 
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: normalizedEmail,
-    password: parsed.data.password,
-  });
-
-  if (signInError) {
-    redirect("/sign-in?success=confirm-email");
-  }
-
-  if (signInData.user) {
-    await touchManagerLastSignedIn(signInData.user.id);
-  }
-
-  await touchAppSessionCookie();
-  redirect("/dashboard");
+  return {
+    ...buildState(fields),
+    setupComplete: true,
+  };
 }

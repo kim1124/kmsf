@@ -6,6 +6,7 @@ test("runtime GNB settings are account-scoped, immediate, persistent, and deskto
   page,
 }) => {
   const runId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+  let storageUsername = "admin";
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("http://127.0.0.1:3000");
@@ -16,6 +17,22 @@ test("runtime GNB settings are account-scoped, immediate, persistent, and deskto
       email: `owner_${runId}@mailinator.com`,
       password: "admin00@!",
     });
+    await page.waitForURL("**/dashboard", { timeout: 20_000 });
+  } else if (page.url().includes("/sign-in")) {
+    await page.goto("http://127.0.0.1:3000/sign-up");
+    await page.waitForLoadState("networkidle");
+    const username = `member${runId.slice(-6)}`;
+    const password = "member00@!";
+    storageUsername = username;
+    await page.locator("#sign-up-username").fill(username);
+    await page.locator("#sign-up-email").fill(`member_${runId}@mailinator.com`);
+    await page.locator("#sign-up-password").fill(password);
+    await page.locator("#sign-up-password-confirm").fill(password);
+    await page.getByRole("button", { name: "회원 가입", exact: true }).click();
+    await page.waitForURL("**/sign-in?success=registered", { timeout: 20_000 });
+    await page.locator("#login-username").fill(username);
+    await page.locator("#login-password").fill(password);
+    await page.getByRole("button", { name: "로그인", exact: true }).click();
     await page.waitForURL("**/dashboard", { timeout: 20_000 });
   }
 
@@ -36,10 +53,10 @@ test("runtime GNB settings are account-scoped, immediate, persistent, and deskto
   const footerToggle = page.getByRole("checkbox", { name: /Footer/ });
 
   await expect(leftToggle).toBeChecked();
-  await expect(leftToggle).toBeDisabled();
+  await expect(leftToggle).toBeEnabled();
   await expect(topToggle).toBeChecked();
   await expect(rightToggle).not.toBeChecked();
-  await expect(footerToggle).toBeChecked();
+  await expect(footerToggle).not.toBeChecked();
 
   await topToggle.uncheck();
   await expect(page.locator("header")).toBeHidden();
@@ -52,8 +69,9 @@ test("runtime GNB settings are account-scoped, immediate, persistent, and deskto
   await expect(rightGnb).toBeVisible();
   await expect(rightGnb.getByRole("link")).toHaveCount(0);
 
-  const storageValue = await page.evaluate(() =>
-    window.localStorage.getItem("kmsf:gnb-layout:admin"),
+  const storageValue = await page.evaluate((username) =>
+    window.localStorage.getItem(`kmsf:gnb-layout:${encodeURIComponent(username)}`),
+    storageUsername,
   );
   expect(storageValue).toContain('"right"');
   expect(storageValue).toContain('"left"');
