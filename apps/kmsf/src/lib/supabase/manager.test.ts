@@ -26,6 +26,10 @@ const supabaseMocks = vi.hoisted(() => {
   };
 });
 
+const setupMocks = vi.hoisted(() => ({
+  readProjectSetupConfig: vi.fn(async () => null),
+}));
+
 vi.mock("@/lib/supabase/admin", () => ({
   createSupabaseAdminClient: vi.fn(() => supabaseMocks.admin),
 }));
@@ -38,11 +42,16 @@ vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => supabaseMocks.client),
 }));
 
+vi.mock("@/lib/setup/project-setup-config", () => ({
+  readProjectSetupConfig: setupMocks.readProjectSetupConfig,
+}));
+
 import {
   buildManagerRecord,
   ensureManagerProfile,
   findManagerLoginEmail,
   findManagerLoginIdentity,
+  isInitialSetupRequired,
   isManagerUsernameTaken,
   touchManagerLastSignedIn,
 } from "./manager";
@@ -58,6 +67,8 @@ describe("manager Supabase helpers", () => {
     supabaseMocks.update.mockClear();
     supabaseMocks.updateEq.mockReset();
     supabaseMocks.upsert.mockReset();
+    setupMocks.readProjectSetupConfig.mockReset();
+    setupMocks.readProjectSetupConfig.mockResolvedValue(null);
   });
 
   it("builds manager records with last sign-in metadata", () => {
@@ -166,5 +177,21 @@ describe("manager Supabase helpers", () => {
     expect(supabaseMocks.from).toHaveBeenCalledWith("manager");
     expect(supabaseMocks.select).toHaveBeenCalledWith("id");
     expect(supabaseMocks.eq).toHaveBeenCalledWith("username", "member01");
+  });
+
+  it("does not require initial admin setup when manual auth setup is already stored", async () => {
+    setupMocks.readProjectSetupConfig.mockResolvedValue({
+      appConfigStorageMode: "local-storage",
+      authMode: "manual",
+      authProvider: "local-json",
+      dbMode: "none",
+      gnbLayout: { enabledRegions: [] },
+      menuSourceMode: "manual",
+      updatedAt: "2026-06-22T00:00:00.000Z",
+      version: 2,
+    });
+
+    await expect(isInitialSetupRequired()).resolves.toBe(false);
+    expect(supabaseMocks.from).not.toHaveBeenCalled();
   });
 });

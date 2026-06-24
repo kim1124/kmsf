@@ -68,8 +68,7 @@ const copy = {
     },
     gnb: {
       description:
-        "Choose which desktop GNB regions are visible in this browser. Left Side and all mobile regions remain available.",
-      fixed: "Always visible",
+        "Choose which desktop GNB regions are visible in this browser. Mobile regions remain available.",
       menu: "GNB settings",
       reset: "Restore default",
       regions: {
@@ -78,7 +77,7 @@ const copy = {
           title: "Footer",
         },
         left: {
-          description: "Keep the primary page menu available on desktop.",
+          description: "Show the primary page menu on desktop.",
           title: "Left Side",
         },
         right: {
@@ -179,8 +178,7 @@ const copy = {
     },
     gnb: {
       description:
-        "이 브라우저에서 표시할 데스크톱 GNB 영역을 선택합니다. Left Side와 모바일 영역은 항상 유지됩니다.",
-      fixed: "항상 표시",
+        "이 브라우저에서 표시할 데스크톱 GNB 영역을 선택합니다. 모바일 영역은 유지됩니다.",
       menu: "GNB 설정",
       reset: "기본값 복원",
       regions: {
@@ -189,7 +187,7 @@ const copy = {
           title: "Footer",
         },
         left: {
-          description: "데스크톱 기본 페이지 메뉴를 항상 표시합니다.",
+          description: "데스크톱 기본 페이지 메뉴를 표시합니다.",
           title: "Left Side",
         },
         right: {
@@ -282,6 +280,7 @@ function getAuthModeLabel(mode: AppSessionUser["authMode"] | RuntimeAuthProvider
           demo: "Demo",
           google: "Google",
           "local-json": "Local DB",
+          manual: "Manual",
           password: "ID / Password",
           supabase: "Supabase",
         }
@@ -289,6 +288,7 @@ function getAuthModeLabel(mode: AppSessionUser["authMode"] | RuntimeAuthProvider
           demo: "데모",
           google: "Google",
           "local-json": "Local DB",
+          manual: "Manual",
           password: "ID / 비밀번호",
           supabase: "Supabase",
         };

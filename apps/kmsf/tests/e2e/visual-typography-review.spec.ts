@@ -4,9 +4,10 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 import { completeInitialSetupWizard } from "./utils/initial-setup";
+import { e2eAdminAccount } from "./utils/shared-accounts";
 
 const artifactDir = join(process.cwd(), "reports/artifacts/visual-typography");
-const adminPassword = "admin00@!";
+const adminPassword = e2eAdminAccount.password;
 
 async function expectBaseTypography(page: Page) {
   await expect(page.locator("body")).toHaveCSS("font-size", "12px");
@@ -51,19 +52,21 @@ async function signOut(page: Page) {
 }
 
 test("captures final app visual typography review screenshots", async ({ page }) => {
-  const runId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
-  const adminEmail = `visual_${runId}@mailinator.com`;
-
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/setup/initial-admin");
-  await expect(page.getByRole("heading", { name: "KMSF 초기 설정" })).toBeVisible();
-  await capturePage(page, "app-desktop-setup-initial-admin");
+  await page.waitForLoadState("networkidle");
 
-  await completeInitialSetupWizard(page, {
-    email: adminEmail,
-    password: adminPassword,
-  });
-  await page.waitForURL("**/dashboard", { timeout: 20_000 });
+  if (page.url().includes("/setup/initial-admin")) {
+    await expect(page.getByRole("heading", { name: "KMSF 초기 설정" })).toBeVisible();
+    await capturePage(page, "app-desktop-setup-initial-admin");
+    await completeInitialSetupWizard(page, e2eAdminAccount);
+    await expect(page.getByRole("heading", { name: "설정이 완료되었습니다." })).toBeVisible({
+      timeout: 20_000,
+    });
+  }
+
+  await page.goto("/sign-in");
+  await signInAdmin(page);
 
   for (const [path, heading, screenshotName] of [
     ["/dashboard", "대시보드", "app-desktop-dashboard"],

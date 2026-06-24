@@ -4,6 +4,21 @@ import { clickInitialSetupNext } from "./utils/initial-setup";
 
 const baseURL = "http://127.0.0.1:3000";
 
+async function reachInitialAdminValidationStep(page: import("@playwright/test").Page) {
+  await expect(page.getByRole("heading", { name: /KMSF 초기 설정|KMSF Initial Setup/ })).toBeVisible();
+
+  await clickInitialSetupNext(page);
+  await clickInitialSetupNext(page);
+  await page.getByRole("radio", { name: /Dev Local DB/ }).check();
+  await clickInitialSetupNext(page);
+  await page.getByRole("radio", { name: /KMSF-managed auth/ }).check();
+  await clickInitialSetupNext(page);
+  await clickInitialSetupNext(page);
+  await clickInitialSetupNext(page);
+
+  await expect(page.locator("#initial-admin-email")).toBeVisible();
+}
+
 async function expectTranslatedValidation(
   page: import("@playwright/test").Page,
   locale: "ko" | "en",
@@ -18,8 +33,8 @@ async function expectTranslatedValidation(
       : "Enter a valid E-mail address.";
   const expectedPasswordMessage =
     locale === "ko"
-      ? "비밀번호는 6자~32자의 영문, 숫자, 특수문자를 모두 포함해야 합니다."
-      : "The password must be 6-32 characters and include letters, numbers, and special characters.";
+      ? "비밀번호는 6자~32자의 영문과 특수문자를 포함해야 합니다."
+      : "The password must be 6-32 characters and include letters and special characters.";
 
   await page.context().clearCookies();
 
@@ -37,37 +52,27 @@ async function expectTranslatedValidation(
   await page.waitForLoadState("networkidle");
 
   if (page.url().includes("/setup/initial-admin")) {
-    for (let step = 0; step < 2; step += 1) {
-      if ((await page.locator("#initial-admin-email").count()) > 0) {
-        break;
-      }
-
-      await clickInitialSetupNext(page);
-    }
+    await reachInitialAdminValidationStep(page);
   }
 
   const isInitialSetupPage = page.url().includes("/setup/initial-admin");
+  const identifierSelector = isInitialSetupPage ? "#initial-admin-email" : "#login-username";
   const passwordSelector = isInitialSetupPage ? "#initial-admin-password" : "#login-password";
+  const identifierMessage = isInitialSetupPage ? expectedEmailMessage : expectedUsernameMessage;
 
-  if (isInitialSetupPage) {
-    await page.locator("#initial-admin-email").fill("kim");
-  } else {
-    await page.locator("#login-username").fill("kim");
-  }
-  await page.locator(passwordSelector).fill("1234");
   await expect(
-    page.getByText(isInitialSetupPage ? expectedEmailMessage : expectedUsernameMessage, {
-      exact: true,
-    }),
+    page.getByText(identifierMessage, { exact: true }),
   ).toHaveCount(0);
   await expect(page.getByText(expectedPasswordMessage, { exact: true })).toHaveCount(0);
-  await page.locator("body").click();
 
-  await expect(
-    page.getByText(isInitialSetupPage ? expectedEmailMessage : expectedUsernameMessage, {
-      exact: true,
-    }),
-  ).toBeVisible();
+  await page.locator(identifierSelector).fill("kim");
+  await expect(page.getByText(identifierMessage, { exact: true })).toHaveCount(0);
+
+  await page.locator(passwordSelector).fill("1234");
+  await expect(page.getByText(identifierMessage, { exact: true })).toBeVisible();
+  await expect(page.getByText(expectedPasswordMessage, { exact: true })).toHaveCount(0);
+
+  await page.locator(identifierSelector).focus();
   await expect(page.getByText(expectedPasswordMessage, { exact: true })).toBeVisible();
   await expect(page.getByText("username.invalid")).toHaveCount(0);
   await expect(page.getByText("email.invalid")).toHaveCount(0);

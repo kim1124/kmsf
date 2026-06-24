@@ -8,6 +8,7 @@ import { isRequestAppSessionActive } from "@/lib/auth/app-session.server";
 import { resolveRuntimeAuthProvider } from "@/lib/auth/providers/runtime-auth-provider";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCsrfToken } from "@/lib/security/csrf";
+import { linkExistingSupabaseSetupIfDetected } from "@/lib/setup/existing-supabase-setup";
 import { isInitialSetupRequired } from "@/lib/supabase/manager";
 
 type InitialAdminPageProps = {
@@ -29,6 +30,12 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
     }
 
     redirect("/dashboard");
+  }
+
+  const existingSupabaseSetup = await linkExistingSupabaseSetupIfDetected();
+
+  if (existingSupabaseSetup.linked) {
+    redirect("/sign-in");
   }
 
   if (!setupRequired) {
@@ -89,7 +96,10 @@ export default async function InitialAdminPage({ searchParams }: InitialAdminPag
         }}
         messages={{
           authFailed: t("errors.auth"),
+          duplicateUsername: t("errors.duplicateUsername"),
           securityFailed: t("errors.security"),
+          setupWriteFailed: t("errors.setupWriteFailed"),
+          supabaseUnavailable: t("errors.supabaseUnavailable"),
           fieldErrors: {
             email: {
               invalid: t("fieldErrors.email.invalid"),

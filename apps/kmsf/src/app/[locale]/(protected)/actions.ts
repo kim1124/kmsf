@@ -87,11 +87,10 @@ async function executeLocalJsonSystemReset(input: {
   actor: SystemResetActor;
   mode: SystemResetMode;
 }) {
-  const {
-    readLocalJsonAuthStoreSnapshot,
-    resetLocalJsonAuthStore,
-  } = await import("@/lib/auth/providers/local-json-auth-store");
-  const snapshot = await readLocalJsonAuthStoreSnapshot();
+  const { readKmsfManagedAuthStoreSnapshot } = await import(
+    "@/lib/auth/providers/kmsf-managed-auth-store"
+  );
+  const snapshot = await readKmsfManagedAuthStoreSnapshot();
   const backup = await createLocalSystemResetBackup({
     actor: input.actor,
     mode: input.mode,
@@ -114,7 +113,11 @@ async function executeLocalJsonSystemReset(input: {
 
   try {
     if (input.mode === "factory") {
-      await resetLocalJsonAuthStore();
+      const { resetKmsfManagedAuthStore } = await import(
+        "@/lib/auth/providers/kmsf-managed-auth-store"
+      );
+
+      await resetKmsfManagedAuthStore();
     }
 
     await clearSystemResetRuntimeState();
@@ -253,10 +256,10 @@ export async function resetSystemAction(formData: FormData) {
   const actor = buildSystemResetActor(currentUser);
 
   if (runtimeProvider.provider === "local-json") {
-    const { verifyLocalJsonAccountPassword } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { verifyKmsfManagedAccountPassword } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
-    const passwordValid = await verifyLocalJsonAccountPassword(currentUser.id, password);
+    const passwordValid = await verifyKmsfManagedAccountPassword(currentUser.id, password);
 
     if (!passwordValid) {
       console.error("resetSystemAction local-json password verification failed", {
@@ -340,12 +343,12 @@ export async function updateProfileAction(formData: FormData) {
   const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (runtimeProvider.provider === "local-json") {
-    const { updateLocalJsonAccount, LocalJsonAuthStoreError } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { updateKmsfManagedAccount } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
 
     try {
-      const updated = await updateLocalJsonAccount(currentUser.id, {
+      const updated = await updateKmsfManagedAccount(currentUser.id, {
         username: parsed.data.username,
         email: parsed.data.email,
         password: parsed.data.password || undefined,
@@ -353,7 +356,7 @@ export async function updateProfileAction(formData: FormData) {
 
       return updated ? { success: true } : { error: "unauthorized" };
     } catch (error) {
-      if (error instanceof LocalJsonAuthStoreError) {
+      if (error && typeof error === "object" && "code" in error) {
         return { error: "duplicate" };
       }
 
@@ -420,16 +423,16 @@ export async function deleteAccountAction(
   }
 
   if (runtimeProvider.provider === "local-json") {
-    const { deleteLocalJsonAccount, verifyLocalJsonAccountPassword } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { deleteKmsfManagedAccount, verifyKmsfManagedAccountPassword } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
-    const passwordValid = await verifyLocalJsonAccountPassword(currentUser.id, password);
+    const passwordValid = await verifyKmsfManagedAccountPassword(currentUser.id, password);
 
     if (!passwordValid) {
       return { error: "password" };
     }
 
-    await deleteLocalJsonAccount(currentUser.id);
+    await deleteKmsfManagedAccount(currentUser.id);
     await clearLocalJsonSessionCookie();
     await clearAppSessionCookie();
 

@@ -34,11 +34,11 @@ export const getCurrentUser = cache(async (): Promise<AppSessionUser | null> => 
   const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (runtimeProvider.provider === "local-json") {
-    const { findLocalJsonAccountById } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { findKmsfManagedAccountById } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
     const userId = await getLocalJsonSessionUserId();
-    const localUser = userId ? await findLocalJsonAccountById(userId) : null;
+    const localUser = userId ? await findKmsfManagedAccountById(userId) : null;
 
     if (!localUser) {
       return null;

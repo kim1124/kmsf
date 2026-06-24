@@ -112,8 +112,10 @@ export async function signInAction(
       recordLocalJsonLoginBlocked,
       recordLocalJsonLoginFailure,
       recordLocalJsonLoginSuccess,
-      verifyLocalJsonCredentials,
     } = await import("@/lib/auth/providers/local-json-auth-store");
+    const { verifyKmsfManagedCredentials } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
+    );
     const lock = await getLocalJsonLoginLock(parsed.data.username);
 
     if (lock.status === "locked") {
@@ -124,7 +126,7 @@ export async function signInAction(
       });
     }
 
-    const account = await verifyLocalJsonCredentials(parsed.data.username, parsed.data.password);
+    const account = await verifyKmsfManagedCredentials(parsed.data.username, parsed.data.password);
 
     if (!account) {
       const failure = await recordLocalJsonLoginFailure(parsed.data.username);
@@ -285,19 +287,19 @@ export async function signUpAction(
   const runtimeProvider = await resolveRuntimeAuthProvider();
 
   if (parsed.success && runtimeProvider.provider === "local-json") {
-    const { createLocalJsonAccount, LocalJsonAuthStoreError } = await import(
-      "@/lib/auth/providers/local-json-auth-store"
+    const { createKmsfManagedAccount } = await import(
+      "@/lib/auth/providers/kmsf-managed-auth-store"
     );
 
     try {
-      await createLocalJsonAccount({
+      await createKmsfManagedAccount({
         username: parsed.data.username,
         email: parsed.data.email,
         password: parsed.data.password,
         role: "member",
       });
     } catch (error) {
-      if (error instanceof LocalJsonAuthStoreError) {
+      if (error && typeof error === "object" && "code" in error) {
         return buildSignUpState(fields, {
           fieldErrors: {
             username: error.code === "duplicate_username" ? "duplicate.username" : null,

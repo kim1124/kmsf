@@ -33,7 +33,7 @@ test("header brand, footer clock, and active navigation behave correctly", async
 
   const dashboardLink = page.getByRole("link", { name: "KMSF" });
   await expect(dashboardLink).toBeVisible();
-  await expect(page.getByText(/^현재 시간 : \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)).toBeVisible();
+  await expect(page.getByText(/^현재 시간 : \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)).toBeHidden();
   await expect(page.getByLabel("상단 GNB")).toHaveCount(0);
   await expect(page.getByLabel("하단 GNB")).toHaveCount(0);
   await expect(

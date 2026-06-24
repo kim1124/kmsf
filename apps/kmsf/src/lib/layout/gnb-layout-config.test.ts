@@ -8,9 +8,12 @@ import {
 } from "./gnb-layout-config";
 
 describe("normalizeGnbRegions", () => {
-  it("falls back to top, left, and footer when the value is missing or empty", () => {
+  it("falls back to top and left when the value is missing", () => {
     expect(normalizeGnbRegions(undefined)).toEqual(DEFAULT_GNB_REGIONS);
-    expect(normalizeGnbRegions([])).toEqual(DEFAULT_GNB_REGIONS);
+  });
+
+  it("keeps an explicitly empty region list", () => {
+    expect(normalizeGnbRegions([])).toEqual([]);
   });
 
   it("keeps valid regions in canonical order and removes duplicates", () => {

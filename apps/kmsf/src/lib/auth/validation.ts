@@ -9,7 +9,6 @@ export const INITIAL_ADMIN_USERNAME = "admin";
 
 const usernamePattern = /^[A-Za-z0-9]+$/;
 const passwordLetterPattern = /[A-Za-z]/;
-const passwordNumberPattern = /[0-9]/;
 const passwordSpecialPattern = /[^A-Za-z0-9]/;
 
 export type AccountFields = {
@@ -128,7 +127,6 @@ function isValidUsername(value: string) {
 function isValidPassword(value: string) {
   return (
     passwordLetterPattern.test(value) &&
-    passwordNumberPattern.test(value) &&
     passwordSpecialPattern.test(value)
   );
 }

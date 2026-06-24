@@ -1,4 +1,4 @@
-export type AuthProviderKind = "supabase" | "local-json";
+export type AuthProviderKind = "manual" | "supabase" | "local-json";
 
 type AuthProviderEnv = Partial<NodeJS.ProcessEnv>;
 
@@ -9,6 +9,10 @@ function hasSupabaseCredentials(env: AuthProviderEnv) {
 }
 
 export function getAuthProviderKind(env: AuthProviderEnv = process.env): AuthProviderKind {
+  if (env.KMSF_AUTH_PROVIDER === "manual") {
+    return "manual";
+  }
+
   if (env.KMSF_AUTH_PROVIDER === "local-json") {
     return "local-json";
   }

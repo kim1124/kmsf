@@ -36,9 +36,15 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
     .evaluate((element) => Number.parseFloat(window.getComputedStyle(element).paddingBottom));
 
   expect(paddingBottom).toBeGreaterThanOrEqual(64);
-  await expect(page.getByRole("radio", { name: /Supabase 설정/ })).toBeVisible();
-  await expect(page.getByRole("radio", { name: /Local DB 설정/ })).toBeChecked();
-  await expect(page.getByText("ODBC와 설치형 DB 연동은 계획 항목입니다.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "환영합니다." })).toBeVisible();
+  await expect(
+    page.getByText(
+      "레이아웃, 데이터 베이스, 인증, 메뉴 구성 등을 쉽게 설정할 수 있습니다. 물론, 처음부터 끝까지 마음대로 구성해도 됩니다.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("모든 설정은 선택 사항입니다. 개발자가 원하는 방식으로 결정할 수 있습니다."),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "이전" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "다음", exact: true }).click();
@@ -47,9 +53,32 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
   await expect(page.getByRole("checkbox", { name: /TOP/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /Left Side/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /Right Side/ })).not.toBeChecked();
-  await expect(page.getByRole("checkbox", { name: /Footer/ })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /Footer/ })).not.toBeChecked();
 
   await page.getByRole("checkbox", { name: /Right Side/ }).check();
+  await expect(page.getByRole("checkbox", { name: /Right Side/ })).toBeChecked();
+  await page.getByRole("checkbox", { name: /Right Side/ }).uncheck();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "DB 선택" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /None/ })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /Dev Local DB/ })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Sqlite3/ })).toBeVisible();
+  await page.getByRole("radio", { name: /Dev Local DB/ }).check();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "인증 선택" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Manual/ })).toBeChecked();
+  await page.getByRole("radio", { name: /KMSF-managed auth/ }).check();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "애플리케이션 설정 저장" })).toBeVisible();
+  await expect(page.getByText("Local Storage는 브라우저 로컬 설정입니다.")).toBeVisible();
+  await page.getByRole("radio", { name: /연결된 DB/ }).check();
+  await page.getByRole("button", { name: "다음", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "메뉴 설정" })).toBeVisible();
+  await page.getByRole("radio", { name: /Page 디렉터리/ }).check();
   await page.getByRole("button", { name: "다음", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Admin 관리 계정" })).toBeVisible();
@@ -79,29 +108,16 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
   await page.getByRole("button", { name: "다음", exact: true }).click();
 
   await expect(page.getByText("초기 설정을 진행하는 중입니다...")).toBeVisible();
-  await page.waitForURL("**/dashboard", { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "설정이 완료되었습니다." })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page).toHaveURL("http://127.0.0.1:3000/");
+  await expect(page.getByRole("button", { name: "이전", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "다음", exact: true })).toHaveCount(0);
 
-  await page.goto("/settings");
+  await page.reload();
   await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("link", { name: "시스템 정보" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "계정 관리" })).toBeVisible();
-  await expect(page.getByText("Local DB", { exact: true }).first()).toBeVisible();
-  await page.getByRole("link", { name: "계정 관리" }).click();
-  await expect(page).toHaveURL(/\/settings\?section=accounts$/);
-  await expect(page.getByRole("columnheader", { name: "ID" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "이름" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "E-mail" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "가입일자" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "최근 접속 시간" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "비고" })).toBeVisible();
-  const adminRow = page.getByRole("row").filter({ hasText: e2eAdminAccount.email });
-  await expect(adminRow.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toHaveCount(
-    2,
-  );
-
-  await page.goto("/dashboard");
-  await page.waitForLoadState("networkidle");
+  await expect(page).not.toHaveURL(/\/setup\/initial-admin/);
 
   const db = await readLocalAuthDb();
 
@@ -118,6 +134,15 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
     (account) => account.username === e2eAdminAccount.username,
   );
   expect(adminAccount).toBeTruthy();
+
+  await page.goto("/sign-in");
+  await page.waitForLoadState("networkidle");
+
+  await page.locator("#login-username").fill(e2eAdminAccount.username);
+  await page.locator("#login-password").fill(e2eAdminAccount.password);
+  await page.getByRole("button", { name: "로그인", exact: true }).click();
+  await page.waitForURL("**/dashboard", { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
 
   const originalPasswordHash = adminAccount!.passwordHash;
   await page.getByRole("button", { name: "프로필 메뉴" }).click();
@@ -139,13 +164,21 @@ test("initial setup wizard configures local auth and creates a level 3 admin", a
   expect(updatedRawDb).not.toContain(e2eAdminAccount.password);
   expect(adminAccount!.passwordHash).toBe(originalPasswordHash);
 
-  await expect(page.getByRole("button", { name: "로그아웃", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "로그아웃", exact: true }).click();
-  await page.waitForURL("**/sign-in", { timeout: 20_000 });
-
-  await page.locator("#login-username").fill(e2eAdminAccount.username);
-  await page.locator("#login-password").fill(e2eAdminAccount.password);
-  await page.getByRole("button", { name: "로그인", exact: true }).click();
-  await page.waitForURL("**/dashboard", { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "대시보드" })).toBeVisible();
+  await page.goto("/settings");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("link", { name: "시스템 정보" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "계정 관리" })).toBeVisible();
+  await expect(page.getByText("Local DB", { exact: true }).first()).toBeVisible();
+  await page.getByRole("link", { name: "계정 관리" }).click();
+  await expect(page).toHaveURL(/\/settings\?section=accounts$/);
+  await expect(page.getByRole("columnheader", { name: "ID" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "이름" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "E-mail" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "가입일자" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "최근 접속 시간" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "비고" })).toBeVisible();
+  const adminRow = page.getByRole("row").filter({ hasText: e2eAdminAccount.email });
+  await expect(adminRow.getByRole("cell", { name: e2eAdminAccount.username, exact: true })).toHaveCount(
+    2,
+  );
 });
