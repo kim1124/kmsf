@@ -28,3 +28,52 @@ test("updates provider settings and storage mode from dialog", async ({ page }) 
   await expect(page.getByRole("main", { name: "활성 채팅" }).getByText("local-db")).toBeVisible();
   await expect(page.getByRole("tablist", { name: "예제 보기" })).toBeHidden();
 });
+
+test("centers storage option radio controls vertically", async ({ page }) => {
+  await page.route("**/api/tags", async (route) => {
+    await route.fulfill({ contentType: "application/json", json: { models: [{ name: "model-a" }] } });
+  });
+
+  await page.goto("/?reset=1");
+
+  const setupDelta = await page.getByLabel("Supabase").evaluate((input) => {
+    const card = input.closest("label");
+    if (!card) {
+      throw new Error("storage label was not rendered");
+    }
+    const inputBox = input.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    return Math.abs(inputBox.top + inputBox.height / 2 - (cardBox.top + cardBox.height / 2));
+  });
+  expect(setupDelta).toBeLessThanOrEqual(2);
+
+  await page.getByLabel("모델 선택").selectOption("model-a");
+  await page.getByRole("button", { name: "채팅 시작" }).click();
+  await page.getByRole("button", { name: "채팅 설정 열기" }).click();
+
+  const dialogDelta = await page.getByLabel("Local DB").evaluate((input) => {
+    const card = input.closest("label");
+    if (!card) {
+      throw new Error("storage card was not rendered");
+    }
+    const inputBox = input.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    return Math.abs(inputBox.top + inputBox.height / 2 - (cardBox.top + cardBox.height / 2));
+  });
+  expect(dialogDelta).toBeLessThanOrEqual(2);
+});
+
+test("uses KMSF accent color for storage radio controls in settings dialog", async ({ page }) => {
+  await page.route("**/api/tags", async (route) => {
+    await route.fulfill({ contentType: "application/json", json: { models: [{ name: "model-a" }] } });
+  });
+
+  await page.goto("/?reset=1");
+  await page.getByLabel("모델 선택").selectOption("model-a");
+  await page.getByRole("button", { name: "채팅 시작" }).click();
+  await page.getByRole("button", { name: "채팅 설정 열기" }).click();
+
+  const accentColor = await page.getByLabel("Local DB").evaluate((input) => getComputedStyle(input).accentColor);
+
+  expect(accentColor).toBe("rgb(16, 185, 129)");
+});

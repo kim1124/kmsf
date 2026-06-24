@@ -128,7 +128,7 @@ export function ChatSidebar({
                   <Pencil size={14} />
                 </button>
                 <button
-                  className="kmsf-chat-thread-action"
+                  className="kmsf-chat-thread-action kmsf-chat-thread-action--delete"
                   type="button"
                   aria-label={`채팅 삭제: ${thread.title}`}
                   onClick={() => onDeleteThread(thread)}

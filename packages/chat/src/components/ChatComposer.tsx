@@ -46,6 +46,7 @@ export function ChatComposer({ disabled, onSend }: ChatComposerProps) {
     <form className="kmsf-chat-composer" onSubmit={submit}>
       <textarea
         aria-label="메시지 입력"
+        disabled={disabled}
         placeholder="메시지를 입력하세요"
         value={content}
         onKeyDown={handleKeyDown}

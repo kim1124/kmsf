@@ -8,6 +8,30 @@
   padding: 14px;
 }
 
+.kmsf-chat-sidebar-resizer {
+  background: transparent;
+  cursor: col-resize;
+  min-height: 0;
+  position: relative;
+}
+
+.kmsf-chat-sidebar-resizer::after {
+  background: transparent;
+  content: "";
+  inset: 0 2px;
+  position: absolute;
+  transition: background var(--kmsf-chat-motion) ease;
+}
+
+.kmsf-chat-sidebar-resizer:hover::after,
+.kmsf-chat-sidebar-resizer:focus-visible::after {
+  background: var(--kmsf-chat-accent);
+}
+
+.kmsf-chat-shell[data-sidebar-collapsed="true"] .kmsf-chat-sidebar-resizer {
+  display: none;
+}
+
 .kmsf-chat-sidebar__header,
 .kmsf-chat-sidebar__footer {
   display: grid;
@@ -38,6 +62,7 @@
   align-content: start;
   gap: 6px;
   min-height: 0;
+  min-width: 0;
   overflow: auto;
   padding: 12px 0;
 }

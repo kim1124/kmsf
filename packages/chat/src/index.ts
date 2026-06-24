@@ -17,6 +17,7 @@ export * from "./core/errors";
 export * from "./core/floating-preferences";
 export * from "./core/settings-state";
 export * from "./core/setup-state";
+export * from "./core/sidebar-preferences";
 export * from "./core/types";
 
 export const kmsfChatVersion = "0.1.0";

@@ -12,7 +12,8 @@ Standalone React chat package for local LLM workflows.
 - Supabase storage adapter with consumer-provided client and user identity.
 - Host-injected `local-db` storage mode for KMSF local DB integration.
 - Settings dialog and embeddable settings page.
-- Floating chatbot entry point with close-to-save one-time sessions, visibility persistence, and draggable position persistence.
+- Floating chatbot entry point with close-to-save one-time sessions, visibility persistence, draggable position persistence, and optional backdrop event handling.
+- Resizable chat sidebar with package-scoped width persistence.
 - Sass source styles compiled to the exported `@kmsf/chat/styles.css` entry.
 - Vitest logic tests and Playwright browser tests.
 
@@ -32,6 +33,7 @@ import "@kmsf/chat/styles.css";
 The package does not hard-code a model default.
 The first prompt is disabled until the user selects a discovered model or enters a model name manually.
 `ChatFloatingButton` uses the same setup and store contract as `ChatShell`; closed floating sessions are saved through `ChatHistoryStore`.
+When the floating panel is open, the backdrop does not close the session by default. Hosts can pass a backdrop event handler to customize that behavior without changing the default close-only-through-button flow.
 `ChatHistoryStore` includes explicit deletion methods so hosts can permanently remove a thread and its messages through the same boundary.
 The `local-db` storage mode is a package contract value with host API endpoint and server DB path settings; host apps provide the actual `ChatHistoryStore` implementation.
 

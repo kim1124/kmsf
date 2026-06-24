@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties, PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Eye, EyeOff } from "lucide-react";
 
@@ -17,6 +18,13 @@ import {
   startUserTurn,
 } from "../core/chat-state";
 import { canSubmitLocalLlmChat, getEffectiveModel, getLlmConnectionStatus } from "../core/setup-state";
+import {
+  CHAT_SIDEBAR_MIN_WIDTH,
+  clampSidebarWidth,
+  getSidebarWidthStorage,
+  loadSidebarWidthPreference,
+  saveSidebarWidthPreference,
+} from "../core/sidebar-preferences";
 import type { ChatHistoryStore, ChatMessage, ChatModelSettings, ChatState, ChatThread } from "../core/types";
 import { ChatComposer } from "./ChatComposer";
 import { ChatFloatingButton } from "./ChatFloatingButton";
@@ -46,13 +54,23 @@ export function ChatShell({
   const historyStore = store ?? fallbackStore;
   const [state, setState] = useState<ChatState>(() => createEmptyChatState());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => loadSidebarWidthPreference());
   const [deleteTarget, setDeleteTarget] = useState<ChatThread | null>(null);
   const [floatingPreferences, setFloatingPreferences] = useState(() => loadFloatingChatPreferences());
+  const [loadingThreadId, setLoadingThreadId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const resizeRef = useRef<{ pointerId: number; startWidth: number; startX: number } | null>(null);
+  const threadSelectionRequestRef = useRef(0);
   const activeMessages = state.activeThreadId ? state.messagesByThread[state.activeThreadId] ?? [] : [];
+  const isThreadLoading = loadingThreadId !== null;
   const model = getEffectiveModel(settings);
   const connectionStatus = getLlmConnectionStatus(settings);
   const client = useMemo(() => createOllamaClient({ baseUrl: settings.baseUrl }), [settings.baseUrl]);
+  const sidebarMaxWidth =
+    typeof window === "undefined" ? 420 : Math.max(CHAT_SIDEBAR_MIN_WIDTH, Math.floor(window.innerWidth * 0.35));
+  const shellStyle = {
+    "--kmsf-chat-sidebar-width": `${sidebarWidth}px`,
+  } as CSSProperties;
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +92,21 @@ export function ChatShell({
       cancelled = true;
     };
   }, [historyStore]);
+
+  useEffect(() => {
+    function syncWidthToViewport() {
+      setSidebarWidth((current) => {
+        const next = clampSidebarWidth({ viewportWidth: window.innerWidth, width: current });
+        if (next !== current) {
+          saveSidebarWidthPreference(getSidebarWidthStorage(), next);
+        }
+        return next;
+      });
+    }
+
+    window.addEventListener("resize", syncWidthToViewport);
+    return () => window.removeEventListener("resize", syncWidthToViewport);
+  }, []);
 
   async function send(content: string) {
     if (!model) {
@@ -124,26 +157,48 @@ export function ChatShell({
   }
 
   function startNewChat() {
+    threadSelectionRequestRef.current += 1;
+    setLoadingThreadId(null);
     setState((current) => ({ ...current, activeThreadId: null, error: null, pendingAssistantMessageId: null }));
   }
 
   async function selectThread(threadId: string) {
+    const requestId = threadSelectionRequestRef.current + 1;
+    threadSelectionRequestRef.current = requestId;
     const existingMessages = state.messagesByThread[threadId];
 
     if (existingMessages) {
+      setLoadingThreadId(null);
       setState((current) => ({ ...current, activeThreadId: threadId }));
       return;
     }
 
-    const result = await historyStore.loadMessages(threadId);
-    setState((current) => ({
-      ...current,
-      activeThreadId: threadId,
-      messagesByThread: {
-        ...current.messagesByThread,
-        [threadId]: result.items,
-      },
-    }));
+    setLoadingThreadId(threadId);
+    setState((current) => ({ ...current, activeThreadId: threadId, error: null }));
+    try {
+      const result = await historyStore.loadMessages(threadId);
+      if (threadSelectionRequestRef.current !== requestId) {
+        return;
+      }
+      setState((current) => ({
+        ...current,
+        activeThreadId: threadId,
+        error: result.error?.message ?? current.error,
+        messagesByThread: {
+          ...current.messagesByThread,
+          [threadId]: result.items,
+        },
+      }));
+    } catch (error) {
+      if (threadSelectionRequestRef.current !== requestId) {
+        return;
+      }
+      setState((current) => ({ ...current, error: getErrorMessage(error) || "대화 불러오기 실패" }));
+    } finally {
+      if (threadSelectionRequestRef.current === requestId) {
+        setLoadingThreadId(null);
+      }
+    }
   }
 
   function saveFloatingSession(thread: ChatThread, messages: ChatMessage[]) {
@@ -163,6 +218,8 @@ export function ChatShell({
     }
 
     const threadId = deleteTarget.id;
+    threadSelectionRequestRef.current += 1;
+    setLoadingThreadId((current) => (current === threadId ? null : current));
     setState((current) => removeThreadFromState(current, threadId));
     await historyStore.deleteMessages(threadId);
     await historyStore.deleteThread(threadId);
@@ -184,8 +241,50 @@ export function ChatShell({
     setFloatingPreferences(updateFloatingChatPreferences({ visible }));
   }
 
+  function handleResizePointerDown(event: PointerEvent<HTMLDivElement>) {
+    resizeRef.current = {
+      pointerId: event.pointerId,
+      startWidth: sidebarWidth,
+      startX: event.clientX,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handleResizePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const resize = resizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const next = clampSidebarWidth({
+      viewportWidth: window.innerWidth,
+      width: resize.startWidth + event.clientX - resize.startX,
+    });
+    setSidebarWidth(next);
+  }
+
+  function handleResizePointerEnd(event: PointerEvent<HTMLDivElement>) {
+    const resize = resizeRef.current;
+    if (!resize || resize.pointerId !== event.pointerId) {
+      return;
+    }
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may already be released by the browser.
+    }
+
+    const next = clampSidebarWidth({
+      viewportWidth: window.innerWidth,
+      width: resize.startWidth + event.clientX - resize.startX,
+    });
+    saveSidebarWidthPreference(getSidebarWidthStorage(), next);
+    resizeRef.current = null;
+  }
+
   return (
-    <div className="kmsf-chat-shell" data-sidebar-collapsed={sidebarCollapsed}>
+    <div className="kmsf-chat-shell" data-sidebar-collapsed={sidebarCollapsed} style={shellStyle}>
       <ChatSidebar
         activeThreadId={state.activeThreadId}
         collapsed={sidebarCollapsed}
@@ -198,7 +297,21 @@ export function ChatShell({
         onSelectThread={(threadId) => void selectThread(threadId)}
         onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
       />
-      <main className="kmsf-chat-main" aria-label="활성 채팅">
+      <div
+        aria-label="채팅 목록 너비 조절"
+        aria-orientation="vertical"
+        aria-valuemax={sidebarMaxWidth}
+        aria-valuemin={CHAT_SIDEBAR_MIN_WIDTH}
+        aria-valuenow={sidebarWidth}
+        className="kmsf-chat-sidebar-resizer"
+        role="separator"
+        tabIndex={sidebarCollapsed ? -1 : 0}
+        onPointerCancel={handleResizePointerEnd}
+        onPointerDown={handleResizePointerDown}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerEnd}
+      />
+      <main className="kmsf-chat-main" aria-label="활성 채팅" aria-busy={isThreadLoading ? "true" : "false"}>
         <header className="kmsf-chat-main__header">
           <div>
             <h1>Local LLM Chat</h1>
@@ -216,7 +329,12 @@ export function ChatShell({
           </button>
         </header>
         <ChatMessageList messages={activeMessages} />
-        <ChatComposer disabled={!canSubmitLocalLlmChat(settings)} onSend={send} />
+        {isThreadLoading ? (
+          <div className="kmsf-chat-main__loading" role="status" aria-label="채팅 메시지 로딩 중">
+            <span className="kmsf-chat-spinner" aria-hidden="true" />
+          </div>
+        ) : null}
+        <ChatComposer disabled={!canSubmitLocalLlmChat(settings) || isThreadLoading} onSend={send} />
       </main>
       <ChatSettingsDialog
         modelError={modelError}
