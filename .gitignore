@@ -53,9 +53,9 @@ next-env.d.ts
 .gemini/
 
 # local-only agent and harness instructions
-.agents/
-**/AGENTS.md
-**/AGENTS.override.md
+.agents/*
+!.agents/skills/
+!.agents/skills/**
 **/CLAUDE.md
 **/GUIDE.md
 **/docs/codex/
