@@ -26,6 +26,12 @@
 - DO NOT: 아직 결정되지 않은 요구사항을 runtime rule에 섞지 않는다. `docs/codex/90-open-questions.md`에 기록한다.
 - REPORT: 완료 판단에 필요한 신규 작업 결과 report는 작업 scope의 `reports/YYYY-MM-DD.md`에 작성한다.
 
+## 코드 탐색
+
+- USE WHEN: 정확한 문자열, 파일명, 테스트명 검색은 `rg`를 우선한다.
+- USE WHEN: 기능 위치, 영향 범위, 관련 구현이 여러 workspace에 걸치거나 키워드가 불명확하면 Semble MCP `search` 또는 `find_related`를 검토한다.
+- MUST: Semble 결과만으로 변경 범위를 확정하지 않고, 관련 파일을 직접 읽어 확인한다.
+
 ## Skill Routing
 
 적용 범위: `apps/*`, `packages/*`, `examples/*`, `templates/*`.
@@ -33,7 +39,8 @@
 - USE WHEN: `ask-research` for `research.md`, `plan.md`, 설계 문서, 구현 계획, 최신 정보 비교, 외부 공식 문서 확인 전에 repo/공식문서/웹 조사 범위를 정리한다.
 - USE WHEN: `ask-question` for 신규/수정/삭제 작업이 사용자 결정을 고정할 수 있으면 파일 쓰기 전에 질문 gate를 수행한다.
 - USE WHEN: `delivery` for UI, auth, docs, verification, reporting, release readiness 작업 라우터.
-- USE WHEN: `md-maintainer` for `AGENTS.md`, `GUIDE.md`, `docs/codex`, report policy 정리.
+- USE WHEN: `update-md` for `AGENTS.md`, `GUIDE.md`, `docs/codex`, report policy 정리.
+- USE WHEN: `update-readme` for root/app/package/template README를 현재 구현 기능, package scripts, public exports 기준으로 갱신한다.
 - USE WHEN: `code-review` for local diff, PR, generated code, public API, security, accessibility, missing test 검토.
 - USE WHEN: `code-health` for lint, typecheck, refactor, performance, memory, lifecycle, package compatibility 검토.
 - USE WHEN: `test-gate` for Vitest, Playwright, browser verification, app/package verify, final test reporting.
@@ -46,6 +53,7 @@
 - DO NOT: Supervisor가 명시적으로 승인하기 전에는 Git commit, push, PR 생성 작업을 하지 않는다.
 - EXPECT: Codex Plan Mode UI를 사용할 수 없거나 사용자가 신뢰하기 어렵다고 판단한 경우, 일반 채팅에서 동일한 질문 loop와 승인 흐름을 수행한다.
 - MUST: Plan Mode fallback에서도 사용자 결정사항이 남아 있으면 구현 계획을 확정하지 않고, production code 변경 직전에 승인 여부를 확인한다.
+- MUST: 기능 추가, 버그 수정, 리팩터링은 구현 계획 전에 goal contract를 확인한다. 세부 기준은 `docs/codex/05-harness-control-plane.md`를 따른다.
 - MUST: 보통 이상 기능은 `docs/superpowers/plans/YYYY-MM-DD-<topic>/` 아래에 `research.md`, `spec.md`, `plan.md`, `tasks.md`, `report.md` 역할을 분리한다.
 - EXCEPT: 작은 수정은 scope-local `reports/YYYY-MM-DD.md`만 기록할 수 있다.
 - REPORT: compact가 필요하면 같은 topic 폴더의 `memory.md`에 핵심 결정, 진행 상태, 실행한 검증, 잔여 리스크를 남긴다.
