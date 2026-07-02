@@ -1,7 +1,7 @@
 // AI-NOTE: create-kmsf의 main entry point.
 // 흐름: parseArgs → resolveScaffoldOptions(prompts) → scaffold() → 결과 출력.
 //
-// IMMUTABLE invariants (도메인문서.md §3.5):
+// IMMUTABLE invariants:
 //   - exit code 매핑: TargetExists=1, TemplateMissing=2,
 //     기타 ScaffoldError/MissingRequiredOptions=3, AbortedError=130,
 //     unexpected=99. cli.ts의 catch 블록이 단일 진실 소스.

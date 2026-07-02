@@ -2,6 +2,12 @@
 
 `@kmsf/charts`는 React 애플리케이션에서 사용할 수 있는 ECharts 기반 chart component package다. Next.js 전용 API에 의존하지 않고 Vite library build를 기준으로 개발한다.
 
+## 패키지 상태
+
+- 현재 `package.json` 기준 `private: true`인 repository-local package다.
+- React와 React DOM은 peer dependency로 유지한다.
+- npm 배포 전에는 `private`, license, repository, files, dependency, browser verification 상태를 별도 검토해야 한다.
+
 ## 제공 컴포넌트
 
 - `GenericChart`: `type` 기반 ECharts 범용 차트
@@ -14,6 +20,18 @@
 - `RadarChart`
 - `HeatmapChart`
 - `GraphChart`
+
+## Public API
+
+| Export | 설명 |
+| --- | --- |
+| `GenericChart` | `type`과 ECharts option을 조합하는 범용 chart wrapper |
+| `TrendChart`, `TopChart` | KMSF row helper와 함께 쓰는 추이/TOP chart |
+| `GaugeChart`, `SunburstChart`, `SankeyChart`, `WordCloud`, `RadarChart`, `HeatmapChart`, `GraphChart` | chart-specific React wrapper |
+| `createTrendRows`, `createTopRows` | row 기반 chart data helper |
+| `buildGenericChartOption`, `resolveGenericDataFormat`, `supportedGenericChartTypes` | GenericChart option/data helper |
+| `kmsfChartsPackage` | package 식별 상수 |
+| Public types | chart props, row input, theme, tooltip, legend, chart type 관련 TypeScript type |
 
 ## 빠른 시작
 

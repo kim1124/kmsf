@@ -2,6 +2,13 @@
 
 `@kmsf/generator-core`는 template copy와 transform을 담당하는 scaffold engine package다. 일반 사용자는 `create-kmsf` CLI를 사용하고, 이 package는 고급 소비자나 CLI 내부 구현에서 사용한다.
 
+## 패키지 상태
+
+- 현재 `package.json` 기준 `private: true`인 repository-local package다.
+- Runtime은 Node.js/ESM 기반이며 prompt UI를 포함하지 않는다.
+- Public export는 `@kmsf/generator-core` root export 하나다.
+- npm 배포 전에는 `private`, license, repository, files, API compatibility, generated app smoke를 별도 검토해야 한다.
+
 ## API
 
 ```ts
@@ -30,6 +37,17 @@ await scaffold({
 - `none`
 
 `create-kmsf` package 내부 generator-core는 CLI 요구사항에 맞춰 `later`, package selection, GNB layout, i18n transform을 추가로 포함한다.
+
+## Public API
+
+| Export | 설명 |
+| --- | --- |
+| `scaffold(options)` | template copy, auth transform, package metadata transform, token/env generation, optional post-install hook orchestration |
+| `TEMPLATE_CATALOG`, `getTemplate` | 지원 template catalog 조회 |
+| `detectPackageManager` | `npm_config_user_agent` 기반 package manager 감지 |
+| `validateProjectName` | generated package name 검증 |
+| `ScaffoldError` 계열 | `InvalidProjectName`, `TargetExists`, `TemplateMissing`, `CopyFailed` |
+| Public types | `AuthMode`, `PackageManager`, `ScaffoldOptions`, `ScaffoldResult`, `ScaffoldLogger` |
 
 ## 주요 모듈
 

@@ -4,6 +4,13 @@ CSR-first React data table package for KMSF applications. `@kmsf/data-table` shi
 
 It is designed for admin dashboards, internal tools, and data-heavy product screens where the application owns the data array and the table reports mutations through controlled callbacks.
 
+## Package Status
+
+- Current `package.json` marks this as a repository-local `private: true` package.
+- React and React DOM are peer dependencies.
+- The package exports the React component, framework-independent core helpers, clipboard/selection helper subpaths, and optional CSS.
+- Before npm publishing, review `private`, license, repository, files, dependency, browser verification, and package tarball contents.
+
 ## Installation
 
 ```bash

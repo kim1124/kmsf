@@ -2,6 +2,13 @@
 
 `@kmsf/chat`은 local LLM workflow를 위한 standalone React chat package다. 초기 대상은 Ollama이며, host app이 storage와 설정 저장 방식을 주입할 수 있도록 package boundary를 유지한다.
 
+## 패키지 상태
+
+- 현재 `package.json` 기준 `private: true`인 repository-local package다.
+- React와 React DOM은 peer dependency로 유지한다.
+- Package runtime은 Next.js API에 의존하지 않는다.
+- npm 배포 전에는 `private`, license, repository, files, dependency, browser verification 상태를 별도 검토해야 한다.
+
 ## 구현된 기능
 
 - ChatGPT-like chat shell
@@ -36,6 +43,18 @@ import "@kmsf/chat/styles.css";
 `@kmsf/chat`은 기본 model을 hard-code하지 않는다. 사용자는 discovery된 model을 선택하거나 model 이름을 수동 입력해야 한다.
 
 `ChatFloatingButton`은 `ChatShell`과 같은 setup/store contract를 사용한다. 닫힌 floating session은 `ChatHistoryStore`를 통해 저장된다.
+
+## Public API
+
+| Export group | 설명 |
+| --- | --- |
+| `ChatShell`, `ChatFloatingButton`, `ChatComposer`, `ChatMessageList`, `ChatSidebar`, `ChatStatusBar` | embeddable chat UI components |
+| `ChatSetupPage`, `ChatSettingsPage`, `ChatSettingsDialog` | setup/settings UI surfaces |
+| `createLocalChatStore`, `createLocalSetupStore` | browser-local storage adapters |
+| `createSupabaseChatStore` | consumer-provided Supabase client 기반 storage adapter |
+| Ollama client exports | model discovery와 streaming chat helper |
+| Core state/type exports | chat state, composer state, setup state, settings state, floating/sidebar preferences, error/type contracts |
+| `@kmsf/chat/styles.css` | optional package stylesheet |
 
 ## Storage
 

@@ -1,5 +1,5 @@
 // AI-NOTE: scaffold() orchestrator — entry point of @kmsf/generator-core.
-// IMMUTABLE step order (도메인문서.md §3.1.1):
+// IMMUTABLE step order:
 //   1. ensureTemplateExists  →  TemplateMissing 에러 일찍 발생
 //   2. isEmptyOrMissing      →  TargetExists 에러 일찍 발생
 //   3. copyDir               →  파일 복사 (실패 시 partial dir cleanup)

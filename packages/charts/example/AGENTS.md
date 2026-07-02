@@ -8,12 +8,6 @@ This file applies to `packages/charts/example`.
 
 The example is the Vite/React consumer surface used for manual inspection and Playwright browser verification.
 
-## Knowledge Map
-
-- Research: `docs/agents/example/research.md`
-- Plan: `docs/agents/example/plan.md`
-- Memory: `docs/agents/example/memory.md`
-
 ## Rules
 
 - MUST: the example as consumer code, not package internals.

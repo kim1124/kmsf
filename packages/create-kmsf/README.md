@@ -2,6 +2,13 @@
 
 `create-kmsf`는 KMSF Next.js starter 앱을 생성하는 scaffold CLI다. 현재 CLI는 bundled `next-app-base` template을 복사한 뒤 auth, GNB layout, optional package, i18n, install, git, Playwright 설정을 선택적으로 적용한다.
 
+## 패키지 상태
+
+- npm package name은 `create-kmsf`이며 `bin/create-kmsf.js`를 CLI entry로 노출한다.
+- Package contents는 `bin`, `dist`, `scripts`, `templates`, `README.md`로 제한한다.
+- Programmatic API를 public contract로 제공하지 않는다. 생성 로직 재사용은 `@kmsf/generator-core`를 우선 검토한다.
+- npm 배포 전에는 license, repository, files, tarball smoke, generated app smoke를 별도 검토해야 한다.
+
 ## 사용법
 
 ```bash
@@ -66,6 +73,16 @@ npx create-kmsf my-app --packages=gridstack,data-table,charts,chat
 | `chat` | `@kmsf/chat` |
 
 현재 generator는 dependency 추가까지만 수행한다. 실제 component import와 style import는 생성된 앱에서 개발자가 적용한다.
+
+## 생성되는 starter 범위
+
+- Next.js `next-app-base` template 복사
+- 선택한 auth mode별 runtime tree pruning
+- 선택한 GNB 영역 `top`, `left`, `right`, `footer` 반영
+- optional KMSF package dependency 추가
+- ko/en i18n 포함 또는 ko-only starter 생성
+- `.env.example` 기반 `.env.local` 생성
+- 선택 시 dependency install, git init, Playwright browser install 실행
 
 ## 생성 후 실행
 

@@ -73,22 +73,15 @@ describe("package harness contract", () => {
     const requiredFiles = [
       "GUIDE.md",
       "AGENTS.md",
-      "docs/agents/README.md",
-      "docs/agents/root/research.md",
-      "docs/agents/root/plan.md",
-      "docs/agents/root/memory.md",
-      "docs/agents/common/research.md",
-      "docs/agents/common/plan.md",
-      "docs/agents/common/memory.md",
-      "docs/agents/components/research.md",
-      "docs/agents/components/plan.md",
-      "docs/agents/components/memory.md",
-      "docs/agents/test/research.md",
-      "docs/agents/test/plan.md",
-      "docs/agents/test/memory.md",
-      "docs/agents/example/research.md",
-      "docs/agents/example/plan.md",
-      "docs/agents/example/memory.md",
+      "README.md",
+      "docs/README.md",
+      "docs/01-requirements.md",
+      "docs/02-architecture.md",
+      "docs/03-component-api-draft.md",
+      "docs/04-verification-strategy.md",
+      "docs/05-open-questions.md",
+      "docs/06-quick-start.md",
+      "docs/07-acceptance-matrix.md",
       "src/common/AGENTS.md",
       "src/components/AGENTS.md",
       "test/AGENTS.md",
@@ -101,7 +94,7 @@ describe("package harness contract", () => {
 
     const packageAgents = readText(join(packageRoot, "AGENTS.md"));
     const rootAgents = readText(join(repoRoot, "AGENTS.md"));
-    expect(packageAgents).toContain("docs/agents/README.md");
+    expect(packageAgents).toContain("docs/README.md");
     expect(packageAgents).toContain("GUIDE.md");
     expect(rootAgents).toContain("Superpowers TDD");
     expect(rootAgents).toContain("test-driven-development");
@@ -118,11 +111,6 @@ describe("package harness contract", () => {
     for (const file of agentsFiles) {
       const lineCount = readText(file).split(/\r?\n/).length;
       expect(lineCount, relative(packageRoot, file)).toBeLessThanOrEqual(100);
-    }
-
-    for (const planFile of listFiles(join(packageRoot, "docs/agents")).filter((file) => file.endsWith("/plan.md"))) {
-      const lineCount = readText(planFile).split(/\r?\n/).length;
-      expect(lineCount, relative(packageRoot, planFile)).toBeLessThanOrEqual(500);
     }
   });
 

@@ -5,7 +5,7 @@
 - SCOPE: `@kmsf/chat` package, `src`, `src/index.ts`, `example`, `test`, `packages/chat/reports`, `packages/chat/docs/superpowers`.
 - CONTEXT: Root `AGENTS.md`의 common contract, TDD, completion gate, reporting rule을 상속한다.
 - MUST: 하위 규칙은 `src/core/AGENTS.md`, `src/adapters/AGENTS.md`, `src/components/AGENTS.md`, `example/AGENTS.md`, `test/AGENTS.md`를 따른다.
-- MUST: Package-level research, plan, decision records는 `docs/agents/root`에 둔다.
+- MUST: Package documentation starts at `README.md`; package-local work reports go under `packages/chat/reports/YYYY-MM-DD.md`.
 
 ## Confirmed Decisions
 

@@ -11,7 +11,6 @@
 - `05-open-questions.md`: 후속 합의가 필요한 항목
 - `06-quick-start.md`: 외부 개발자용 빠른 시작 예시
 - `07-acceptance-matrix.md`: 차트별 완료 기준과 verification gate
-- `agents/README.md`: AI 에이전트용 research, plan, memory 지식 map
 ## 현재 상태
 
 현재 단계는 주요 chart wrapper와 playground, Vitest, Playwright 검증이 존재하는 구현 진행 상태다. 후속 기능 확장 시에도 TDD 절차에 따라 실패 테스트를 먼저 추가한다.
