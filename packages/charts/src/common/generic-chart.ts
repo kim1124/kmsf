@@ -358,6 +358,10 @@ function buildNonGridLayoutDefaults(
   return {};
 }
 
+function toFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 function normalizeRadarIndicatorSafety(radar: unknown): unknown {
   if (Array.isArray(radar)) {
     return radar.map(normalizeRadarIndicatorSafety);
@@ -367,12 +371,28 @@ function normalizeRadarIndicatorSafety(radar: unknown): unknown {
     return radar;
   }
 
+  const splitNumber = toFiniteNumber(radar.splitNumber) ?? 5;
   const indicator = Array.isArray(radar.indicator)
-    ? radar.indicator.map((item) =>
-        isPlainObject(item) && item.alignTicks === undefined
-          ? { ...item, alignTicks: false }
-          : item,
-      )
+    ? radar.indicator.map((item) => {
+        if (!isPlainObject(item)) {
+          return item;
+        }
+
+        const max = toFiniteNumber(item.max);
+        const min = toFiniteNumber(item.min) ?? (max !== undefined && max > 0 ? 0 : undefined);
+        const interval = toFiniteNumber(item.interval) ?? (
+          max !== undefined && min !== undefined && max > min && splitNumber > 0
+            ? (max - min) / splitNumber
+            : undefined
+        );
+
+        return {
+          ...item,
+          alignTicks: item.alignTicks ?? false,
+          ...(min !== undefined && item.min === undefined ? { min } : {}),
+          ...(interval !== undefined && interval > 0 && item.interval === undefined ? { interval } : {}),
+        };
+      })
     : radar.indicator;
 
   return {

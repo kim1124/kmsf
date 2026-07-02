@@ -248,3 +248,30 @@ If this file grows beyond 500 lines, move detailed steps into `plans/00_example-
 - 답변 전에는 추천안을 확정된 계획이나 결론으로 쓰지 않는다.
 - 답변 이후에도 재결정 항목이 남으면 추가 질문을 먼저 한다.
 - 모든 사용자 결정 항목이 닫힌 뒤 내용을 확정한다.
+
+
+## 2026-06-30 Playground Docs Renewal Plan
+
+1. 문서 route를 `BrowserRouter` 기반 path routing으로 전환한다.
+2. 문서 shell은 top nav, left nav, content 영역으로 구성하고 기존 KMSF white/mint 테마를 유지한다.
+3. 각 문서 페이지는 설명, `prism-react-renderer` 코드 블록, 라이브 예제를 함께 렌더링한다.
+4. 기존 chart workspace와 large data, GridStack dashboard integration 예제는 새 route에서 재사용한다.
+5. 이전 route live example unmount, highlighted code, live chart/canvas 렌더링을 Playwright로 검증한다.
+6. 기존 chart 예제 hash route 테스트를 path route 기준으로 보정한다.
+
+## 2026-07-02 Playground Example Polish Plan
+
+- Detailed plan: `docs/agents/example/plans/2026-07-02-playground-example-polish-plan.md`
+- ask gate clear: 사용자가 의미 있는 예제만 유지, 별도 theme page와 top theme select 추가, 모든 live 예제 유지 및 5초 갱신, API 문서 통합 구조를 승인했다.
+- 구현 전제:
+  1. 예제 개수는 차트별 1~5개로 조정하고, 중복처럼 보이는 카드보다 공식 fixture 또는 의미 있는 변형만 유지한다.
+  2. 테마 변경은 ECharts `theme` prop 대신 example-local theme palette를 `themeOverrides.palette`로 전달해 chart dispose/re-init 가능성을 줄인다.
+  3. 실시간 갱신은 모든 차트에 유지하되 5초 주기로 통일하고, 같은 shape의 series update는 가능한 한 `replaceMerge`를 피하도록 검토한다.
+  4. `/api/props`는 chart별 `KMSF Props`, `ECharts Options`, `SeriesOptions`, `Methods/Utilities`를 정리하고 top search index에 포함한다.
+
+## 2026-07-01 ECharts Official Examples Alignment Plan
+
+- Detailed plan: `docs/agents/example/plans/2026-07-01-echarts-official-examples-alignment.md`
+- ask gate clear: supervisor answered all product/UX/data/verification decisions before implementation.
+- Scope: playground example data/editor/docs only. Runtime public API defaults are not changed.
+- Completion gate: `npm --workspace=@kmsf/charts run verify:full`.

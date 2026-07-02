@@ -6,18 +6,59 @@ import { chartExampleGroups, clampExampleSeriesCount } from "../../example/src/d
 
 const preparedTypes = new Set(["map", "custom"]);
 const singleSeriesExampleTypes = new Set<KmsfChartType>(["funnel", "gauge", "pie", "sunburst", "themeRiver", "treemap", "wordCloud"]);
+const compactStructuralExampleTypes = new Set<KmsfChartType>(["gauge", "parallel", "sankey", "sunburst", "themeRiver", "tree", "wordCloud"]);
 const zeroClock = { flowTick: 0, topTick: 0, trendTick: 0 };
 
 describe("chart example groups", () => {
-  test("renderable chart types expose exactly five examples", () => {
+  test("renderable chart types expose one to five meaningful examples with one live example", () => {
     const renderableSamples = chartSamples.filter((sample) => !sample.disabledReason);
 
     for (const sample of renderableSamples) {
       const examples = chartExampleGroups[sample.type] ?? [];
-      expect(examples, sample.type).toHaveLength(5);
-      expect(new Set(examples.map((example) => example.id)).size, sample.type).toBe(5);
-      expect(new Set(examples.map((example) => example.title)).size, sample.type).toBe(5);
+      expect(examples.length, sample.type).toBeGreaterThanOrEqual(1);
+      expect(examples.length, sample.type).toBeLessThanOrEqual(5);
+      expect(new Set(examples.map((example) => example.id)).size, sample.type).toBe(examples.length);
+      expect(new Set(examples.map((example) => example.title)).size, sample.type).toBe(examples.length);
+      expect(examples.filter((example) => example.mode === "live"), sample.type).toHaveLength(1);
     }
+  });
+
+  test("structural chart pages avoid duplicated static variants", () => {
+    for (const type of compactStructuralExampleTypes) {
+      const examples = chartExampleGroups[type] ?? [];
+
+      expect(examples.length, type).toBeGreaterThanOrEqual(1);
+      expect(examples.length, type).toBeLessThanOrEqual(3);
+    }
+  });
+
+  test("map and custom are excluded from chart examples", () => {
+    const types = chartSamples.map((sample) => sample.type);
+
+    expect(types).not.toContain("map");
+    expect(types).not.toContain("custom");
+    expect(Object.keys(chartExampleGroups)).not.toContain("map");
+    expect(Object.keys(chartExampleGroups)).not.toContain("custom");
+  });
+
+  test("mixed series official samples are grouped as Advanced examples", () => {
+    expect(chartExampleGroups.pictorialBar?.some((example) => example.tags.includes("Advanced"))).toBe(true);
+  });
+
+  test("first static examples use official fixture data and options where available", () => {
+    const line = chartExampleGroups.line?.find((example) => example.id === "line-static-basic");
+    const lineContext = { clock: zeroClock, refreshVersion: 0, seriesCount: 1 };
+
+    expect(line?.title).toBe("Basic Line Chart");
+    expect(line?.dataFormat).toBe("native");
+    expect(line?.buildData(lineContext)).toEqual([]);
+    expect(line?.buildOptions?.(lineContext)).toMatchObject({
+      xAxis: { data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], type: "category" },
+    });
+    expect(line?.buildSeries?.(lineContext)?.[0]).toMatchObject({
+      data: [150, 230, 224, 218, 135, 147, 260],
+      type: "line",
+    });
   });
 
   test("examples include stable metadata for filtering and tags", () => {
@@ -40,15 +81,15 @@ describe("chart example groups", () => {
     expect(clampExampleSeriesCount(99)).toBe(10);
   });
 
-  test("renderable live examples default to three series", () => {
+  test("renderable live examples default to two series without exposing series count controls", () => {
     for (const sample of chartSamples) {
       if (preparedTypes.has(sample.type) || singleSeriesExampleTypes.has(sample.type)) {
         continue;
       }
 
       const liveExample = chartExampleGroups[sample.type]?.find((example) => example.mode === "live");
-      expect(liveExample?.defaultSeriesCount, sample.type).toBe(3);
-      expect(liveExample?.seriesCountEnabled, sample.type).toBe(true);
+      expect(liveExample?.defaultSeriesCount, sample.type).toBe(2);
+      expect(liveExample?.seriesCountEnabled, sample.type).toBe(false);
     }
   });
 
@@ -61,31 +102,31 @@ describe("chart example groups", () => {
     }
   });
 
-  test("line live example uses a one minute one-second window", () => {
+  test("line live example uses a thirty point five-second update window", () => {
     const liveExample = chartExampleGroups.line?.find((example) => example.id === "line-live-update");
-    const data = liveExample?.buildData({ clock: zeroClock, refreshVersion: 0, seriesCount: 3 });
+    const data = liveExample?.buildData({ clock: zeroClock, refreshVersion: 0, seriesCount: 2 });
 
-    expect(data).toHaveLength(60);
-    expect(liveExample?.updateIntervalMs).toBe(1000);
+    expect(data).toHaveLength(30);
+    expect(liveExample?.updateIntervalMs).toBe(5000);
   });
 
-  test("line live data uses a bounded random-looking one-minute window", () => {
-    const data = buildLiveTrendRows(0, 3) as Array<[string, number, number, number]>;
+  test("line live data uses a bounded random-looking thirty second window", () => {
+    const data = buildLiveTrendRows(0, 2) as Array<[string, number, number]>;
 
-    for (const seriesIndex of [1, 2, 3] as const) {
+    for (const seriesIndex of [1, 2] as const) {
       const values = data.map((row) => row[seriesIndex]);
       const deltas = values.slice(1).map((value, index) => Math.abs(value - (values[index] ?? value)));
 
       expect(Math.min(...values), `series ${seriesIndex}`).toBeGreaterThanOrEqual(0);
       expect(Math.max(...values), `series ${seriesIndex}`).toBeLessThanOrEqual(500);
-      expect(new Set(values).size, `series ${seriesIndex}`).toBeGreaterThan(42);
+      expect(new Set(values).size, `series ${seriesIndex}`).toBeGreaterThan(24);
       expect(Math.max(...deltas), `series ${seriesIndex}`).toBeGreaterThanOrEqual(120);
     }
   });
 
-  test("TOP live examples update every five seconds", () => {
+  test("all live examples update every five seconds", () => {
     for (const sample of chartSamples) {
-      if (sample.category !== "Top" || sample.disabledReason) {
+      if (sample.disabledReason) {
         continue;
       }
 
@@ -113,6 +154,10 @@ describe("chart example groups", () => {
     expect(samples.treemap?.seriesOptions).toMatchObject({ height: "88%", left: "4%", top: "6%", width: "92%" });
     expect(samples.funnel?.seriesOptions).toMatchObject({ label: { show: false }, left: "12%", top: 48, width: "76%" });
     expect(samples.wordCloud?.seriesOptions).toMatchObject({ height: "88%", left: "4%", top: "6%", width: "92%" });
+    expect(samples.wordCloud?.seriesOptions).toMatchObject({
+      animationDurationUpdate: expect.any(Number),
+      animationEasingUpdate: expect.any(String),
+    });
     expect(samples.sunburst?.seriesOptions).toMatchObject({
       center: ["50%", "52%"],
       label: { show: false },
@@ -130,9 +175,9 @@ describe("chart example groups", () => {
 
   test("funnel example uses five rows", () => {
     const example = chartExampleGroups.funnel?.find((item) => item.id === "funnel-static-basic");
-    const data = example?.buildData({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 });
+    const series = example?.buildSeries?.({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 });
 
-    expect(data).toHaveLength(5);
+    expect((series?.[0] as { data?: unknown[] }).data).toHaveLength(5);
   });
 
   test.each(["scatter", "effectScatter"] as const)("%s examples can produce separate data columns for three series", (type) => {
@@ -149,25 +194,25 @@ describe("chart example groups", () => {
     expect(series, type).toHaveLength(3);
   });
 
-  test("tree data has nested depth and refresh-visible values", () => {
+  test("tree data uses a deterministic official-like nested fixture", () => {
     const tree = chartExampleGroups.tree?.find((item) => item.id === "tree-static-basic");
     const before = tree?.buildData({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 });
     const after = tree?.buildData({ clock: zeroClock, refreshVersion: 1, seriesCount: 1 });
 
-    expect(JSON.stringify(before)).not.toEqual(JSON.stringify(after));
+    expect(JSON.stringify(before)).toEqual(JSON.stringify(after));
     expect(JSON.stringify(before)).toContain("children");
-    expect(JSON.stringify(before)).toContain("Leaf");
+    expect(JSON.stringify(before)).toContain("flare");
   });
 
-  test("graph and sankey examples expose richer node/link data", () => {
+  test("graph and sankey examples expose official-like node/link data", () => {
     const graph = chartExampleGroups.graph?.find((item) => item.id === "graph-static-basic");
     const sankey = chartExampleGroups.sankey?.find((item) => item.id === "sankey-static-basic");
 
-    expect((graph?.buildData({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 }) as unknown[]).length).toBeGreaterThanOrEqual(8);
+    expect((graph?.buildData({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 }) as unknown[]).length).toBe(4);
     expect(sankey?.buildSeries?.({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 })?.[0]).toMatchObject({
       links: expect.arrayContaining([expect.objectContaining({ value: expect.any(Number) })]),
     });
-    expect((sankey?.buildSeries?.({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 })?.[0] as { links?: unknown[] }).links?.length).toBeGreaterThanOrEqual(10);
+    expect((sankey?.buildSeries?.({ clock: zeroClock, refreshVersion: 0, seriesCount: 1 })?.[0] as { links?: unknown[] }).links).toHaveLength(6);
   });
 
   test("themeRiver uses multiple stream categories in one series", () => {

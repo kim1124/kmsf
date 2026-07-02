@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { EChartsOption, SeriesOption } from "echarts";
 import {
-  FileJson,
   FileText,
-  Palette,
   PanelRight,
   RefreshCw,
 } from "lucide-react";
 
 import { GenericChart } from "../../../src";
+import type { KmsfChartType } from "../../../src";
 import type { SampleClock } from "../data/chart-samples";
 import {
   clampExampleSeriesCount,
@@ -16,14 +15,13 @@ import {
 } from "../data/chart-examples";
 import type { ChartExampleDefinition } from "../data/chart-examples";
 import { applyTopRowPalette, getSeriesPaletteOverride } from "../data/chart-colors";
-import { parseEditableChartData, parseEditableOptions } from "../data/live-editing";
+import { ChartConfigEditor } from "./ChartConfigEditor";
+import type { EditableChartConfig } from "./ChartConfigEditor";
 import { ChartSkeleton } from "./ChartSkeleton";
-import { Badge } from "./ui/badge";
+import { CodeBlock } from "./CodeBlock";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Input } from "./ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Textarea } from "./ui/textarea";
 
 interface LocalOptionState {
   legend: boolean;
@@ -33,6 +31,7 @@ interface LocalOptionState {
 interface ChartExampleCardProps {
   clock: SampleClock;
   example: ChartExampleDefinition;
+  themePalette?: string[];
 }
 
 const hiddenLegendExampleTypes = new Set([
@@ -51,38 +50,6 @@ export function getInitialLegendState(type: string) {
   return !hiddenLegendExampleTypes.has(type);
 }
 
-function stringifyJson(value: unknown): string {
-  return JSON.stringify(value ?? {}, null, 2);
-}
-
-function mergePlainObjects<TValue extends Record<string, unknown>>(base: TValue, override?: Record<string, unknown>): TValue {
-  if (!override) {
-    return base;
-  }
-
-  const result: Record<string, unknown> = { ...base };
-
-  for (const [key, value] of Object.entries(override)) {
-    const current = result[key];
-
-    if (
-      current &&
-      value &&
-      typeof current === "object" &&
-      typeof value === "object" &&
-      !Array.isArray(current) &&
-      !Array.isArray(value)
-    ) {
-      result[key] = mergePlainObjects(current as Record<string, unknown>, value as Record<string, unknown>);
-      continue;
-    }
-
-    result[key] = value;
-  }
-
-  return result as TValue;
-}
-
 function mergeSeriesOptions(
   example: ChartExampleDefinition,
 ): Partial<SeriesOption> | Array<Partial<SeriesOption>> {
@@ -93,41 +60,37 @@ function mergeSeriesOptions(
   return example.seriesOptions ?? {};
 }
 
-function buildOptionSummary(input: {
+function buildEditableConfig(input: {
+  colors: string[];
+  data: unknown;
+  dataFormat?: EditableChartConfig["dataFormat"];
   options?: EChartsOption;
-  seriesCount: number;
+  series?: SeriesOption[];
   seriesOptions: Partial<SeriesOption> | Array<Partial<SeriesOption>>;
-  state: LocalOptionState;
-  themeOverrides: { palette: string[] };
-}) {
+  type: KmsfChartType;
+}): EditableChartConfig {
   return {
-    legend: input.state.legend,
+    colors: input.colors,
+    data: input.data,
+    dataFormat: input.dataFormat,
     options: input.options,
-    seriesCount: input.seriesCount,
+    series: input.series,
     seriesOptions: input.seriesOptions,
-    themeOverrides: input.themeOverrides,
-    tooltip: input.state.tooltip,
+    type: input.type,
   };
 }
 
-export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
+export function ChartExampleCard({ clock, example, themePalette }: ChartExampleCardProps) {
   const initialSeriesCount = clampExampleSeriesCount(example.defaultSeriesCount ?? 1);
   const [optionState, setOptionState] = useState<LocalOptionState>(() => ({
     legend: getInitialLegendState(example.type),
     tooltip: true,
   }));
-  const [seriesCount, setSeriesCount] = useState(() => initialSeriesCount);
-  const [seriesCountText, setSeriesCountText] = useState(() => String(initialSeriesCount));
+  const [seriesCount] = useState(() => initialSeriesCount);
   const [refreshVersion, setRefreshVersion] = useState(0);
-  const [accentIndex, setAccentIndex] = useState(0);
-  const [dataText, setDataText] = useState("");
-  const [dataDirty, setDataDirty] = useState(false);
-  const [manualData, setManualData] = useState<unknown>();
-  const [dataError, setDataError] = useState<string | null>(null);
-  const [optionsText, setOptionsText] = useState("");
-  const [optionDirty, setOptionDirty] = useState(false);
-  const [manualOptions, setManualOptions] = useState<EChartsOption>({});
-  const [optionError, setOptionError] = useState<string | null>(null);
+  const [editableConfig, setEditableConfig] = useState<EditableChartConfig | null>(null);
+  const [configDirty, setConfigDirty] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
   const context = useMemo(
     () => ({
       clock,
@@ -138,145 +101,80 @@ export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
   );
   const generatedData = useMemo(() => example.buildData(context), [context, example]);
   const coloredGeneratedData = useMemo(
-    () => applyTopRowPalette(generatedData, example.type, accentIndex),
-    [accentIndex, example.type, generatedData],
+    () => applyTopRowPalette(generatedData, example.type, 0, themePalette),
+    [example.type, generatedData, themePalette],
   );
-  const sampleData = dataDirty && !dataError ? manualData : coloredGeneratedData;
-  const sampleSeries = useMemo(() => example.buildSeries?.(context), [context, example]);
+  const generatedSeries = useMemo(() => example.buildSeries?.(context), [context, example]);
   const generatedOptions = useMemo(() => example.buildOptions?.(context), [context, example]);
-  const sampleOptions = useMemo(
+  const generatedSeriesOptions = useMemo(() => mergeSeriesOptions(example), [example]);
+  const generatedColors = useMemo(() => (themePalette?.length ? themePalette : getSeriesPaletteOverride(0)), [themePalette]);
+  const generatedConfig = useMemo(
     () =>
-      mergePlainObjects(
-        (generatedOptions ?? {}) as Record<string, unknown>,
-        manualOptions as Record<string, unknown>,
-      ) as EChartsOption,
-    [generatedOptions, manualOptions],
+      buildEditableConfig({
+        colors: generatedColors,
+        data: coloredGeneratedData,
+        dataFormat: example.dataFormat ?? "auto",
+        options: generatedOptions,
+        series: generatedSeries,
+        seriesOptions: generatedSeriesOptions,
+        type: example.type,
+      }),
+    [coloredGeneratedData, example.dataFormat, example.type, generatedColors, generatedOptions, generatedSeries, generatedSeriesOptions],
   );
-  const seriesOptions = useMemo(() => mergeSeriesOptions(example), [example]);
+  const currentConfig = configDirty && !configError && editableConfig ? editableConfig : generatedConfig;
+  const sampleType = currentConfig.type;
+  const sampleData = currentConfig.data;
+  const sampleSeries = currentConfig.series;
+  const sampleOptions = currentConfig.options;
+  const seriesOptions = currentConfig.seriesOptions ?? {};
+  const sampleColors = currentConfig.colors ?? generatedColors;
   const themeOverrides = useMemo(
-    () => ({ palette: getSeriesPaletteOverride(accentIndex) }),
-    [accentIndex],
+    () => ({ palette: sampleColors }),
+    [sampleColors],
   );
-  const optionSummary = useMemo(
-    () => buildOptionSummary({ options: sampleOptions, seriesCount, seriesOptions, state: optionState, themeOverrides }),
-    [optionState, sampleOptions, seriesCount, seriesOptions, themeOverrides],
-  );
-  const sampleSummary = useMemo(
-    () => ({
-      data: sampleData,
-      dataFormat: example.dataFormat ?? "auto",
-      options: sampleOptions,
-      series: sampleSeries,
-      seriesCount,
-      seriesOptions,
-      type: example.type,
-    }),
-    [example, sampleData, sampleOptions, sampleSeries, seriesCount, seriesOptions],
-  );
-  const validationMessage = optionError ?? dataError;
+  const validationMessage = configError;
   const usageCode = useMemo(() => getExampleUsageCode(example), [example]);
 
   useEffect(() => {
-    if (!dataDirty) {
-      setDataText(stringifyJson(coloredGeneratedData));
+    if (!configDirty) {
+      setEditableConfig(generatedConfig);
     }
-  }, [coloredGeneratedData, dataDirty]);
-
-  useEffect(() => {
-    if (!optionDirty) {
-      setOptionsText(stringifyJson(generatedOptions ?? {}));
-    }
-  }, [generatedOptions, optionDirty]);
-
-  const handleDataTextChange = (value: string) => {
-    setDataDirty(true);
-    setDataText(value);
-
-    const result = parseEditableChartData(value, example.dataFormat);
-
-    if (result.ok) {
-      setManualData(result.value);
-      setDataError(null);
-      return;
-    }
-
-    setDataError(result.error);
-  };
-
-  const handleOptionsTextChange = (value: string) => {
-    setOptionDirty(true);
-    setOptionsText(value);
-
-    const result = parseEditableOptions(value);
-
-    if (result.ok) {
-      setManualOptions(result.value);
-      setOptionError(null);
-      return;
-    }
-
-    setOptionError(result.error);
-  };
-
-  const commitSeriesCount = (value: string) => {
-    const nextSeriesCount = clampExampleSeriesCount(Number(value));
-
-    setSeriesCount(nextSeriesCount);
-    setSeriesCountText(String(nextSeriesCount));
-  };
-
-  const handleSeriesCountChange = (value: string) => {
-    setSeriesCountText(value);
-
-    if (value.trim() === "") {
-      return;
-    }
-
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) {
-      return;
-    }
-
-    const nextSeriesCount = clampExampleSeriesCount(numericValue);
-
-    setSeriesCount(nextSeriesCount);
-
-    if (numericValue < 1 || numericValue > 10) {
-      setSeriesCountText(String(nextSeriesCount));
-    }
-  };
+  }, [configDirty, generatedConfig]);
 
   const refreshData = () => {
-    setDataDirty(false);
-    setManualData(undefined);
-    setDataError(null);
+    setConfigDirty(false);
+    setEditableConfig(null);
+    setConfigError(null);
     setRefreshVersion((value) => value + 1);
   };
 
+  const handleConfigChange = (nextConfig: EditableChartConfig) => {
+    setConfigDirty(true);
+    setEditableConfig(nextConfig);
+    setConfigError(null);
+  };
+
+  const lockedLiveEditorReason = example.mode === "live" ? "실시간 데이터는 예제 생성기가 관리합니다." : undefined;
+
   return (
-    <Card className="chart-example-card" data-testid={`chart-example-card-${example.id}`}>
+    <Card className="chart-example-card" data-testid={`chart-example-card-${example.id}`} id={example.id}>
       <CardHeader className="chart-example-card__header">
         <div className="chart-example-card__heading">
           <CardTitle>{example.title}</CardTitle>
           <CardDescription>{example.summary}</CardDescription>
         </div>
-        <div className="chart-example-card__tags">
-          {example.tags.map((tag) => (
-            <Badge key={tag}>{tag}</Badge>
-          ))}
-        </div>
       </CardHeader>
 
       <CardContent className="chart-example-card__content">
         <div className="chart-viewport" data-testid="chart-stage">
-          {validationMessage ? <div className="chart-validation-message">{validationMessage}</div> : null}
+          {validationMessage ? <div className="chart-validation-message" role="alert">{validationMessage}</div> : null}
           {example.disabledReason ? (
             <div className="chart-placeholder">{example.disabledReason}</div>
           ) : (
             <GenericChart
+              colors={sampleColors}
               data={sampleData}
-              dataFormat={example.dataFormat}
+              dataFormat={currentConfig.dataFormat}
               height="100%"
               legend={optionState.legend}
               loadingFallback={<ChartSkeleton />}
@@ -285,83 +183,54 @@ export function ChartExampleCard({ clock, example }: ChartExampleCardProps) {
               seriesOptions={seriesOptions}
               themeOverrides={themeOverrides}
               tooltip={optionState.tooltip}
-              type={example.type}
+              type={sampleType}
             />
           )}
         </div>
 
         <section aria-label={`${example.title} 차트 옵션 컨트롤`} className="option-toolbar chart-example-card__toolbar">
-          <Button variant="outline" onClick={() => setOptionState((state) => ({ ...state, legend: !state.legend }))}>
+          <Button
+            aria-pressed={optionState.legend}
+            className="chart-option-toggle"
+            data-state={optionState.legend ? "on" : "off"}
+            variant="outline"
+            onClick={() => setOptionState((state) => ({ ...state, legend: !state.legend }))}
+          >
             <FileText aria-hidden="true" size={16} />
-            범례 토글
+            {optionState.legend ? "범례 숨김" : "범례 표시"}
           </Button>
-          <Button variant="outline" onClick={() => setOptionState((state) => ({ ...state, tooltip: !state.tooltip }))}>
+          <Button
+            aria-pressed={optionState.tooltip}
+            className="chart-option-toggle"
+            data-state={optionState.tooltip ? "on" : "off"}
+            variant="outline"
+            onClick={() => setOptionState((state) => ({ ...state, tooltip: !state.tooltip }))}
+          >
             <PanelRight aria-hidden="true" size={16} />
-            툴팁 토글
+            {optionState.tooltip ? "툴팁 숨김" : "툴팁 표시"}
           </Button>
           <Button variant="outline" onClick={refreshData}>
             <RefreshCw aria-hidden="true" size={16} />
             전체 데이터 갱신
           </Button>
-          <Button variant="outline" onClick={() => setAccentIndex((value) => (value + 1) % 10)}>
-            <Palette aria-hidden="true" size={16} />
-            색상 변경
-          </Button>
-          {example.seriesCountEnabled ? (
-            <label className="series-count-control">
-              <span>Series</span>
-              <Input
-                aria-label={`${example.title} Series 개수`}
-                max={10}
-                min={1}
-                type="number"
-                value={seriesCountText}
-                onBlur={(event) => commitSeriesCount(event.currentTarget.value)}
-                onChange={(event) => handleSeriesCountChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    commitSeriesCount(event.currentTarget.value);
-                  }
-                }}
-              />
-            </label>
-          ) : null}
         </section>
 
-        <Tabs className="sample-tabs" defaultValue="data">
+        <Tabs className="sample-tabs" defaultValue="usage">
           <TabsList aria-label={`${example.title} 샘플 정보`}>
-            <TabsTrigger value="data">Data</TabsTrigger>
-            <TabsTrigger value="options">Options</TabsTrigger>
-            <TabsTrigger value="code">Usage</TabsTrigger>
+            <TabsTrigger value="usage">Usage</TabsTrigger>
+            <TabsTrigger value="props">Props</TabsTrigger>
           </TabsList>
-          <TabsContent value="data">
-            <label className="editor-label" htmlFor={`${example.id}-data-editor`}>
-              <FileJson aria-hidden="true" size={15} />
-              데이터 JSON 편집
-            </label>
-            <Textarea
-              aria-label="데이터 JSON 편집"
-              id={`${example.id}-data-editor`}
-              value={dataText}
-              onChange={(event) => handleDataTextChange(event.target.value)}
-            />
-            <pre data-testid="sample-data">{JSON.stringify(sampleSummary, null, 2)}</pre>
+          <TabsContent value="usage">
+            <CodeBlock code={usageCode} language="tsx" testId="sample-code" title="Usage" />
           </TabsContent>
-          <TabsContent value="options">
-            <label className="editor-label" htmlFor={`${example.id}-options-editor`}>
-              <FileJson aria-hidden="true" size={15} />
-              옵션 JSON 편집
-            </label>
-            <Textarea
-              aria-label="옵션 JSON 편집"
-              id={`${example.id}-options-editor`}
-              value={optionsText}
-              onChange={(event) => handleOptionsTextChange(event.target.value)}
+          <TabsContent value="props">
+            <ChartConfigEditor
+              config={editableConfig ?? currentConfig}
+              disabledReason={lockedLiveEditorReason}
+              id={`${example.id}-chart-config-json`}
+              onChange={handleConfigChange}
+              onError={setConfigError}
             />
-            <pre data-testid="option-summary">{JSON.stringify(optionSummary, null, 2)}</pre>
-          </TabsContent>
-          <TabsContent value="code">
-            <pre data-testid="sample-code">{usageCode}</pre>
           </TabsContent>
         </Tabs>
 

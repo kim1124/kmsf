@@ -25,10 +25,10 @@ async function expectNoRootHorizontalOverflow(page: Page) {
 test("captures charts example visual typography screenshot", async ({
   page,
 }, testInfo) => {
-  await page.goto("/");
+  await page.goto("/examples/line");
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: "@kmsf/charts" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "차트 종류" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toBeVisible();
   await expectBaseTypography(page);
   await expectNoRootHorizontalOverflow(page);
 

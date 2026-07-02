@@ -4,8 +4,10 @@ import type { GenericChartDataFormat, KmsfChartType } from "../../../src";
 import { getExamplePalette } from "./chart-colors";
 import { buildLiveTrendRows, chartSamples } from "./chart-samples";
 import type { ChartSample, SampleClock } from "./chart-samples";
+import { officialChartFixtures } from "./official-chart-fixtures";
+import type { OfficialChartFixture, OfficialFixtureSection } from "./official-chart-fixtures";
 
-export type ChartExampleTag = "정적" | "동적" | "TOP" | "Trend" | "Type" | "Native";
+export type ChartExampleTag = "정적" | "동적" | "TOP" | "Trend" | "Type" | "Native" | "Advanced";
 
 export interface ChartExampleContext {
   clock: SampleClock;
@@ -38,9 +40,7 @@ const staticClock: SampleClock = {
 };
 
 const preparedExampleTypes = new Set<KmsfChartType>(["custom", "map"]);
-const TREND_UPDATE_INTERVAL_MS = 1000;
-const TOP_UPDATE_INTERVAL_MS = 5000;
-const SLOW_UPDATE_INTERVAL_MS = 10000;
+const LIVE_UPDATE_INTERVAL_MS = 5000;
 const singleSeriesExampleTypes = new Set<KmsfChartType>([
   "funnel",
   "gauge",
@@ -50,6 +50,21 @@ const singleSeriesExampleTypes = new Set<KmsfChartType>([
   "treemap",
   "wordCloud",
 ]);
+const compactStructuralExampleTypes = new Set<KmsfChartType>([
+  "gauge",
+  "parallel",
+  "sankey",
+  "sunburst",
+  "themeRiver",
+  "tree",
+  "wordCloud",
+]);
+const officialFixturesByType = new Map<KmsfChartType, OfficialChartFixture[]>(
+  chartSamples.map((sample) => [
+    sample.type,
+    officialChartFixtures.filter((fixture) => fixture.type === sample.type),
+  ]),
+);
 
 export function clampExampleSeriesCount(value: number) {
   if (!Number.isFinite(value)) {
@@ -84,6 +99,10 @@ function getPrimaryTag(sample: ChartSample): ChartExampleTag {
 
   if (sample.category === "Native") {
     return "Native";
+  }
+
+  if (sample.category === "Advanced") {
+    return "Advanced";
   }
 
   return "Type";
@@ -127,20 +146,16 @@ function buildSampleData(sample: ChartSample, context: ChartExampleContext, cloc
   return sample.buildData(clock, context.seriesCount);
 }
 
+function getOfficialFixture(type: KmsfChartType, section: OfficialFixtureSection) {
+  return officialFixturesByType.get(type)?.find((fixture) => fixture.section === section);
+}
+
 function canUseSeriesCount(sample: ChartSample) {
   return !preparedExampleTypes.has(sample.type) && !singleSeriesExampleTypes.has(sample.type);
 }
 
-function getLiveUpdateInterval(sample: ChartSample) {
-  if (sample.category === "Trend") {
-    return TREND_UPDATE_INTERVAL_MS;
-  }
-
-  if (sample.category === "Top") {
-    return TOP_UPDATE_INTERVAL_MS;
-  }
-
-  return SLOW_UPDATE_INTERVAL_MS;
+function getLiveUpdateInterval(_sample: ChartSample) {
+  return LIVE_UPDATE_INTERVAL_MS;
 }
 
 function buildOptionVariant(sample: ChartSample, clock: SampleClock, variant = 0): EChartsOption {
@@ -284,23 +299,31 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
   }
 
   const seriesCountEnabled = canUseSeriesCount(sample);
+  const officialBasicFixture = getOfficialFixture(sample.type, "Basic");
+  const officialAdvancedFixture = getOfficialFixture(sample.type, "Advanced");
 
-  return [
+  const examples: ChartExampleDefinition[] = [
     {
-      buildData: (context) => buildSampleData(sample, { ...context, seriesCount: 1 }, getStaticClock(context.refreshVersion)),
-      dataFormat: sample.dataFormat,
+      buildData: (context) =>
+        officialBasicFixture?.data ??
+        buildSampleData(sample, { ...context, seriesCount: 1 }, getStaticClock(context.refreshVersion)),
+      dataFormat: officialBasicFixture?.dataFormat ?? sample.dataFormat,
       id: `${sample.type}-static-basic`,
       mode: "static",
-      seriesCountEnabled: singleSeriesExampleTypes.has(sample.type) ? false : undefined,
-      seriesOptions: sample.seriesOptions,
-      summary: `${sample.summary}의 기본 사용 예제입니다.`,
+      seriesCountEnabled: false,
+      seriesOptions: officialBasicFixture?.seriesOptions ?? sample.seriesOptions,
+      summary: officialBasicFixture?.summary ?? `${sample.summary}의 기본 사용 예제입니다.`,
       tags: getBaseTags(sample, "static"),
-      title: "기본 예제",
+      title: officialBasicFixture?.title ?? "기본 예제",
       type: sample.type,
-      ...(sample.buildOptions
+      ...(officialBasicFixture?.options
+        ? { buildOptions: () => officialBasicFixture.options! }
+        : sample.buildOptions
         ? { buildOptions: (context) => sample.buildOptions!(getStaticClock(context.refreshVersion), 1) }
         : {}),
-      ...(sample.buildSeries
+      ...(officialBasicFixture?.series
+        ? { buildSeries: () => officialBasicFixture.series! }
+        : sample.buildSeries
         ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion), 1) }
         : {}),
     },
@@ -315,10 +338,10 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
         return buildSampleData(sample, context, nextClock);
       },
       dataFormat: sample.dataFormat,
-      defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
+      defaultSeriesCount: seriesCountEnabled ? 2 : undefined,
       id: `${sample.type}-live-update`,
       mode: "live",
-      seriesCountEnabled,
+      seriesCountEnabled: false,
       seriesOptions: sample.seriesOptions,
       summary: `${sample.summary}를 실시간 데이터 갱신 조건에서 확인합니다.`,
       tags: getBaseTags(sample, "live"),
@@ -343,7 +366,7 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
       defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
       id: `${sample.type}-option-variant`,
       mode: "static",
-      seriesCountEnabled,
+      seriesCountEnabled: false,
       seriesOptions: buildOptionSeries(sample),
       summary: `${sample.summary}에 자주 쓰는 시각 옵션을 적용한 예제입니다.`,
       tags: getBaseTags(sample, "static", ["Type"]),
@@ -360,7 +383,7 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
       defaultSeriesCount: seriesCountEnabled ? 2 : undefined,
       id: `${sample.type}-data-variant`,
       mode: "static",
-      seriesCountEnabled,
+      seriesCountEnabled: false,
       seriesOptions: buildOptionSeries(sample, 1),
       summary: `${sample.summary}의 데이터 분포를 다르게 구성한 예제입니다.`,
       tags: getBaseTags(sample, "static", ["Type"]),
@@ -371,23 +394,36 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
         : {}),
     },
     {
-      buildData: (context) => buildSampleData(sample, context, getStaticClock(context.refreshVersion + 7)),
-      buildOptions: (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 7), 2),
-      dataFormat: sample.dataFormat,
+      buildData: (context) =>
+        officialAdvancedFixture?.data ?? buildSampleData(sample, context, getStaticClock(context.refreshVersion + 7)),
+      buildOptions: officialAdvancedFixture?.options
+        ? () => officialAdvancedFixture.options!
+        : (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 7), 2),
+      dataFormat: officialAdvancedFixture?.dataFormat ?? sample.dataFormat,
       defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
       id: `${sample.type}-layout-variant`,
       mode: "static",
-      seriesCountEnabled,
-      seriesOptions: buildOptionSeries(sample, 2),
-      summary: `${sample.summary}의 레이아웃과 강조 표현을 바꾼 예제입니다.`,
-      tags: getBaseTags(sample, "static", ["Type"]),
-      title: "레이아웃 변형",
+      seriesCountEnabled: false,
+      seriesOptions: officialAdvancedFixture?.seriesOptions ?? buildOptionSeries(sample, 2),
+      summary: officialAdvancedFixture?.summary ?? `${sample.summary}의 레이아웃과 강조 표현을 바꾼 예제입니다.`,
+      tags: getBaseTags(sample, "static", sample.type === "pictorialBar" ? ["Advanced"] : ["Type"]),
+      title: officialAdvancedFixture?.title ?? "레이아웃 변형",
       type: sample.type,
-      ...(sample.buildSeries
+      ...(officialAdvancedFixture?.series
+        ? { buildSeries: () => officialAdvancedFixture.series! }
+        : sample.buildSeries
         ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 7), context.seriesCount) }
         : {}),
     },
   ];
+
+  if (!compactStructuralExampleTypes.has(sample.type)) {
+    return examples;
+  }
+
+  return examples
+    .filter((example) => example.mode === "live" || example.id.endsWith("static-basic") || example.tags.includes("Advanced"))
+    .slice(0, 3);
 }
 
 export const chartExampleGroups: Partial<Record<KmsfChartType, ChartExampleDefinition[]>> = Object.fromEntries(

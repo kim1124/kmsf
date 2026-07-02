@@ -99,12 +99,13 @@ describe("package harness contract", () => {
       expect(readText(join(packageRoot, file)), file).toBeTruthy();
     }
 
-    const rootAgents = readText(join(packageRoot, "AGENTS.md"));
-    expect(rootAgents).toContain("docs/agents/README.md");
-    expect(rootAgents).toContain("GUIDE.md");
-    expect(rootAgents).toContain("Superpowers");
-    expect(rootAgents).toContain("TDD");
-    expect(rootAgents).toContain("verify:full");
+    const packageAgents = readText(join(packageRoot, "AGENTS.md"));
+    const rootAgents = readText(join(repoRoot, "AGENTS.md"));
+    expect(packageAgents).toContain("docs/agents/README.md");
+    expect(packageAgents).toContain("GUIDE.md");
+    expect(rootAgents).toContain("Superpowers TDD");
+    expect(rootAgents).toContain("test-driven-development");
+    expect(packageAgents).toContain("verify:full");
 
     const agentsFiles = [
       join(packageRoot, "AGENTS.md"),
@@ -127,9 +128,9 @@ describe("package harness contract", () => {
 
   it("keeps package instruction routing centralized in the repo root", () => {
     const rootAgents = readText(join(repoRoot, "AGENTS.md"));
-    expect(rootAgents).toContain("`apps/*`, `packages/*`, `examples/*`, `templates/*` 하위 프로젝트에 모두 적용");
-    expect(rootAgents).toContain("하위 `AGENTS.md`는 공통 규칙을 반복하지 않고");
-    expect(rootAgents).toContain("Repo Skill Routing");
+    expect(rootAgents).toContain("이 계약은 `apps/*`, `packages/*`, `examples/*`, `templates/*`에 모두 적용된다.");
+    expect(rootAgents).toContain("하위 `AGENTS.md`에 공통 규칙을 반복하지 않는다.");
+    expect(rootAgents).toContain("## Skill Routing");
     expect(rootAgents).toContain(".agents/skills/delivery");
     expect(rootAgents).toContain("`code-review`");
     expect(rootAgents).toContain("`code-health`");
@@ -143,9 +144,16 @@ describe("package harness contract", () => {
 
     for (const file of packageAgentFiles) {
       const content = readText(file);
-      expect(content, relative(repoRoot, file)).toContain("repo root `AGENTS.md`");
-      expect(content, relative(repoRoot, file)).toContain("`packages/*` 하위 프로젝트에도 공통 적용");
+      expect(content, relative(repoRoot, file)).toMatch(/(?:Root|repo root) `AGENTS\.md`/);
+      expect(content, relative(repoRoot, file)).toMatch(/(?:(?:공통|common) .*상속|`packages\/\*` 하위 프로젝트에도 공통 적용)/);
       expect(content, relative(repoRoot, file)).not.toContain("## Process Routing");
     }
+  });
+
+  it("does not load gridstack playground styles through dist-only package exports", () => {
+    const appSource = readText(join(packageRoot, "example/src/App.tsx"));
+
+    expect(appSource).toContain('import "../../../gridstack/src/styles.css";');
+    expect(appSource).not.toContain('import "@kmsf/gridstack/styles.css";');
   });
 });

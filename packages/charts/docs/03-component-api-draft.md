@@ -79,7 +79,7 @@ TOP single-series tooltip은 기본 formatter에서 `Item N` 라벨을 사용한
 
 `pie`와 `funnel`은 기본 label을 숨긴다. `seriesOptions.label` 또는 `options.series`로 다시 표시할 수 있다.
 
-공통 필수 prop은 `data`다. `TrendChart`는 `series`도 필수다. 필수 설정이 누락된 chart는 ECharts 인스턴스를 만들지 않고 chart-local fallback UI를 표시한다. 동일 issue는 `[KMSF Charts]` prefix로 console에 1회 기록한다.
+공통 필수 prop은 `data`다. `TrendChart`는 `series`도 필수다. 필수 설정이 누락된 chart는 ECharts 인스턴스를 만들지 않고 chart-local fallback UI를 표시한다. validation issue는 browser console warning/error 없이 UI 상태로 표시한다.
 
 `loadingFallback`은 최초 ECharts instance 생성과 첫 `setOption` 적용 전까지 표시할 ReactNode다. `wordCloud`는 `echarts-wordcloud` 확장 로딩 중에도 이 fallback을 표시한다. validation 실패 시에는 `loadingFallback` 대신 chart-local fallback UI를 표시하고, 실시간 data/options update마다 loading fallback을 다시 표시하지 않는다.
 

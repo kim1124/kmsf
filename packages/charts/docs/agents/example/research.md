@@ -35,3 +35,12 @@
 - 답변 전에는 추천안을 확정된 계획이나 결론으로 쓰지 않는다.
 - 답변 이후에도 재결정 항목이 남으면 추가 질문을 먼저 한다.
 - 모든 사용자 결정 항목이 닫힌 뒤 내용을 확정한다.
+
+
+## 2026-06-30 Playground Docs Renewal Research
+
+- `@kmsf/data-table`의 문서형 playground 방향을 기준으로, `@kmsf/charts` example도 왼쪽 문서 nav와 오른쪽 설명/코드/라이브 예제를 같은 route에서 제공하는 구조가 적합하다고 확인했다.
+- 기존 hash router 기반 chart workspace는 path route로 전환해 `/docs/getting-started`, `/examples/generic-chart`, `/performance/large-data`, `/examples/dashboard-integration`, `/api/props`를 직접 진입 가능하게 구성한다.
+- 문법 하이라이트는 `prism-react-renderer`를 dev dependency로 추가해 example 전용 코드 블록에만 사용한다.
+- route 전환 시 이전 live example이 unmount되는지 Playwright에서 `window.__kmsfChartsLastUnmount`로 검증한다.
+- ask gate clear: 사용자가 차트와 그리드스택만 진행하고, 한국어 문서와 추천 구조, dashboard integration 하단 route 추가에 동의했다.

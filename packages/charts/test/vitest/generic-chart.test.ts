@@ -364,10 +364,34 @@ describe("buildGenericChartOption", () => {
       alignTicks: false,
       center: ["50%", "62%"],
       indicator: [
-        { alignTicks: false, max: 100, name: "UX" },
-        { alignTicks: false, max: 100, name: "API" },
+        { alignTicks: false, interval: 20, max: 100, name: "UX" },
+        { alignTicks: false, interval: 20, max: 100, name: "API" },
       ],
       radius: "46%",
+    });
+  });
+
+  it("adds radar indicator intervals when min and max are finite to avoid ECharts align tick warnings", () => {
+    const option = buildGenericChartOption({
+      data: [{ name: "KMSF", value: [4200, 3000] }],
+      dataFormat: "native",
+      options: {
+        radar: {
+          indicator: [
+            { max: 6500, name: "Sales" },
+            { max: 16000, name: "Administration" },
+          ],
+          splitNumber: 5,
+        },
+      },
+      type: "radar",
+    });
+
+    expect(option.radar).toMatchObject({
+      indicator: [
+        { alignTicks: false, interval: 1300, max: 6500, min: 0, name: "Sales" },
+        { alignTicks: false, interval: 3200, max: 16000, min: 0, name: "Administration" },
+      ],
     });
   });
 
@@ -390,8 +414,8 @@ describe("buildGenericChartOption", () => {
     expect(option.radar).toMatchObject({
       alignTicks: false,
       indicator: [
-        { alignTicks: true, max: 100, name: "UX" },
-        { alignTicks: false, max: 100, name: "API" },
+        { alignTicks: true, interval: 20, max: 100, min: 0, name: "UX" },
+        { alignTicks: false, interval: 20, max: 100, min: 0, name: "API" },
       ],
     });
   });

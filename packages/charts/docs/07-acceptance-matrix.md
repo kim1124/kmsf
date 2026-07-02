@@ -40,11 +40,11 @@
 - Title/subtitle 기본값은 빈 문자열이며, 사용자 title/subtitle이 있으면 chart type별 layout 기본값을 조정한다. 사용자 `legend`, `seriesOptions`, `options`가 최종 우선한다.
 - TOP single-series tooltip은 기본 formatter에서 `Item N` 라벨을 사용한다.
 - Line series는 기본 `smooth: true`를 적용한다.
-- 예제 페이지의 renderable chart type은 각 5개 예제를 제공하며, live/variant 예제는 기본 3 Series로 시작한다. `pie`, `treemap`, `gauge`, `funnel`, `wordCloud`, `sunburst`, `themeRiver`는 single-series 예제로 유지한다.
-- 예제 페이지의 line live 예제는 1초 간격 1분 window인 60 row를 사용한다.
-- 예제 페이지의 TOP 계열 live 예제는 5초 간격으로 갱신한다.
+- 예제 페이지의 renderable chart type은 1~5개 의미 있는 예제를 제공하며, 중복 시각 변형을 강제로 늘리지 않는다.
+- 예제 페이지의 line live 예제는 5초 간격 30 row window를 사용한다.
+- 예제 페이지의 모든 live 예제는 5초 간격으로 갱신한다.
 - 필수 설정 누락 시 ECharts 인스턴스를 만들지 않고 chart-local fallback UI를 표시한다.
-- Playwright에서 의도적으로 발생시키는 invalid chart config는 host app 보호 검증용이다. 해당 console error는 테스트 expectation에 명시되어야 하며, 일반 렌더링 테스트에서는 console warning/error를 허용하지 않는다.
+- Playwright에서 invalid chart config를 검증할 때도 browser console warning/error와 pageerror는 0건이어야 한다. host app 보호는 chart-local fallback UI 또는 editor alert로 검증한다.
 - `map`과 `custom`은 advanced chart로 분류하며, 공식 문서 기반 설정이 필요하다.
 
 ## Completion Rule

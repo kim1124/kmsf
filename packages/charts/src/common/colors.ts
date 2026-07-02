@@ -30,15 +30,7 @@ export function normalizeHexColors(colors?: string[]): string[] {
     return [];
   }
 
-  return colors.filter((color) => {
-    const valid = hexColorPattern.test(color);
-
-    if (!valid) {
-      console.warn("[KMSF Charts]", `Invalid color value ignored: ${color}`);
-    }
-
-    return valid;
-  });
+  return colors.filter((color) => hexColorPattern.test(color));
 }
 
 export function getChartPalette(input: { colors?: string[]; themePalette?: string[] }): string[] {
