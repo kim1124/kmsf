@@ -14,6 +14,64 @@ export interface ChartDoc {
   type: KmsfChartType;
 }
 
+export interface ChartApiEntry {
+  code: string;
+  description: string;
+}
+
+export interface ChartApiSection {
+  entries: ChartApiEntry[];
+  id: string;
+  title: "KMSF Props" | "ECharts Options" | "SeriesOptions" | "Methods/Utilities";
+}
+
+export interface ChartApiDoc {
+  exampleCode: string;
+  id: string;
+  liveExamplePath: string;
+  sections: ChartApiSection[];
+  title: string;
+  type: KmsfChartType;
+}
+
+export interface ChartApiFeatureEntry {
+  chartType?: KmsfChartType;
+  description: string;
+  detail?: string;
+  name: string;
+  type: string;
+}
+
+export interface ChartApiFeatureMethod {
+  description: string;
+  name: string;
+  params: string;
+  returns: string;
+}
+
+export interface ChartApiFeatureSample {
+  code: string;
+  language: "ts" | "tsx";
+  title: string;
+}
+
+export interface ChartApiFeatureLiveLink {
+  label: string;
+  path: string;
+  type: KmsfChartType;
+}
+
+export interface ChartApiFeatureDoc {
+  id: string;
+  liveLinks: ChartApiFeatureLiveLink[];
+  methods?: ChartApiFeatureMethod[];
+  options: ChartApiFeatureEntry[];
+  props: ChartApiFeatureEntry[];
+  samples: ChartApiFeatureSample[];
+  summary: string;
+  title: string;
+}
+
 interface RequiredEchartsSetting {
   code: string;
   description: string;
@@ -482,7 +540,7 @@ function buildCommonOptionsMarkdown() {
     "- `pie`와 `funnel`은 기본 label을 숨깁니다.",
     "- `loadingFallback`: 차트 최초 렌더링 전 또는 wordCloud 확장 로딩 중 표시할 ReactNode입니다. shadcn Skeleton을 전달하는 방식으로 사용합니다.",
     "- `options`: ECharts 공식 option 구조를 그대로 전달합니다.",
-    "- 필수 설정 누락 시 차트 영역에 fallback을 표시하고 `[KMSF Charts]` console error를 1회 기록합니다.",
+    "- 필수 설정 누락 시 차트 영역에 fallback을 표시하며 browser console warning/error를 발생시키지 않습니다.",
   ].join("\n");
 }
 
@@ -568,6 +626,396 @@ export const chartDocs: ChartDoc[] = chartSamples.map((sample) => {
     type: sample.type,
   };
 });
+
+function chartApiId(type: KmsfChartType, section: string) {
+  return `${type}-${section}`;
+}
+
+function buildApiSections(sample: ChartSample, definition: ChartDocDefinition): ChartApiSection[] {
+  const kmsfProps: ChartApiEntry[] = [
+    { code: "type", description: `GenericChart chart type. 이 페이지에서는 ${definition.type}를 사용합니다.` },
+    { code: "data", description: definition.dataDescription.replaceAll("`", "") },
+    { code: "dataFormat", description: definition.recommendedProps?.find((item) => item.includes("dataFormat"))?.replaceAll("`", "") ?? "native, trend, top 중 데이터 해석 방식을 지정합니다." },
+    { code: "options", description: "ECharts 공식 option을 그대로 전달합니다. 사용자 options가 내부 기본값보다 우선합니다." },
+    { code: "series", description: "ECharts series 배열을 직접 전달해야 하는 native chart에서 사용합니다." },
+    { code: "seriesOptions", description: "KMSF가 생성한 series 또는 직접 전달한 series의 속성을 부분 덮어쓰기 합니다." },
+    { code: "colors", description: "series 또는 item 색상 배열입니다. 비어 있으면 KMSF mint 계열 기본 palette를 사용합니다." },
+    { code: "legend / tooltip", description: "boolean 또는 object로 legend, tooltip 표시와 ECharts 세부 옵션을 제어합니다." },
+  ];
+  const requiredOptions = definition.requiredEchartsSettings?.filter((item) => item.prop === "options") ?? [];
+  const requiredSeries = definition.requiredEchartsSettings?.filter((item) => item.prop === "series") ?? [];
+  const requiredSeriesOptions = definition.requiredEchartsSettings?.filter((item) => item.prop === "seriesOptions") ?? [];
+  const echartsOptions: ChartApiEntry[] = [
+    ...requiredOptions.map((item) => ({ code: item.code, description: item.description })),
+    { code: "legend", description: "legend 표시, 위치, scroll, icon을 제어합니다. 사용자 options.legend가 최종 우선합니다." },
+    { code: "tooltip", description: "tooltip 표시, formatter, position을 제어합니다. 사용자 options.tooltip이 최종 우선합니다." },
+    { code: "grid / title", description: "title, subtitle, legend와 차트 영역이 겹치지 않도록 layout을 조정할 때 사용합니다." },
+  ];
+  const seriesOptions: ChartApiEntry[] = [
+    ...requiredSeriesOptions.map((item) => ({ code: item.code, description: item.description })),
+    ...requiredSeries.map((item) => ({ code: item.code, description: item.description })),
+    { code: "seriesOptions", description: `${sample.type} series에 전달할 ECharts series option 부분값입니다.` },
+    { code: "seriesOptions.label", description: "series label 표시, overflow, formatter를 제어합니다." },
+    { code: "seriesOptions.itemStyle / lineStyle", description: "series item 또는 line 스타일을 조정합니다." },
+  ];
+
+  return [
+    {
+      entries: kmsfProps,
+      id: chartApiId(sample.type, "kmsf-props"),
+      title: "KMSF Props",
+    },
+    {
+      entries: echartsOptions,
+      id: chartApiId(sample.type, "echarts-options"),
+      title: "ECharts Options",
+    },
+    {
+      entries: seriesOptions,
+      id: chartApiId(sample.type, "seriesoptions"),
+      title: "SeriesOptions",
+    },
+    {
+      entries: [
+        { code: "onChartReady", description: "ECharts instance가 준비되면 호출되는 callback입니다." },
+        { code: "getInstance", description: "forwarded handle에서 현재 ECharts instance를 조회합니다." },
+        { code: "setOption", description: "forwarded handle에서 ECharts option을 직접 갱신합니다." },
+      ],
+      id: chartApiId(sample.type, "methods-utilities"),
+      title: "Methods/Utilities",
+    },
+  ];
+}
+
+export const chartApiDocs: ChartApiDoc[] = chartSamples.map((sample) => {
+  const definition = chartDocDefinitions[sample.type];
+
+  return {
+    exampleCode: definition.exampleCode,
+    id: `api-${sample.type}`,
+    liveExamplePath: `/examples/${sample.type}#${sample.type}-live-update`,
+    sections: buildApiSections(sample, definition),
+    title: sample.type,
+    type: sample.type,
+  };
+});
+
+const visibleChartSamples = chartSamples.filter((sample) => sample.type !== "custom" && sample.type !== "map");
+
+const nativeRequiredEntries: ChartApiFeatureEntry[] = visibleChartSamples.flatMap((sample) => {
+  const definition = chartDocDefinitions[sample.type];
+
+  return (definition.requiredEchartsSettings ?? []).map((setting) => ({
+    chartType: sample.type,
+    description: setting.description,
+    detail: `${sample.type} 차트는 이 설정이 없으면 fallback UI로 보호됩니다.`,
+    name: `${sample.type}: ${setting.code}`,
+    type: setting.prop,
+  }));
+});
+
+const nativeSampleTypes: KmsfChartType[] = ["radar", "heatmap", "sankey", "themeRiver"];
+
+const nativeRequiredSamples: ChartApiFeatureSample[] = nativeSampleTypes.map((type) => ({
+  code: chartDocDefinitions[type].exampleCode,
+  language: "tsx",
+  title: `${type} native 설정 예제`,
+}));
+
+export const chartApiFeatureDocs: ChartApiFeatureDoc[] = [
+  {
+    id: "api-generic-rendering",
+    title: "GenericChart 렌더링",
+    summary: "GenericChart가 chart type, data, ECharts option을 조합해 가장 넓은 chart surface를 렌더링하는 기본 계약입니다.",
+    props: [
+      {
+        name: "type",
+        type: "KmsfChartType",
+        description: "ECharts series type과 KMSF data normalization 경로를 결정합니다.",
+        detail: "map, custom은 현재 playground 예제에서 제외합니다.",
+      },
+      {
+        name: "data",
+        type: "unknown",
+        description: "차트에 표시할 원본 데이터입니다.",
+        detail: "top, trend, native dataFormat에 따라 해석 방식이 달라집니다.",
+      },
+      {
+        name: "dataFormat",
+        type: "top | trend | native",
+        description: "KMSF가 data를 series로 변환할 방식을 지정합니다.",
+        detail: "생략 시 chart type 기준으로 가능한 기본값을 사용합니다.",
+      },
+      {
+        name: "series",
+        type: "SeriesOption[]",
+        description: "ECharts series를 직접 전달할 때 사용합니다.",
+        detail: "graph, sankey처럼 link/render 설정이 필요한 native chart에서 주로 사용합니다.",
+      },
+      {
+        name: "seriesOptions",
+        type: "SeriesOverride",
+        description: "KMSF가 생성한 series에 부분 option을 덮어씁니다.",
+        detail: "사용자 seriesOptions가 내부 기본값보다 우선합니다.",
+      },
+    ],
+    options: [
+      {
+        name: "options",
+        type: "EChartsOption",
+        description: "ECharts 공식 option shape를 그대로 전달합니다.",
+        detail: "사용자 options가 내부 기본값보다 우선합니다.",
+      },
+      {
+        name: "options.grid / options.title",
+        type: "EChartsOption",
+        description: "title, subtitle, legend와 chart 영역이 겹치지 않도록 layout을 조정합니다.",
+      },
+      {
+        name: "xAxis / yAxis",
+        type: "Axis option",
+        description: "cartesian chart의 축 option을 직접 지정합니다.",
+      },
+    ],
+    methods: [
+      {
+        name: "onChartReady",
+        params: "chart: ECharts",
+        returns: "void",
+        description: "ECharts instance가 준비되면 호출되는 callback입니다.",
+      },
+    ],
+    samples: [{ code: chartDocDefinitions.bar.exampleCode, language: "tsx", title: "GenericChart 기본 예제" }],
+    liveLinks: [{ label: "GenericChart 라이브 예제", path: "/examples/generic-chart", type: "bar" }],
+  },
+  {
+    id: "api-trend-top-data",
+    title: "Trend / Top 데이터",
+    summary: "사용자가 쉽게 입력할 수 있는 trend tuple과 top tuple을 wrapper chart 또는 GenericChart에서 사용하는 계약입니다.",
+    props: [
+      {
+        chartType: "line",
+        name: "TrendChart.data",
+        type: "TrendChartRow[]",
+        description: "[time, value, ...] row를 추이 series로 변환합니다.",
+        detail: "time은 문자열 또는 Date를 사용할 수 있습니다.",
+      },
+      {
+        chartType: "line",
+        name: "TrendChart.series",
+        type: "SeriesOption[]",
+        description: "TrendChart에서 각 value column을 어떤 series로 표시할지 정의합니다.",
+        detail: "TrendChart에서는 series가 필수입니다.",
+      },
+      {
+        chartType: "bar",
+        name: "TopChart.data",
+        type: "TopChartRow[]",
+        description: "[name, value, ...] row를 TOP chart series로 변환합니다.",
+      },
+      {
+        chartType: "bar",
+        name: "TopChart.mode",
+        type: "bar | column | pie | treemap",
+        description: "TOP 데이터를 어떤 chart 형태로 표현할지 지정합니다.",
+      },
+    ],
+    options: [
+      {
+        name: "legend",
+        type: "boolean | object",
+        description: "Trend/Top wrapper에서 범례 표시와 ECharts legend option을 제어합니다.",
+      },
+      {
+        name: "tooltip",
+        type: "boolean | object",
+        description: "Trend/Top wrapper에서 tooltip 표시와 formatter를 제어합니다.",
+      },
+      {
+        name: "seriesOptions",
+        type: "SeriesOverride",
+        description: "line smooth, barWidth, pie label 같은 series option을 override합니다.",
+      },
+    ],
+    samples: [
+      {
+        code: `import { TopChart, TrendChart, createTopRows, createTrendRows } from "@kmsf/charts";
+
+const trendRows = createTrendRows([
+  { x: "2026-07-02 10:00:00", value: 120 },
+  { x: "2026-07-02 10:01:00", value: 132 },
+]);
+
+const topRows = createTopRows([
+  { name: "Alpha", value: 120 },
+  { name: "Beta", value: 96 },
+]);
+
+export function DashboardCharts() {
+  return (
+    <>
+      <TrendChart data={trendRows} series={[{ id: "sales", name: "Sales" }]} />
+      <TopChart data={topRows} mode="bar" />
+    </>
+  );
+}`,
+        language: "tsx",
+        title: "Trend / Top wrapper 예제",
+      },
+    ],
+    liveLinks: [
+      { label: "Trend 라이브 예제", path: "/examples/trend", type: "line" },
+      { label: "Top 라이브 예제", path: "/examples/top", type: "bar" },
+    ],
+  },
+  {
+    id: "api-native-required-options",
+    title: "Native 필수 옵션",
+    summary: "ECharts native option 없이는 의미 있게 렌더링할 수 없는 chart의 필수 설정을 기능 단위로 모았습니다.",
+    props: [
+      {
+        name: "dataFormat",
+        type: "native",
+        description: "ECharts native data shape를 그대로 사용할 때 지정합니다.",
+        detail: "chart별 필수 options 또는 series 설정이 없으면 chart-local fallback을 표시합니다.",
+      },
+      {
+        name: "series",
+        type: "SeriesOption[]",
+        description: "links, renderItem, coordinateSystem처럼 native series 필수 설정을 직접 전달합니다.",
+      },
+    ],
+    options: nativeRequiredEntries,
+    samples: nativeRequiredSamples,
+    liveLinks: [
+      { label: "Radar 라이브 예제", path: "/examples/radar#radar-live-update", type: "radar" },
+      { label: "Heatmap 라이브 예제", path: "/examples/heatmap#heatmap-live-update", type: "heatmap" },
+      { label: "Sankey 라이브 예제", path: "/examples/sankey#sankey-live-update", type: "sankey" },
+      { label: "Theme River 라이브 예제", path: "/examples/themeRiver#themeRiver-live-update", type: "themeRiver" },
+    ],
+  },
+  {
+    id: "api-legend-tooltip-theme",
+    title: "Legend / Tooltip / Theme",
+    summary: "범례, 툴팁, 색상, theme override처럼 모든 chart에서 자주 조정하는 표시 옵션입니다.",
+    props: [
+      {
+        name: "legend",
+        type: "boolean | LegendComponentOption",
+        description: "legend 표시 여부 또는 ECharts legend option입니다.",
+        detail: "pie는 기본 표시, 다수 TOP/native chart는 기본 숨김으로 시작합니다.",
+      },
+      {
+        name: "tooltip",
+        type: "boolean | TooltipComponentOption",
+        description: "tooltip 표시 여부 또는 ECharts tooltip option입니다.",
+      },
+      {
+        name: "colors",
+        type: "string[]",
+        description: "series 또는 item palette입니다.",
+        detail: "비어 있으면 KMSF mint 계열 기본 palette를 사용합니다.",
+      },
+      {
+        name: "themeOverrides",
+        type: "KmsfChartThemeOverrides",
+        description: "palette, textColor, fontFamily, backgroundColor를 package theme 위에 덮어씁니다.",
+      },
+    ],
+    options: [
+      {
+        name: "options.legend",
+        type: "LegendComponentOption",
+        description: "legend type, orient, icon, width, formatter, scroll을 직접 제어합니다.",
+      },
+      {
+        name: "options.tooltip",
+        type: "TooltipComponentOption",
+        description: "tooltip trigger, position, formatter를 직접 제어합니다.",
+      },
+      {
+        name: "seriesOptions.label",
+        type: "SeriesOption",
+        description: "pie, funnel, sunburst 등 label 표시와 overflow 정책을 조정합니다.",
+      },
+    ],
+    samples: [{ code: chartDocDefinitions.pie.exampleCode, language: "tsx", title: "Legend / Tooltip 예제" }],
+    liveLinks: [
+      { label: "Theme 라이브 예제", path: "/examples/theme", type: "bar" },
+      { label: "Pie 라이브 예제", path: "/examples/pie#pie-live-update", type: "pie" },
+    ],
+  },
+  {
+    id: "api-lifecycle-methods",
+    title: "Lifecycle / Methods",
+    summary: "차트 생성, resize, loading fallback, imperative handle 같은 runtime lifecycle 계약입니다.",
+    props: [
+      {
+        name: "height / className / style",
+        type: "layout props",
+        description: "chart container의 높이와 외부 styling hook을 지정합니다.",
+      },
+      {
+        name: "loadingFallback",
+        type: "ReactNode",
+        description: "초기 ECharts instance 생성 전 또는 wordCloud 확장 로딩 중 표시할 fallback입니다.",
+      },
+      {
+        name: "theme",
+        type: "KmsfChartTheme",
+        description: "ECharts init theme 이름입니다.",
+      },
+    ],
+    options: [
+      {
+        name: "ResizeObserver",
+        type: "internal lifecycle",
+        description: "container resize를 requestAnimationFrame 단위로 chart.resize에 연결합니다.",
+      },
+      {
+        name: "replaceMerge",
+        type: "setOption strategy",
+        description: "series identity가 호환되지 않을 때만 series replaceMerge를 사용합니다.",
+      },
+    ],
+    methods: [
+      {
+        name: "getInstance",
+        params: "없음",
+        returns: "ECharts | null",
+        description: "forwarded handle에서 현재 ECharts instance를 조회합니다.",
+      },
+      {
+        name: "setOption",
+        params: "option: EChartsOption",
+        returns: "void",
+        description: "forwarded handle에서 ECharts option을 직접 갱신합니다.",
+      },
+      {
+        name: "onChartReady",
+        params: "chart: ECharts",
+        returns: "void",
+        description: "instance 준비 직후 외부 초기화가 필요할 때 사용합니다.",
+      },
+    ],
+    samples: [
+      {
+        code: `const chartRef = useRef<KmsfChartHandle>(null);
+
+chartRef.current?.setOption({
+  dataZoom: [{ type: "inside" }],
+});`,
+        language: "tsx",
+        title: "Imperative method 예제",
+      },
+    ],
+    liveLinks: [{ label: "Large Data 라이브 예제", path: "/performance/large-data", type: "line" }],
+  },
+];
+
+export function getChartApiDoc(type: KmsfChartType) {
+  return chartApiDocs.find((doc) => doc.type === type) ?? chartApiDocs[0]!;
+}
 
 export function getChartDoc(type: KmsfChartType) {
   return chartDocs.find((doc) => doc.type === type) ?? chartDocs[0]!;

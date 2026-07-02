@@ -29,8 +29,6 @@ interface ChartValidationInput {
   type: KmsfChartType;
 }
 
-const loggedIssues = new Set<string>();
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -151,20 +149,5 @@ export function validateChartConfig(input: ChartValidationInput): ChartValidatio
 }
 
 export function logChartIssuesOnce(issues: ChartValidationIssue[]) {
-  for (const issue of issues) {
-    const key = `${issue.type}:${issue.code}:${issue.message}`;
-
-    if (loggedIssues.has(key)) {
-      continue;
-    }
-
-    loggedIssues.add(key);
-
-    if (issue.level === "error") {
-      console.error("[KMSF Charts]", issue.message);
-      continue;
-    }
-
-    console.warn("[KMSF Charts]", issue.message);
-  }
+  void issues;
 }

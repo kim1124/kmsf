@@ -1,35 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { EChartsOption, SeriesOption } from "echarts";
-import type { LucideIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import {
-  Activity,
-  ChartBar,
-  ChartLine,
-  ChartNetwork,
-  ChartNoAxesColumn,
-  ChartPie,
-  ChartScatter,
-  ChevronsLeft,
-  ChevronsRight,
-  Cloud,
-  Gauge,
-  GitBranch,
-  Grid2X2,
   Library,
-  Network,
-  PanelRight,
   RefreshCw,
   Search,
-  Sun,
-  TableCellsSplit,
-  Workflow,
 } from "lucide-react";
 import { DashboardGrid, useDashboardGrid } from "@kmsf/gridstack";
 import type { DashboardWidget } from "@kmsf/gridstack";
-import { Navigate, NavLink, useLocation, useNavigate, useParams } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import "gridstack/dist/gridstack.min.css";
-import "@kmsf/gridstack/styles.css";
+import "../../../gridstack/src/styles.css";
 
 import { GenericChart, supportedGenericChartTypes } from "../../src";
 import type { GenericChartDataFormat, KmsfChartType } from "../../src";
@@ -37,29 +18,29 @@ import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/ui/card";
 import { Input } from "./components/ui/input";
-import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Textarea } from "./components/ui/textarea";
 import { ChartSkeleton } from "./components/ChartSkeleton";
+import { CodeBlock } from "./components/CodeBlock";
 import { ChartExampleCard } from "./components/ChartExampleCard";
-import { MarkdownDocument } from "./components/MarkdownDocument";
+import { ChartConfigEditor } from "./components/ChartConfigEditor";
+import type { EditableChartConfig } from "./components/ChartConfigEditor";
 import { applyTopRowPalette, getSeriesPaletteOverride } from "./data/chart-colors";
-import { chartSamples } from "./data/chart-samples";
+import { chartSamples, getUsageCode } from "./data/chart-samples";
 import type { ChartSample, SampleClock } from "./data/chart-samples";
 import { chartExampleGroups } from "./data/chart-examples";
 import type { ChartExampleDefinition } from "./data/chart-examples";
 import { buildChartPath, searchCharts } from "./data/chart-search";
+import { chartThemeOptions, defaultChartThemeValue, getChartThemeOption } from "./data/chart-themes";
+import type { ChartThemeOption, ChartThemeValue } from "./data/chart-themes";
+import { chartApiFeatureDocs } from "./docs/chart-docs";
 import {
   createDashboardDraft,
   dashboardEditorTypes,
   validateDashboardDraft,
 } from "./data/dashboard-widget-editor";
 import type { DashboardWidgetDraft, ValidatedDashboardDraft } from "./data/dashboard-widget-editor";
-import { buildDocSearchTargets } from "./data/doc-search";
-import type { DocSearchTarget } from "./data/doc-search";
-import { getChartDoc } from "./docs/chart-docs";
 
 interface DashboardChartData {
   data?: unknown;
@@ -70,75 +51,17 @@ interface DashboardChartData {
   type: KmsfChartType;
 }
 
-const chartIconByType: Partial<Record<KmsfChartType, LucideIcon>> = {
-  bar: ChartBar,
-  boxplot: TableCellsSplit,
-  candlestick: ChartNoAxesColumn,
-  effectScatter: Activity,
-  funnel: Workflow,
-  gauge: Gauge,
-  graph: Network,
-  heatmap: TableCellsSplit,
-  line: ChartLine,
-  lines: GitBranch,
-  parallel: Workflow,
-  pictorialBar: ChartNoAxesColumn,
-  pie: ChartPie,
-  radar: Activity,
-  sankey: ChartNetwork,
-  scatter: ChartScatter,
-  sunburst: Sun,
-  themeRiver: Workflow,
-  tree: GitBranch,
-  treemap: Grid2X2,
-  wordCloud: Cloud,
-};
-
-function getChartIcon(type: KmsfChartType): LucideIcon {
-  return chartIconByType[type] ?? Activity;
-}
-
-const excludedRouteTypes = new Set<KmsfChartType>(["custom", "map"]);
-const routableChartSamples = chartSamples.filter((sample) => !excludedRouteTypes.has(sample.type));
-
-function isChartType(value: string | undefined): value is KmsfChartType {
-  return routableChartSamples.some((sample) => sample.type === value);
-}
-
-function getRouteChartType(value: string | undefined): KmsfChartType {
-  return isChartType(value) ? value : "line";
-}
-
-function hasExample(type: KmsfChartType, exampleId: string | undefined) {
-  if (!exampleId) {
-    return true;
-  }
-
-  return Boolean(chartExampleGroups[type]?.some((example) => example.id === exampleId));
-}
-
 function useSampleClock() {
   const [trendTick, setTrendTick] = useState(0);
   const [topTick, setTopTick] = useState(0);
   const [flowTick, setFlowTick] = useState(0);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setTrendTick((value) => value + 1), 1000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => setTopTick((value) => value + 1), 5000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
     const interval = window.setInterval(() => {
+      setTrendTick((value) => value + 1);
       setTopTick((value) => value + 1);
       setFlowTick((value) => value + 1);
-    }, 10_000);
+    }, 5000);
 
     return () => window.clearInterval(interval);
   }, []);
@@ -180,122 +103,25 @@ function mergeSeriesOptions(sample: ChartSample): Partial<SeriesOption> | Array<
   return sample.seriesOptions ?? {};
 }
 
-function groupedSamples() {
-  const groups = new Map<ChartSample["category"], ChartSample[]>();
-
-  for (const sample of routableChartSamples) {
-    const items = groups.get(sample.category) ?? [];
-    items.push(sample);
-    groups.set(sample.category, items);
-  }
-
-  return Array.from(groups.entries());
-}
-
-function ChartNavigation({
-  activeType,
-  collapsed,
-  onCollapseToggle,
-}: {
-  activeType: KmsfChartType;
-  collapsed: boolean;
-  onCollapseToggle: () => void;
-}) {
-  return (
-    <aside className="chart-aside" data-collapsed={collapsed}>
-      <div className="aside-header">
-        <div className="aside-heading">
-          <Library aria-hidden="true" size={18} />
-          {!collapsed ? <strong>차트 종류</strong> : null}
-        </div>
-        <Button
-          aria-label={collapsed ? "차트 목록 펼치기" : "차트 목록 접기"}
-          size="icon"
-          variant="ghost"
-          onClick={onCollapseToggle}
-        >
-          {collapsed ? <ChevronsRight aria-hidden="true" size={17} /> : <ChevronsLeft aria-hidden="true" size={17} />}
-        </Button>
-      </div>
-
-      <ScrollArea className="chart-menu-scroll">
-        <nav aria-label="차트 종류" className="chart-menu">
-          {groupedSamples().map(([category, samples]) => (
-            <div className="chart-menu-group" key={category}>
-              {!collapsed ? <span className="chart-menu-group__label">{category}</span> : null}
-              {samples.map((sample) => {
-                const Icon = getChartIcon(sample.type);
-
-                return (
-                  <NavLink
-                    aria-label={`${sample.type} 차트 선택`}
-                    aria-pressed={activeType === sample.type}
-                    className="chart-menu-button"
-                    key={sample.type}
-                    role="button"
-                    title={collapsed ? `${sample.type}: ${sample.summary}` : undefined}
-                    to={`/charts/${sample.type}`}
-                  >
-                    <Icon aria-hidden="true" size={17} />
-                    {!collapsed ? (
-                      <span className="chart-menu-button__text">
-                        <span>{sample.type}</span>
-                        <small>{sample.summary}</small>
-                      </span>
-                    ) : null}
-                  </NavLink>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-      </ScrollArea>
-    </aside>
-  );
-}
-
 function useSelectedExampleClock(examples: ChartExampleDefinition[]) {
   const [trendTick, setTrendTick] = useState(0);
   const [topTick, setTopTick] = useState(0);
   const [flowTick, setFlowTick] = useState(0);
-  const needsTrend = examples.some((example) => example.mode === "live" && example.updateIntervalMs === 1000);
-  const needsTopUpdate = examples.some((example) => example.mode === "live" && example.updateIntervalMs === 5000);
-  const needsSlowUpdate = examples.some(
-    (example) => example.mode === "live" && example.updateIntervalMs !== 1000 && example.updateIntervalMs !== 5000,
-  );
+  const needsLiveUpdate = examples.some((example) => example.mode === "live");
 
   useEffect(() => {
-    if (!needsTrend) {
-      return undefined;
-    }
-
-    const interval = window.setInterval(() => setTrendTick((value) => value + 1), 1000);
-
-    return () => window.clearInterval(interval);
-  }, [needsTrend]);
-
-  useEffect(() => {
-    if (!needsTopUpdate) {
-      return undefined;
-    }
-
-    const interval = window.setInterval(() => setTopTick((value) => value + 1), 5000);
-
-    return () => window.clearInterval(interval);
-  }, [needsTopUpdate]);
-
-  useEffect(() => {
-    if (!needsSlowUpdate) {
+    if (!needsLiveUpdate) {
       return undefined;
     }
 
     const interval = window.setInterval(() => {
+      setTrendTick((value) => value + 1);
       setTopTick((value) => value + 1);
       setFlowTick((value) => value + 1);
-    }, 10_000);
+    }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [needsSlowUpdate]);
+  }, [needsLiveUpdate]);
 
   return useMemo<SampleClock>(() => ({ flowTick, topTick, trendTick }), [flowTick, topTick, trendTick]);
 }
@@ -324,7 +150,7 @@ function GlobalChartSearch() {
   }, []);
 
   const selectResult = (item: ReturnType<typeof searchCharts>[number]) => {
-    navigate(buildChartPath({ exampleId: item.exampleId, type: item.type }));
+    navigate(buildChartPath(item));
     setQuery("");
   };
 
@@ -358,7 +184,9 @@ function GlobalChartSearch() {
                 type="button"
                 onClick={() => selectResult(item)}
               >
-                <Badge>{item.kind === "chart-option" ? "옵션" : item.kind === "chart-example" ? "예제" : "문서"}</Badge>
+                <Badge>
+                  {item.kind === "chart-api" ? "API" : item.kind === "chart-option" ? "옵션" : item.kind === "chart-example" ? "예제" : "문서"}
+                </Badge>
                 <span>
                   <strong>{item.title}</strong>
                   <small>{item.description}</small>
@@ -374,88 +202,39 @@ function GlobalChartSearch() {
   );
 }
 
-function ChartExampleContent({ exampleId, type }: { exampleId?: string; type: KmsfChartType }) {
+function ChartExampleContent({ exampleId, themePalette, type }: { exampleId?: string; themePalette?: string[]; type: KmsfChartType }) {
   const examples = chartExampleGroups[type] ?? [];
   const clock = useSelectedExampleClock(examples);
+  const location = useLocation();
 
   useEffect(() => {
-    if (!exampleId) {
+    const targetId = exampleId ?? location.hash.replace("#", "");
+
+    if (!targetId) {
       return;
     }
 
-    const element = document.querySelector<HTMLElement>(`[data-testid="chart-example-card-${exampleId}"]`);
+    const element = document.getElementById(targetId);
 
     if (!element) {
       return;
     }
 
     element.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, [exampleId, type]);
+  }, [exampleId, location.hash, type]);
 
   return (
-    <main aria-label="차트 예제" className="chart-example-main">
-      <GlobalChartSearch />
-
+    <section aria-label="차트 예제" className="chart-example-main">
       {examples.length ? (
         <div className="chart-example-list">
           {examples.map((example) => (
-            <ChartExampleCard clock={clock} example={example} key={example.id} />
+            <ChartExampleCard clock={clock} example={example} key={example.id} themePalette={themePalette} />
           ))}
         </div>
       ) : (
         <div className="chart-placeholder">검색 결과가 없습니다.</div>
       )}
-    </main>
-  );
-}
-
-function ChartDocsPanel({ activeType }: { activeType: KmsfChartType }) {
-  const [query, setQuery] = useState("");
-  const selectedDoc = getChartDoc(activeType);
-  const docSearchTargets = useMemo(() => buildDocSearchTargets(selectedDoc, query), [query, selectedDoc]);
-
-  const selectDocTarget = (target: DocSearchTarget) => {
-    document.getElementById(target.id)?.scrollIntoView({ block: "start", behavior: "smooth" });
-  };
-
-  return (
-    <aside aria-label="차트 문서" className="docs-aside">
-      <div className="docs-search">
-        <Search aria-hidden="true" size={16} />
-        <Input
-          aria-label="차트 문서 검색"
-          placeholder="옵션 또는 기능 검색"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
-
-      <ScrollArea className="docs-scroll">
-        <section className="docs-section" key={selectedDoc.type}>
-          {query && docSearchTargets.length ? (
-            <div aria-label="현재 차트 문서 검색 결과" className="docs-search-results" role="listbox">
-              {docSearchTargets.map((target) => (
-                <button
-                  aria-label={`${target.title} ${target.excerpt}`}
-                  className="docs-search-results__item"
-                  key={target.id}
-                  role="option"
-                  type="button"
-                  onClick={() => selectDocTarget(target)}
-                >
-                  {target.excerpt}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          {query && !docSearchTargets.length ? <p className="docs-empty">검색된 결과가 없습니다.</p> : null}
-          <MarkdownDocument blockIdPrefix={`doc-block-${selectedDoc.type}`} markdown={selectedDoc.markdown} />
-          <a className="official-doc-link" href={selectedDoc.officialDocsUrl} rel="noreferrer" target="_blank">
-            ECharts 공식 문서
-          </a>
-        </section>
-      </ScrollArea>
-    </aside>
+    </section>
   );
 }
 
@@ -471,52 +250,268 @@ function getPlaygroundDataFormat(type: KmsfChartType): GenericChartDataFormat {
   return "native";
 }
 
-function TypePlayground() {
-  const [type, setType] = useState<KmsfChartType>("bar");
-  const [data] = useState(() => [
-    ["Alpha", 120],
-    ["Beta", 96],
-  ]);
+const genericPlaygroundChartTypes = supportedGenericChartTypes.filter((type) => type !== "custom" && type !== "map");
+
+interface ChartTypeSampleState {
+  colors: string[];
+  data: unknown;
+  dataFormat: GenericChartDataFormat;
+  disabledReason?: string;
+  options: EChartsOption;
+  series?: SeriesOption[];
+  seriesOptions: Partial<SeriesOption> | Array<Partial<SeriesOption>>;
+  type: KmsfChartType;
+}
+
+function getTypeSampleClock(seed: number): SampleClock {
+  return {
+    flowTick: seed,
+    topTick: seed,
+    trendTick: seed,
+  };
+}
+
+function getGenericSampleSeriesCount(type: KmsfChartType) {
+  return type === "line" || type === "scatter" || type === "effectScatter" ? 2 : 1;
+}
+
+function buildChartTypeSampleState(type: KmsfChartType, seed = 0): ChartTypeSampleState {
+  const sample = chartSamples.find((item) => item.type === type) ?? chartSamples[0]!;
+  const clock = getTypeSampleClock(seed);
+  const seriesCount = getGenericSampleSeriesCount(type);
+  const dataFormat = sample.dataFormat ?? getPlaygroundDataFormat(type);
+  const generatedData = sample.buildData(clock, seriesCount);
+  const data = applyTopRowPalette(generatedData, type, seed);
+
+  return {
+    colors: getSeriesPaletteOverride(seed),
+    data,
+    dataFormat,
+    disabledReason: sample.disabledReason,
+    options: sample.buildOptions?.(clock, seriesCount) ?? {},
+    series: sample.buildSeries?.(clock, seriesCount),
+    seriesOptions: mergeSeriesOptions(sample),
+    type,
+  };
+}
+
+function getGenericUsageCode(state: ChartTypeSampleState) {
+  const dataFormatLine = state.dataFormat ? `\n  dataFormat="${state.dataFormat}"` : "";
+  const seriesLine = state.series?.length ? "\n  series={series}" : "";
+  const seriesOptionsLine = Object.keys(state.seriesOptions as Record<string, unknown>).length ? "\n  seriesOptions={seriesOptions}" : "";
+  const optionsLine = Object.keys(state.options).length ? "\n  options={options}" : "";
+
+  return `<GenericChart
+  type="${state.type}"
+  data={data}${dataFormatLine}${seriesLine}${seriesOptionsLine}${optionsLine}
+  colors={colors}
+/>`;
+}
+
+function TypePlayground({ theme }: { theme: ChartThemeOption }) {
+  const [seed, setSeed] = useState(0);
+  const [state, setState] = useState(() => buildChartTypeSampleState("bar"));
+  const [error, setError] = useState<string | null>(null);
+  const editorConfig = useMemo<EditableChartConfig>(
+    () => ({
+      colors: state.colors,
+      data: state.data,
+      dataFormat: state.dataFormat,
+      options: state.options,
+      series: state.series,
+      seriesOptions: state.seriesOptions,
+      type: state.type,
+    }),
+    [state],
+  );
+
+  const changeType = (nextType: KmsfChartType) => {
+    const nextState = buildChartTypeSampleState(nextType, seed + 1);
+
+    setSeed((value) => value + 1);
+    setState(nextState);
+    setError(null);
+  };
+
+  const applyChartConfig = (config: EditableChartConfig) => {
+    setState((current) => ({
+      colors: config.colors ?? current.colors,
+      data: config.data,
+      dataFormat: config.dataFormat ?? getPlaygroundDataFormat(config.type),
+      options: config.options ?? {},
+      series: config.series,
+      seriesOptions: config.seriesOptions ?? {},
+      type: config.type,
+    }));
+    setError(null);
+  };
 
   return (
-    <main aria-label="Type Playground" className="type-playground-main">
+    <section aria-label="Type Playground" className="type-playground-main">
       <Card className="type-playground-card">
         <CardHeader>
-          <CardTitle>Type Playground</CardTitle>
-          <CardDescription>동일한 데이터를 유지하고 chart type만 변경해 렌더링 조건을 확인합니다.</CardDescription>
+          <CardTitle>GenericChart</CardTitle>
+          <CardDescription>차트 타입을 변경하면 해당 타입과 호환되는 props를 다시 생성합니다.</CardDescription>
         </CardHeader>
         <CardContent className="type-playground-card__content">
           <label className="type-playground-control">
             <span>Chart type</span>
             <select
-              aria-label="Chart type"
-              value={type}
-              onChange={(event) => setType(event.target.value as KmsfChartType)}
+              aria-label="Generic chart type"
+              value={state.type}
+              onChange={(event) => changeType(event.target.value as KmsfChartType)}
             >
-              {supportedGenericChartTypes.map((chartType) => (
+              {genericPlaygroundChartTypes.map((chartType) => (
                 <option key={chartType} value={chartType}>
                   {chartType}
                 </option>
               ))}
             </select>
           </label>
+          <span data-testid="generic-chart-format">dataFormat: {state.dataFormat}</span>
 
           <div className="chart-viewport type-playground-chart">
-            <GenericChart
-              data={data}
-              dataFormat={getPlaygroundDataFormat(type)}
-              height="100%"
-              key={type}
-              loadingFallback={<ChartSkeleton />}
-              themeOverrides={{ palette: getSeriesPaletteOverride() }}
-              type={type}
-            />
+            {error ? <div className="chart-validation-message" role="alert">{error}</div> : null}
+            {state.disabledReason ? (
+              <div className="chart-placeholder">{state.disabledReason}</div>
+            ) : (
+              <GenericChart
+                colors={state.colors}
+                data={state.data}
+                dataFormat={state.dataFormat}
+                height="100%"
+                key={state.type}
+                loadingFallback={<ChartSkeleton />}
+                options={state.options}
+                series={state.series}
+                seriesOptions={state.seriesOptions}
+                themeOverrides={{ palette: theme.palette }}
+                type={state.type}
+              />
+            )}
           </div>
 
-          <pre data-testid="type-playground-data">{JSON.stringify({ data, dataFormat: getPlaygroundDataFormat(type), type }, null, 2)}</pre>
+          <section aria-label="GenericChart 옵션 컨트롤" className="option-toolbar chart-example-card__toolbar">
+            <Button variant="outline" onClick={() => changeType(state.type)}>
+              <RefreshCw aria-hidden="true" size={16} />
+              샘플 재생성
+            </Button>
+          </section>
+
+          <Tabs className="sample-tabs" defaultValue="usage">
+            <TabsList aria-label="GenericChart 샘플 정보">
+              <TabsTrigger value="usage">Usage</TabsTrigger>
+              <TabsTrigger value="props">Props</TabsTrigger>
+            </TabsList>
+            <TabsContent value="usage">
+              <CodeBlock code={getGenericUsageCode(state)} language="tsx" testId="sample-code" title="Usage" />
+            </TabsContent>
+            <TabsContent value="props">
+              <ChartConfigEditor
+                config={editorConfig}
+                id="generic-chart-config-json"
+                onChange={applyChartConfig}
+                onError={setError}
+              />
+              <pre data-testid="type-playground-data">{JSON.stringify(state, null, 2)}</pre>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
-    </main>
+    </section>
+  );
+}
+
+function ThemeExamples({ theme }: { theme: ChartThemeOption }) {
+  const lineData = useMemo(
+    () => [
+      ["09:00", 120],
+      ["09:05", 146],
+      ["09:10", 132],
+      ["09:15", 178],
+      ["09:20", 164],
+      ["09:25", 196],
+    ],
+    [],
+  );
+  const topData = useMemo(
+    () => applyTopRowPalette([["Alpha", 120], ["Beta", 96], ["Gamma", 72], ["Delta", 54]], "bar", 0, theme.palette),
+    [theme.palette],
+  );
+  const pieData = useMemo(
+    () => applyTopRowPalette([["Direct", 335], ["Search", 310], ["Email", 234], ["Ads", 135]], "pie", 0, theme.palette),
+    [theme.palette],
+  );
+
+  return (
+    <section aria-label="차트 테마 예제" className="theme-example-main">
+      <div className="theme-example-status" data-testid="active-chart-theme">
+        Active theme: {theme.label}
+      </div>
+      <div className="theme-example-grid">
+        <Card className="theme-example-card" data-testid="theme-example-card-line">
+          <CardHeader>
+            <CardTitle>Line Theme</CardTitle>
+            <CardDescription>선택한 palette가 series color로 적용되는 추이 차트입니다.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="chart-viewport docs-live-chart">
+              <GenericChart
+                colors={theme.palette}
+                data={lineData}
+                dataFormat="trend"
+                height="100%"
+                legend
+                loadingFallback={<ChartSkeleton />}
+                seriesOptions={{ smooth: true }}
+                themeOverrides={{ palette: theme.palette }}
+                type="line"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="theme-example-card" data-testid="theme-example-card-bar">
+          <CardHeader>
+            <CardTitle>Bar Theme</CardTitle>
+            <CardDescription>TOP item 색상이 선택한 palette 순서로 반영됩니다.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="chart-viewport docs-live-chart">
+              <GenericChart
+                colors={theme.palette}
+                data={topData}
+                dataFormat="top"
+                height="100%"
+                legend={false}
+                loadingFallback={<ChartSkeleton />}
+                themeOverrides={{ palette: theme.palette }}
+                type="bar"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="theme-example-card" data-testid="theme-example-card-pie">
+          <CardHeader>
+            <CardTitle>Pie Theme</CardTitle>
+            <CardDescription>데이터 범례형 차트에서도 같은 palette를 공유합니다.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="chart-viewport docs-live-chart">
+              <GenericChart
+                colors={theme.palette}
+                data={pieData}
+                dataFormat="top"
+                height="100%"
+                legend
+                loadingFallback={<ChartSkeleton />}
+                themeOverrides={{ palette: theme.palette }}
+                type="pie"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   );
 }
 
@@ -527,7 +522,11 @@ type LargeTopRow = [string, number] | [string, number, Record<string, unknown>];
 
 function buildLargeTrendRows(refreshVersion: number): LargeTrendRow[] {
   return Array.from({ length: LARGE_TREND_POINTS }, (_, index) => {
-    const value = 800 + Math.round(Math.sin((index + refreshVersion * 11) / 28) * 120) + ((index * 13 + refreshVersion * 31) % 90);
+    const value =
+      1200 +
+      Math.round(Math.sin((index + refreshVersion * 37) / 18) * 460) +
+      Math.round(Math.cos((index + refreshVersion * 19) / 41) * 280) +
+      ((index * 29 + refreshVersion * 173) % 360);
 
     return [`T-${String(index + 1).padStart(5, "0")}`, value];
   });
@@ -536,7 +535,7 @@ function buildLargeTrendRows(refreshVersion: number): LargeTrendRow[] {
 function buildLargeTopRows(refreshVersion: number): Array<[string, number]> {
   return Array.from({ length: LARGE_TOP_ITEMS }, (_, index) => [
     `Item ${String(index + 1).padStart(4, "0")}`,
-    1000 + ((index * 37 + refreshVersion * 113) % 900),
+    400 + ((index * 83 + refreshVersion * 997) % 3200),
   ]);
 }
 
@@ -556,8 +555,14 @@ function LargeDataExamples() {
     [refreshVersion, topRows.length, trendRows.length],
   );
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setRefreshVersion((value) => value + 1), 10_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   return (
-    <main aria-label="대용량 데이터 테스트" className="large-data-main">
+    <section aria-label="대용량 데이터 테스트" className="large-data-main">
       <div className="large-data-toolbar">
         <div>
           <h2>대용량 데이터 테스트</h2>
@@ -629,94 +634,7 @@ function LargeDataExamples() {
       <pre className="large-data-summary" data-testid="large-data-summary">
         {`line: ${summary.line}\nbar: ${summary.bar}\nrefreshVersion: ${summary.refreshVersion}`}
       </pre>
-    </main>
-  );
-}
-
-function MobileDocsButton({ activeType }: { activeType: KmsfChartType }) {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button className="mobile-docs-trigger" variant="outline">
-          <PanelRight aria-hidden="true" size={16} />
-          문서
-        </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>차트 문서</SheetTitle>
-          <SheetDescription>선택된 차트의 필수 props와 예시 코드입니다.</SheetDescription>
-        </SheetHeader>
-        <ChartDocsPanel activeType={activeType} />
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-export function ChartWorkspacePage() {
-  const params = useParams();
-  const activeType = getRouteChartType(params.type);
-  const exampleId = params.exampleId;
-  const [isNavigationCollapsed, setIsNavigationCollapsed] = useState(false);
-
-  if (params.type && !isChartType(params.type)) {
-    return <NotFoundPage />;
-  }
-
-  if (!hasExample(activeType, exampleId)) {
-    return <Navigate replace to="/charts/line" />;
-  }
-
-  return (
-    <div className="example-shell">
-      <header className="example-topbar">
-        <div>
-          <p className="example-kicker">Example and docs</p>
-          <h1>@kmsf/charts</h1>
-        </div>
-        <div className="topbar-actions">
-          <Button asChild variant="secondary">
-            <a href="#/gridstack">
-              <Grid2X2 aria-hidden="true" size={16} />
-              Gridstack
-            </a>
-          </Button>
-          <MobileDocsButton activeType={activeType} key={`mobile-docs-${activeType}`} />
-        </div>
-      </header>
-
-      <Tabs className="workspace-tabs" defaultValue="examples">
-        <div className="workspace-tabs__bar">
-          <TabsList aria-label="예제 페이지 보기">
-            <TabsTrigger value="examples">Chart Examples</TabsTrigger>
-            <TabsTrigger value="type-playground">Type Playground</TabsTrigger>
-            <TabsTrigger value="large-data">Large Data</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="examples">
-          <div className="docs-layout">
-            <ChartNavigation
-              activeType={activeType}
-              collapsed={isNavigationCollapsed}
-              onCollapseToggle={() => setIsNavigationCollapsed((value) => !value)}
-            />
-
-            <ChartExampleContent exampleId={exampleId} key={`content-${activeType}`} type={activeType} />
-
-            <ChartDocsPanel activeType={activeType} key={`docs-${activeType}`} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="type-playground">
-          <TypePlayground />
-        </TabsContent>
-
-        <TabsContent value="large-data">
-          <LargeDataExamples />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </section>
   );
 }
 
@@ -951,7 +869,7 @@ export function GridstackPage() {
         </div>
         <div className="topbar-actions">
           <Button asChild variant="secondary">
-            <a href="#/">
+            <a href="/docs/getting-started">
               <Library aria-hidden="true" size={16} />
               차트 문서
             </a>
@@ -1006,8 +924,605 @@ export function GridstackPage() {
   );
 }
 
+
+type DocsCodeLanguage = "bash" | "css" | "ts" | "tsx";
+
+type DocsCodeSample = {
+  code: string;
+  language: DocsCodeLanguage;
+  title: string;
+};
+
+type ChartsLiveExampleId =
+  | "getting-started"
+  | "generic-chart"
+  | "trend"
+  | "top"
+  | "theme"
+  | "large-data"
+  | "dashboard-integration"
+  | `chart:${KmsfChartType}`;
+
+type ChartsDocsPage = {
+  body: ReactNode;
+  category: string;
+  codeSamples: DocsCodeSample[];
+  label: string;
+  liveExampleId?: ChartsLiveExampleId;
+  path: string;
+  summary: string;
+  title: string;
+};
+
+const chartsInstallSample = `npm install @kmsf/charts react react-dom`;
+
+const chartsStyleSample = `import "@kmsf/charts/styles.css";`;
+
+const genericChartSample = `import { GenericChart } from "@kmsf/charts";
+
+export function RevenueChart() {
+  return (
+    <GenericChart
+      data={[["Alpha", 120], ["Beta", 96]]}
+      dataFormat="top"
+      height={320}
+      type="bar"
+    />
+  );
+}`;
+
+const trendTopSample = `import { TopChart, TrendChart, createTopRows, createTrendRows } from "@kmsf/charts";
+
+const trendRows = createTrendRows([
+  { x: "2026-06-30 10:00:00", value: 120 },
+  { x: "2026-06-30 10:01:00", value: 132 },
+]);
+
+const topRows = createTopRows([
+  { name: "Alpha", value: 120 },
+  { name: "Beta", value: 96 },
+]);
+
+export function DashboardCharts() {
+  return (
+    <>
+      <TrendChart data={trendRows} series={[{ id: "sales", name: "Sales" }]} />
+      <TopChart data={topRows} mode="bar" />
+    </>
+  );
+}`;
+
+const nativeRequiredSample = `<GenericChart
+  type="radar"
+  data={[{ name: "KMSF", value: [92, 84, 78] }]}
+  dataFormat="native"
+  options={{
+    radar: {
+      indicator: [
+        { name: "UX", max: 100 },
+        { name: "API", max: 100 },
+        { name: "Perf", max: 100 },
+      ],
+    },
+  }}
+/>`;
+
+const dashboardIntegrationSample = `import { DashboardGrid, useDashboardGrid } from "@kmsf/gridstack";
+import { GenericChart } from "@kmsf/charts";
+
+export function ChartDashboard() {
+  const dashboard = useDashboardGrid({ initialColumns: 12, initialWidgets });
+
+  return (
+    <DashboardGrid
+      columns={dashboard.columns}
+      widgets={dashboard.widgets}
+      renderWidget={(widget) => <GenericChart {...widget.data} height="100%" />}
+    />
+  );
+}`;
+
+function docsParagraphs(lines: string[]) {
+  return (
+    <>
+      {lines.map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+    </>
+  );
+}
+
+const nativeOptionHighlights: Partial<Record<KmsfChartType, string[]>> = {
+  boxplot: ["xAxis", "yAxis"],
+  candlestick: ["xAxis", "yAxis"],
+  custom: ["series.renderItem"],
+  graph: ["series.links"],
+  heatmap: ["visualMap", "xAxis", "yAxis"],
+  lines: ["xAxis", "yAxis", "series.coordinateSystem"],
+  map: ["registered map resource"],
+  parallel: ["parallel", "parallelAxis"],
+  radar: ["radar.indicator"],
+  sankey: ["series.links"],
+  sunburst: ["series.data.children"],
+  themeRiver: ["singleAxis"],
+  tree: ["series.data.children"],
+};
+
+function formatChartTypeTitle(type: KmsfChartType) {
+  if (type === "wordCloud") {
+    return "WordCloud";
+  }
+
+  if (type === "effectScatter") {
+    return "Effect Scatter";
+  }
+
+  if (type === "themeRiver") {
+    return "Theme River";
+  }
+
+  if (type === "pictorialBar") {
+    return "Pictorial Bar";
+  }
+
+  return `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+}
+
+function ChartTypeDocsBody({ sample }: { sample: ChartSample }) {
+  const highlights = nativeOptionHighlights[sample.type] ?? [];
+
+  return (
+    <>
+      <p>{sample.summary}</p>
+      <p>이 페이지는 해당 chart type의 실제 렌더링 예제, 사용 코드, 수정 가능한 props를 함께 제공합니다.</p>
+      {highlights.length ? (
+        <section aria-label={`${sample.type} 필수 Native Options`} className="native-option-callout">
+          <strong>필수 Native Options</strong>
+          <ul>
+            {highlights.map((item) => (
+              <li key={item}>
+                <code>{item}</code>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+const chartTypeDocsPages: ChartsDocsPage[] = chartSamples.map((sample) => ({
+  body: <ChartTypeDocsBody sample={sample} />,
+  category: sample.category,
+  codeSamples: [{ code: getUsageCode(sample), language: "tsx", title: `${formatChartTypeTitle(sample.type)} usage` }],
+  label: formatChartTypeTitle(sample.type),
+  liveExampleId: `chart:${sample.type}` as const,
+  path: `/examples/${sample.type}`,
+  summary: sample.summary,
+  title: formatChartTypeTitle(sample.type),
+}));
+
+export const chartsDocsPages: ChartsDocsPage[] = [
+  {
+    body: docsParagraphs([
+      "패키지를 설치한 뒤 GenericChart 또는 목적별 wrapper chart를 import합니다.",
+      "이 playground는 문서, 코드, 라이브 차트 예제를 같은 route에서 확인하도록 구성합니다.",
+    ]),
+    category: "시작하기",
+    codeSamples: [
+      { code: chartsInstallSample, language: "bash", title: "Install" },
+      { code: chartsStyleSample, language: "ts", title: "Styles" },
+      { code: genericChartSample, language: "tsx", title: "GenericChart" },
+    ],
+    label: "Getting Started",
+    liveExampleId: "getting-started",
+    path: "/docs/getting-started",
+    summary: "설치, import, 첫 chart 렌더링 흐름을 확인합니다.",
+    title: "시작하기",
+  },
+  {
+    body: docsParagraphs(["GenericChart는 type과 dataFormat을 기준으로 ECharts option을 구성하는 범용 entry입니다."]),
+    category: "Charts",
+    codeSamples: [{ code: genericChartSample, language: "tsx", title: "GenericChart usage" }],
+    label: "GenericChart",
+    liveExampleId: "generic-chart",
+    path: "/examples/generic-chart",
+    summary: "지원 chart type을 바꿔가며 GenericChart 렌더링 조건을 확인합니다.",
+    title: "GenericChart",
+  },
+  {
+    body: docsParagraphs(["TrendChart는 시간/순서 기반 tuple row와 series를 연결하는 추이 차트 wrapper입니다."]),
+    category: "Charts",
+    codeSamples: [{ code: trendTopSample, language: "tsx", title: "TrendChart usage" }],
+    label: "Trend",
+    liveExampleId: "trend",
+    path: "/examples/trend",
+    summary: "TrendChart와 line 계열 예제를 확인합니다.",
+    title: "Trend",
+  },
+  {
+    body: docsParagraphs(["TopChart는 category/value 기반 TOP 데이터를 bar, pie 등으로 표현하는 wrapper입니다."]),
+    category: "Charts",
+    codeSamples: [{ code: trendTopSample, language: "tsx", title: "TopChart usage" }],
+    label: "Top",
+    liveExampleId: "top",
+    path: "/examples/top",
+    summary: "TopChart와 TOP 계열 차트 예제를 확인합니다.",
+    title: "Top",
+  },
+  {
+    body: docsParagraphs(["Theme은 top nav의 테마 선택값을 chart palette로 전달해 같은 예제를 다른 색상 체계로 확인하는 playground 전용 예제입니다."]),
+    category: "Charts",
+    codeSamples: [{ code: genericChartSample, language: "tsx", title: "Theme usage" }],
+    label: "Theme",
+    liveExampleId: "theme",
+    path: "/examples/theme",
+    summary: "Basic, Dark, Skyblue, Mint, Gray, Orange chart theme palette를 확인합니다.",
+    title: "Theme",
+  },
+  ...chartTypeDocsPages,
+  {
+    body: docsParagraphs(["대용량 chart는 일반 예제 탐색과 분리해 렌더링 비용을 명확히 확인합니다."]),
+    category: "Performance",
+    codeSamples: [{ code: `npm --workspace=@kmsf/charts run test:soak -- --duration 5`, language: "bash", title: "Soak smoke" }],
+    label: "Large Data",
+    liveExampleId: "large-data",
+    path: "/performance/large-data",
+    summary: "10,000 point line과 1,000 item bar 렌더링을 확인합니다.",
+    title: "Large Data",
+  },
+  {
+    body: docsParagraphs(["Dashboard Integration은 @kmsf/gridstack 위젯 안에서 chart를 렌더링하는 조합 예제입니다."]),
+    category: "Integration",
+    codeSamples: [{ code: dashboardIntegrationSample, language: "tsx", title: "Chart dashboard" }],
+    label: "Dashboard Integration",
+    liveExampleId: "dashboard-integration",
+    path: "/examples/dashboard-integration",
+    summary: "차트 위젯 추가, 삭제, 동적 dashboard 렌더링을 확인합니다.",
+    title: "Dashboard Integration",
+  },
+  {
+    body: <ChartsApiReference />,
+    category: "API",
+    codeSamples: [{ code: genericChartSample, language: "tsx", title: "Primary API" }],
+    label: "API",
+    path: "/api/props",
+    summary: "현재 public chart exports와 usage contract를 정리합니다.",
+    title: "API",
+  },
+];
+
+const chartsDocsNavGroups = chartsDocsPages.reduce<Array<{ category: string; pages: ChartsDocsPage[] }>>((groups, page) => {
+  const group = groups.find((item) => item.category === page.category);
+  if (group) {
+    group.pages.push(page);
+    return groups;
+  }
+  groups.push({ category: page.category, pages: [page] });
+  return groups;
+}, []);
+
+function ChartsApiReference() {
+  return (
+    <div className="docs-reference-list">
+      {chartApiFeatureDocs.map((section, index) => (
+        <section className="docs-reference-list__group" id={section.id} key={section.id}>
+          <h2>
+            {index + 1}. {section.title}
+          </h2>
+          <p>{section.summary}</p>
+          <section className="docs-reference-list__subsection" aria-label={`${section.title} Props`}>
+            <h3>Props</h3>
+            <dl>
+              {section.props.map((entry) => (
+                <div className="docs-reference-list__item" key={`${section.id}-props-${entry.name}`}>
+                  <dt>
+                    <span>{entry.name}</span>
+                    <em>{entry.type}</em>
+                  </dt>
+                  <dd>
+                    <p>{entry.description}</p>
+                    {entry.detail ? <small>{entry.detail}</small> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+          <section className="docs-reference-list__subsection" aria-label={`${section.title} Options`}>
+            <h3>Options</h3>
+            <dl>
+              {section.options.map((entry) => (
+                <div className="docs-reference-list__item" key={`${section.id}-options-${entry.name}`}>
+                  <dt>
+                    <span>{entry.name}</span>
+                    <em>{entry.type}</em>
+                  </dt>
+                  <dd>
+                    <p>{entry.description}</p>
+                    {entry.detail ? <small>{entry.detail}</small> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+          {section.methods?.length ? (
+            <section className="docs-reference-list__subsection" aria-label={`${section.title} Methods`}>
+              <h3>Methods</h3>
+              <dl>
+                {section.methods.map((method) => (
+                  <div className="docs-reference-list__item" key={`${section.id}-methods-${method.name}`}>
+                    <dt>
+                      <span>{method.name}</span>
+                      <em>method</em>
+                    </dt>
+                    <dd>
+                      <p>{method.description}</p>
+                      <small>
+                        <strong>파라미터:</strong> {method.params}
+                      </small>
+                      <small>
+                        <strong>리턴값:</strong> {method.returns}
+                      </small>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
+          <section className="docs-reference-list__subsection" aria-label={`${section.title} 예제 코드`}>
+            <h3>간단한 예제 코드</h3>
+            {section.samples.map((sample) => (
+              <div className="docs-reference-list__sample" key={`${section.id}-sample-${sample.title}`}>
+                <CodeBlock code={sample.code} language={sample.language} title={sample.title} />
+              </div>
+            ))}
+          </section>
+          {section.liveLinks.length ? (
+            <section className="docs-reference-list__subsection" aria-label={`${section.title} 라이브 예제`}>
+              <h3>라이브 예제</h3>
+              <div className="docs-reference-list__links">
+                {section.liveLinks.map((link) => (
+                  <a className="docs-reference-list__link" href={link.path} key={`${section.id}-${link.path}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+export function ChartsDocsShell() {
+  const location = useLocation();
+  const contentRef = useRef<HTMLElement | null>(null);
+  const [themeValue, setThemeValue] = useState<ChartThemeValue>(defaultChartThemeValue);
+  const activeTheme = useMemo(() => getChartThemeOption(themeValue), [themeValue]);
+  const activePage = chartsDocsPages.find((page) => page.path === location.pathname) ?? chartsDocsPages[0]!;
+
+  useEffect(() => {
+    const content = contentRef.current;
+
+    if (!content) {
+      return;
+    }
+
+    if (!location.hash) {
+      content.scrollTo({ left: 0, top: 0 });
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+
+      if (target) {
+        target.scrollIntoView({ block: "start" });
+      }
+    });
+  }, [location.hash, location.pathname]);
+
+  return (
+    <div className="docs-shell" data-chart-theme={activeTheme.value}>
+      <ChartsDocsTopNav activeTheme={activeTheme} onThemeChange={setThemeValue} />
+      <div className="docs-shell__body">
+        <ChartsDocsSidebar />
+        <main className="docs-shell__content" ref={contentRef}>
+          <RouteLifecycleBoundary key={activePage.path} routePath={activePage.path}>
+            <ChartsDocsArticle page={activePage} theme={activeTheme} />
+          </RouteLifecycleBoundary>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function ChartThemeSelect({
+  activeTheme,
+  onThemeChange,
+}: {
+  activeTheme: ChartThemeOption;
+  onThemeChange: (value: ChartThemeValue) => void;
+}) {
+  return (
+    <label className="chart-theme-select">
+      <span>Theme</span>
+      <select
+        aria-label="차트 테마 선택"
+        value={activeTheme.value}
+        onChange={(event) => onThemeChange(event.currentTarget.value as ChartThemeValue)}
+      >
+        {chartThemeOptions.map((theme) => (
+          <option key={theme.value} value={theme.value}>
+            {theme.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function ChartsDocsTopNav({
+  activeTheme,
+  onThemeChange,
+}: {
+  activeTheme: ChartThemeOption;
+  onThemeChange: (value: ChartThemeValue) => void;
+}) {
+  return (
+    <header className="docs-topnav">
+      <div className="docs-topnav__brand">
+        <p className="docs-topnav__eyebrow">KMSF Playground</p>
+        <h1>@kmsf/charts</h1>
+      </div>
+      <div className="docs-topnav__tools">
+        <ChartThemeSelect activeTheme={activeTheme} onThemeChange={onThemeChange} />
+        <GlobalChartSearch />
+      </div>
+    </header>
+  );
+}
+
+function ChartsDocsSidebar() {
+  return (
+    <aside aria-label="차트 문서" className="docs-sidebar">
+      <div className="docs-sidebar__heading">
+        <Library aria-hidden="true" size={16} />
+        <strong>문서</strong>
+      </div>
+      <nav aria-label="문서 메뉴">
+        {chartsDocsNavGroups.map((group) => (
+          <section className="docs-sidebar__group" key={group.category}>
+            <h2>{group.category}</h2>
+            <div className="docs-sidebar__links">
+              {group.pages.map((page) => (
+                <NavLink className="docs-sidebar__link" key={page.path} to={page.path}>
+                  {page.label}
+                </NavLink>
+              ))}
+            </div>
+          </section>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
+function ChartsDocsArticle({ page, theme }: { page: ChartsDocsPage; theme: ChartThemeOption }) {
+  return (
+    <article className="docs-article">
+      <header className="docs-article__header">
+        <p className="docs-article__eyebrow">{page.category}</p>
+        <h1>{page.title}</h1>
+        <p>{page.summary}</p>
+      </header>
+
+      <section className="docs-article__body">{page.body}</section>
+
+      {page.codeSamples.map((sample) => (
+        <ChartsCodeExample key={`${page.path}-${sample.title}`} sample={sample} />
+      ))}
+
+      {page.liveExampleId ? <ChartsLiveExampleSection page={page} theme={theme} /> : null}
+    </article>
+  );
+}
+
+function ChartsCodeExample({ sample }: { sample: DocsCodeSample }) {
+  return <CodeBlock code={sample.code} language={sample.language} title={sample.title} />;
+}
+
+function ChartsLiveExampleSection({ page, theme }: { page: ChartsDocsPage; theme: ChartThemeOption }) {
+  return (
+    <section aria-label="차트 예제" className="docs-live">
+      <div className="docs-live__header">
+        <h2>차트 예제</h2>
+      </div>
+      <ChartsLiveExample id={page.liveExampleId ?? "getting-started"} theme={theme} />
+    </section>
+  );
+}
+
+function ChartsLiveExample({ id, theme }: { id: ChartsLiveExampleId; theme: ChartThemeOption }) {
+  if (id === "getting-started") {
+    return <GettingStartedChartExample theme={theme} />;
+  }
+
+  if (id === "generic-chart") {
+    return <TypePlayground theme={theme} />;
+  }
+
+  if (id === "trend") {
+    return <ChartExampleContent key="trend" themePalette={theme.palette} type="line" />;
+  }
+
+  if (id === "top") {
+    return <ChartExampleContent key="top" themePalette={theme.palette} type="bar" />;
+  }
+
+  if (id === "theme") {
+    return <ThemeExamples theme={theme} />;
+  }
+
+  if (id === "large-data") {
+    return <LargeDataExamples />;
+  }
+
+  if (id === "dashboard-integration") {
+    return <GridstackPage />;
+  }
+
+  if (id.startsWith("chart:")) {
+    return <ChartExampleContent key={id} themePalette={theme.palette} type={id.slice("chart:".length) as KmsfChartType} />;
+  }
+
+  return <GettingStartedChartExample theme={theme} />;
+}
+
+function GettingStartedChartExample({ theme }: { theme: ChartThemeOption }) {
+  const data = useMemo(() => applyTopRowPalette([["Alpha", 120], ["Beta", 96], ["Gamma", 72]], "bar", 0, theme.palette), [theme.palette]);
+
+  return (
+    <div aria-label="차트 시작 예제" className="docs-live-chart-main">
+      <div className="chart-viewport docs-live-chart">
+        <GenericChart
+          data={data}
+          dataFormat="top"
+          height="100%"
+          loadingFallback={<ChartSkeleton />}
+          colors={theme.palette}
+          themeOverrides={{ palette: theme.palette }}
+          type="bar"
+        />
+      </div>
+    </div>
+  );
+}
+
+function RouteLifecycleBoundary({ children, routePath }: { children: ReactNode; routePath: string }) {
+  const cleanupCountRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      cleanupCountRef.current += 1;
+      if (cleanupCountRef.current > 1) {
+        window.__kmsfChartsLastUnmount = { routePath };
+      }
+    };
+  }, [routePath]);
+
+  return <>{children}</>;
+}
+
+declare global {
+  interface Window {
+    __kmsfChartsLastUnmount?: { routePath: string } | string;
+  }
+}
+
 export function App() {
-  return <ChartWorkspacePage />;
+  return <ChartsDocsShell />;
 }
 
 export function NotFoundPage() {

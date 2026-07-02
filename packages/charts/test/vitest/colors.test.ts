@@ -16,11 +16,11 @@ describe("chart colors", () => {
     expect(getChartPalette({})).toEqual(kmsfTopPalette);
   });
 
-  it("warns and removes invalid hex colors", () => {
+  it("removes invalid hex colors without browser diagnostics", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     expect(normalizeHexColors(["#123abc", "red", "#fff"])).toEqual(["#123abc", "#fff"]);
-    expect(warn).toHaveBeenCalledWith("[KMSF Charts]", "Invalid color value ignored: red");
+    expect(warn).not.toHaveBeenCalled();
 
     warn.mockRestore();
   });

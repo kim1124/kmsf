@@ -59,23 +59,23 @@ export function getSeriesPaletteOverride(offset = 0): string[] {
   return getExamplePalette(offset);
 }
 
-export function getExampleColor(index: number, offset = 0): string {
-  const palette = getExamplePalette(offset);
+export function getExampleColor(index: number, offset = 0, overridePalette?: string[]): string {
+  const palette = overridePalette?.length ? overridePalette : getExamplePalette(offset);
 
   return palette[index % palette.length]!;
 }
 
-export function applyTopItemPalette<TItem extends TopItem>(items: TItem[], offset = 0): TItem[] {
+export function applyTopItemPalette<TItem extends TopItem>(items: TItem[], offset = 0, overridePalette?: string[]): TItem[] {
   return items.map((item, index) => ({
     ...item,
     itemStyle: {
       ...item.itemStyle,
-      color: getExampleColor(index, offset),
+      color: getExampleColor(index, offset, overridePalette),
     },
   }));
 }
 
-export function applyTopRowPalette(data: unknown, type: KmsfChartType, offset = 0): unknown {
+export function applyTopRowPalette(data: unknown, type: KmsfChartType, offset = 0, overridePalette?: string[]): unknown {
   if (!Array.isArray(data)) {
     return data;
   }
@@ -83,7 +83,7 @@ export function applyTopRowPalette(data: unknown, type: KmsfChartType, offset = 
   if (type === "wordCloud") {
     return data.map((row, index) =>
       Array.isArray(row)
-        ? appendTupleMetadata(row, { textStyle: { color: getExampleColor(index, offset) } })
+        ? appendTupleMetadata(row, { textStyle: { color: getExampleColor(index, offset, overridePalette) } })
         : row,
     );
   }
@@ -94,7 +94,7 @@ export function applyTopRowPalette(data: unknown, type: KmsfChartType, offset = 
 
   return data.map((row, index) =>
     Array.isArray(row)
-      ? appendTupleMetadata(row, { itemStyle: { color: getExampleColor(index, offset) } })
+      ? appendTupleMetadata(row, { itemStyle: { color: getExampleColor(index, offset, overridePalette) } })
       : row,
   );
 }

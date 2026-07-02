@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 
 import { parseMarkdownBlocks } from "../data/markdown-blocks";
+import { CodeBlock } from "./CodeBlock";
 
 interface MarkdownDocumentProps {
   blockIdPrefix?: string;
@@ -35,9 +36,13 @@ export function MarkdownDocument({ blockIdPrefix, markdown }: MarkdownDocumentPr
   for (const block of parseMarkdownBlocks(markdown, blockIdPrefix)) {
     if (block.kind === "code") {
       blocks.push(
-        <pre className="markdown-code" data-language={block.language} data-testid={block.id} id={block.id} key={`code-${block.lineStart}`}>
-          <code>{block.code}</code>
-        </pre>,
+        <CodeBlock
+          code={block.code ?? ""}
+          id={block.id}
+          key={`code-${block.lineStart}`}
+          language={block.language ?? "tsx"}
+          testId={block.id}
+        />,
       );
       continue;
     }

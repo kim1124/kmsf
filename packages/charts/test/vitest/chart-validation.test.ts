@@ -29,8 +29,9 @@ describe("validateChartConfig", () => {
     });
   });
 
-  it("logs identical issues once with KMSF prefix", () => {
+  it("keeps validation issues out of browser diagnostics", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const issue = {
       code: "sankey.links.required",
       level: "error" as const,
@@ -42,8 +43,9 @@ describe("validateChartConfig", () => {
     logChartIssuesOnce([issue]);
     logChartIssuesOnce([issue]);
 
-    expect(error).toHaveBeenCalledTimes(1);
-    expect(error).toHaveBeenCalledWith("[KMSF Charts]", "Sankey requires series links.");
+    expect(error).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
     error.mockRestore();
   });
 });

@@ -70,7 +70,7 @@ export function buildTrendRows(tick: number, seriesCount = 1) {
 }
 
 export function buildLiveTrendRows(tick: number, seriesCount = 1) {
-  return buildRandomTrendRows(tick, seriesCount, 60);
+  return buildRandomTrendRows(tick, seriesCount, 30);
 }
 
 export function buildTopRows(tick: number) {
@@ -419,14 +419,6 @@ export const chartSamples: ChartSample[] = [
     type: "sunburst",
   },
   {
-    buildData: () => [],
-    category: "Advanced",
-    dataFormat: "native",
-    disabledReason: "map은 지도 리소스 등록 후 렌더링 대상에 포함합니다.",
-    summary: "지도 리소스 등록 후 지역별 데이터를 표현하는 차트",
-    type: "map",
-  },
-  {
     buildData: ({ flowTick }) => [
       { coords: [[0, 0], [4, 6 + flowTick]] },
       { coords: [[1, 8], [8, 3 + flowTick]] },
@@ -576,14 +568,6 @@ export const chartSamples: ChartSample[] = [
     type: "pictorialBar",
   },
   {
-    buildData: () => [],
-    category: "Advanced",
-    dataFormat: "native",
-    disabledReason: "custom은 renderItem 구현을 전달하는 고급 사용 경로입니다.",
-    summary: "사용자 renderItem으로 직접 도형을 그리는 고급 차트",
-    type: "custom",
-  },
-  {
     buildData: ({ topTick }, seriesCount) =>
       topNames.map((name, rowIndex) => {
         const values = Array.from({ length: countFixtureSeries(seriesCount) }, (_, seriesIndex) => {
@@ -594,7 +578,15 @@ export const chartSamples: ChartSample[] = [
       }),
     category: "Top",
     dataFormat: "top",
-    seriesOptions: { height: "88%", left: "4%", top: "6%", width: "92%" },
+    seriesOptions: {
+      animationDuration: 300,
+      animationDurationUpdate: 700,
+      animationEasingUpdate: "cubicOut",
+      height: "88%",
+      left: "4%",
+      top: "6%",
+      width: "92%",
+    },
     summary: "키워드 중요도를 글자 크기와 색상으로 표현하는 워드 클라우드",
     type: "wordCloud",
   },

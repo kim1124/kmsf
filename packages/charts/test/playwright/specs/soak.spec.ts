@@ -115,8 +115,12 @@ function getSoakChartTypes(): ImplementedChartType[] {
   return selectedTypes.length > 0 ? selectedTypes : [...implementedChartTypes];
 }
 
-function chartButton(page: Page, name: string) {
-  return page.getByRole("button", { name: new RegExp(`^${name}\\b`) });
+async function gotoChartExample(page: Page, type: string) {
+  await page.goto(`/examples/${type}`);
+}
+
+async function openPropsTab(card: Locator) {
+  await card.getByRole("tab", { name: "Props" }).click();
 }
 
 function elapsedSeconds(startedAt: number) {
@@ -226,9 +230,10 @@ test("line live chart updates during soak without browser diagnostics", async ({
   test.setTimeout(durationMs + 30_000);
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/");
+  await gotoChartExample(page, "line");
 
   const liveCard = page.getByTestId("chart-example-card-line-live-update");
+  await openPropsTab(liveCard);
   const liveData = liveCard.getByTestId("sample-data");
   await expect.poll(async () => (await getCanvasLayerCheck(liveCard, "line")).failures.join("\n")).toBe("");
   const before = await liveData.textContent();
@@ -250,11 +255,11 @@ test("line live chart performance and memory stay stable during soak", async ({ 
   const type = "line";
   const performanceSession = await createPerformanceSession(page);
 
-  await page.goto("/");
-  await chartButton(page, type).click();
+  await gotoChartExample(page, type);
 
   const cards = page.getByTestId(new RegExp(`chart-example-card-${type}-`));
   const liveCard = page.getByTestId("chart-example-card-line-live-update");
+  await openPropsTab(liveCard);
   const liveData = liveCard.getByTestId("sample-data");
   let previousData = await readText(liveData);
   let cycle = 0;
@@ -267,7 +272,7 @@ test("line live chart performance and memory stay stable during soak", async ({ 
     await page.setViewportSize(viewport);
 
     try {
-      await expect(cards).toHaveCount(3, { timeout: 3_000 });
+      await expect(cards).toHaveCount(5, { timeout: 3_000 });
     } catch (error) {
       recordAnomaly(anomalies, startedAt, type, `card visibility failed: ${String(error)}`);
     }
@@ -373,10 +378,8 @@ test("all implemented chart types update during soak without browser diagnostics
   const snapshots: SoakSnapshot[] = [];
   const performanceSession = await createPerformanceSession(page);
 
-  await page.goto("/");
-
   for (const type of preparedChartTypes) {
-    await chartButton(page, type).click();
+    await gotoChartExample(page, type);
     const placeholder = page.getByTestId(new RegExp(`chart-example-card-${type}-`));
 
     try {
@@ -394,15 +397,16 @@ test("all implemented chart types update during soak without browser diagnostics
     const updateStartedAt = Date.now();
 
     await page.setViewportSize(viewport);
-    await chartButton(page, type).click();
+    await gotoChartExample(page, type);
 
     const cards = page.getByTestId(new RegExp(`chart-example-card-${type}-`));
     const liveCard = page.getByTestId(`chart-example-card-${type}-live-update`);
+    await openPropsTab(liveCard);
     const liveData = liveCard.getByTestId("sample-data");
     const before = await readText(liveData);
 
     try {
-      await expect(cards).toHaveCount(3, { timeout: 3_000 });
+      await expect(cards).toHaveCount(5, { timeout: 3_000 });
     } catch (error) {
       recordAnomaly(anomalies, startedAt, type, `card visibility failed: ${String(error)}`);
     }

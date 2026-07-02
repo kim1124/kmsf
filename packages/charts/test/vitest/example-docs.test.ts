@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { chartSamples } from "../../example/src/data/chart-samples";
 import { buildDocSearchTargets } from "../../example/src/data/doc-search";
-import { chartDocs, getChartDoc, searchChartDocs } from "../../example/src/docs/chart-docs";
+import {
+  chartApiDocs,
+  chartApiFeatureDocs,
+  chartDocs,
+  getChartApiDoc,
+  getChartDoc,
+  searchChartDocs,
+} from "../../example/src/docs/chart-docs";
 
 describe("example chart docs", () => {
   function collectRenderedBlockIds(markdown: string, prefix: string) {
@@ -64,7 +71,8 @@ describe("example chart docs", () => {
   it("groups chart docs by usage difficulty", () => {
     expect(getChartDoc("line").category).toBe("easy");
     expect(getChartDoc("sankey").category).toBe("native-required");
-    expect(getChartDoc("custom").category).toBe("advanced");
+    expect(chartDocs.map((doc) => doc.type)).not.toContain("custom");
+    expect(chartDocs.map((doc) => doc.type)).not.toContain("map");
   });
 
   it("documents KMSF required props and chart-specific ECharts settings in one section", () => {
@@ -73,7 +81,7 @@ describe("example chart docs", () => {
     expect(pieDoc.markdown).toContain("`type`: `pie`");
     expect(pieDoc.markdown).toContain("`data`");
     expect(pieDoc.markdown).toContain("`colors`");
-    expect(pieDoc.markdown).toContain("[KMSF Charts]");
+    expect(pieDoc.markdown).toContain("browser console warning/error를 발생시키지 않습니다");
     expect(pieDoc.markdown).toContain("## Recommended Props");
     expect(pieDoc.markdown).not.toContain("## Required ECharts Settings");
     expect(pieDoc.markdown).toContain("[series-pie](https://echarts.apache.org/en/option.html#series-pie)");
@@ -84,6 +92,58 @@ describe("example chart docs", () => {
     expect(radarDoc.markdown).toContain("`options` / `options.radar.indicator`");
     expect(radarDoc.markdown).toContain("[radar](https://echarts.apache.org/en/option.html#radar)");
     expect(radarDoc.markdown).toContain("[series-radar](https://echarts.apache.org/en/option.html#series-radar)");
+  });
+
+  it("exposes chart-by-chart API sections for props, options, and series options", () => {
+    const apiTypes = new Set(chartApiDocs.map((doc) => doc.type));
+
+    for (const sample of chartSamples) {
+      expect(apiTypes.has(sample.type), sample.type).toBe(true);
+    }
+
+    for (const doc of chartApiDocs) {
+      expect(doc.sections.map((section) => section.title), doc.type).toEqual([
+        "KMSF Props",
+        "ECharts Options",
+        "SeriesOptions",
+        "Methods/Utilities",
+      ]);
+      expect(doc.sections.every((section) => section.entries.length > 0), doc.type).toBe(true);
+      expect(doc.exampleCode, doc.type).toContain("<GenericChart");
+      expect(doc.liveExamplePath, doc.type).toBe(`/examples/${doc.type}#${doc.type}-live-update`);
+    }
+
+    const heatmapApi = getChartApiDoc("heatmap");
+    const heatmapOptions = heatmapApi.sections.find((section) => section.title === "ECharts Options");
+
+    expect(heatmapOptions?.entries.map((entry) => entry.code)).toContain("options.visualMap");
+    expect(heatmapOptions?.entries.map((entry) => entry.code)).toContain("options.xAxis");
+    expect(heatmapOptions?.entries.map((entry) => entry.code)).toContain("options.yAxis");
+  });
+
+  it("exposes feature-based API sections for the playground API page", () => {
+    expect(chartApiFeatureDocs.map((section) => section.title)).toEqual([
+      "GenericChart 렌더링",
+      "Trend / Top 데이터",
+      "Native 필수 옵션",
+      "Legend / Tooltip / Theme",
+      "Lifecycle / Methods",
+    ]);
+
+    for (const section of chartApiFeatureDocs) {
+      expect(section.id).toMatch(/^api-/);
+      expect(section.summary.length).toBeGreaterThan(10);
+      expect(section.props.length, section.title).toBeGreaterThan(0);
+      expect(section.options.length, section.title).toBeGreaterThan(0);
+      expect(section.samples.length, section.title).toBeGreaterThan(0);
+    }
+
+    const nativeSection = chartApiFeatureDocs.find((section) => section.id === "api-native-required-options");
+
+    expect(nativeSection?.options.map((entry) => entry.name)).toContain("heatmap: options.visualMap");
+    expect(nativeSection?.options.map((entry) => entry.name)).toContain("radar: options.radar.indicator");
+    expect(nativeSection?.samples.some((sample) => sample.code.includes('type="heatmap"'))).toBe(true);
+    expect(nativeSection?.liveLinks.map((link) => link.path)).toContain("/examples/heatmap#heatmap-live-update");
   });
 
   it("searches chart docs by prop, option, and feature terms", () => {

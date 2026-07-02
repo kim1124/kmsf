@@ -19,7 +19,59 @@ export interface KmsfChartProps {
   theme?: string;
 }
 
-export function getKmsfChartSetOptionOptions(): Parameters<ECharts["setOption"]>[1] {
+type SeriesIdentity = {
+  id?: unknown;
+  name?: unknown;
+  type?: unknown;
+};
+
+function normalizeSeries(option?: EChartsOption): SeriesIdentity[] {
+  const series = option?.series;
+
+  if (!series) {
+    return [];
+  }
+
+  return (Array.isArray(series) ? series : [series]) as SeriesIdentity[];
+}
+
+function hasCompatibleSeriesIdentity(previous: SeriesIdentity, next: SeriesIdentity) {
+  if (previous.type !== next.type) {
+    return false;
+  }
+
+  if (previous.id !== undefined || next.id !== undefined) {
+    return previous.id === next.id;
+  }
+
+  if (previous.name !== undefined || next.name !== undefined) {
+    return previous.name === next.name;
+  }
+
+  return true;
+}
+
+function canUseIncrementalSeriesUpdate(previousOption?: EChartsOption, nextOption?: EChartsOption) {
+  const previousSeries = normalizeSeries(previousOption);
+  const nextSeries = normalizeSeries(nextOption);
+
+  if (!previousSeries.length || !nextSeries.length || previousSeries.length !== nextSeries.length) {
+    return false;
+  }
+
+  return nextSeries.every((series, index) => hasCompatibleSeriesIdentity(previousSeries[index]!, series));
+}
+
+export function getKmsfChartSetOptionOptions(
+  previousOption?: EChartsOption,
+  nextOption?: EChartsOption,
+): Parameters<ECharts["setOption"]>[1] {
+  if (canUseIncrementalSeriesUpdate(previousOption, nextOption)) {
+    return {
+      lazyUpdate: true,
+    };
+  }
+
   return {
     lazyUpdate: true,
     replaceMerge: ["series"],
@@ -32,6 +84,7 @@ export function KmsfChart(props: KmsfChartProps) {
   const chartRef = useRef<ECharts | null>(null);
   const frameRef = useRef<number | null>(null);
   const optionRef = useRef(props.option);
+  const previousOptionRef = useRef<EChartsOption | null>(null);
   const onDataZoomRef = useRef(props.onDataZoom);
 
   optionRef.current = props.option;
@@ -49,6 +102,7 @@ export function KmsfChart(props: KmsfChartProps) {
     const chart = echarts.init(container, props.theme);
     chartRef.current = chart;
     chart.setOption(optionRef.current, { lazyUpdate: true });
+    previousOptionRef.current = optionRef.current;
     setHasRendered(true);
     props.onChartReady?.(chart);
 
@@ -83,11 +137,19 @@ export function KmsfChart(props: KmsfChartProps) {
 
       chart.dispose();
       chartRef.current = null;
+      previousOptionRef.current = null;
     };
   }, [props.theme]);
 
   useEffect(() => {
-    chartRef.current?.setOption(props.option, getKmsfChartSetOptionOptions());
+    const chart = chartRef.current;
+
+    if (!chart) {
+      return;
+    }
+
+    chart.setOption(props.option, getKmsfChartSetOptionOptions(previousOptionRef.current ?? undefined, props.option));
+    previousOptionRef.current = props.option;
   }, [props.option]);
 
   return (
