@@ -22,6 +22,8 @@ export type DashboardWidget<TData = unknown> = {
   minimized?: boolean;
   maximized?: boolean;
   locked?: boolean;
+  movable?: boolean;
+  resizable?: boolean;
 };
 
 export type DashboardLayoutSnapshot = {
