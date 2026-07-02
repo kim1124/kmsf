@@ -1,3 +1,3 @@
 # Playwright Specs
 
-Add rendered interaction specs here as dashboard behavior is implemented.
+Rendered interaction specs live here. Cover dashboard rendering, drag, resize, maximize, minimize, restore, runtime column changes, and disabled interaction states.

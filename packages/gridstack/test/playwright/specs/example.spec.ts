@@ -14,7 +14,8 @@ test("renders Korean labels by default", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByText("개발 예제")).toBeVisible();
-  await expect(page.getByText("컬럼 6")).toBeVisible();
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "6");
+  await expect(page.locator(".example-metrics")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "위젯 추가" })).toBeVisible();
   await expect(page.getByRole("button", { name: "매출 최대화" })).toBeVisible();
 });

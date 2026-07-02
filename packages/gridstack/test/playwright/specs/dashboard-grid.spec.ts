@@ -104,6 +104,7 @@ async function dispatchReleaseLikeMoveAndReadState(widget: Locator, clientX: num
 }
 
 async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
+  await widget.scrollIntoViewIfNeeded();
   const box = await widget.boundingBox();
   if (!box) {
     throw new Error("Widget bounding box is not available");
@@ -116,6 +117,7 @@ async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: n
 }
 
 async function startWidgetDrag(page: Page, widget: Locator) {
+  await widget.scrollIntoViewIfNeeded();
   const box = await widget.boundingBox();
   if (!box) {
     throw new Error("Widget bounding box is not available");
@@ -131,6 +133,7 @@ async function startWidgetDrag(page: Page, widget: Locator) {
 }
 
 async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
+  await widget.scrollIntoViewIfNeeded();
   const widgetBox = await widget.boundingBox();
   if (!widgetBox) {
     throw new Error("Widget bounding box is not available");
@@ -248,6 +251,7 @@ async function dragWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: 
 }
 
 async function startWidgetResize(page: Page, widget: Locator) {
+  await widget.scrollIntoViewIfNeeded();
   const widgetBox = await widget.boundingBox();
   if (!widgetBox) {
     throw new Error("Widget bounding box is not available");
@@ -265,13 +269,22 @@ async function startWidgetResize(page: Page, widget: Locator) {
   return { startX, startY };
 }
 
+async function addWidgetFromDialog(page: Page, width = "2", height = "2") {
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("새 위젯 너비").selectOption(width);
+  await dialog.getByLabel("새 위젯 높이").selectOption(height);
+  await dialog.getByRole("button", { name: "위젯 저장" }).click();
+}
+
 test("supports the dashboard example workflow", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "@kmsf/gridstack" })).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-sales")).toBeVisible();
 
-  await page.getByRole("button", { name: "위젯 추가" }).click();
+  await addWidgetFromDialog(page);
   await expect(page.getByTestId("dashboard-widget-widget-5")).toBeVisible();
 
   await page.getByRole("button", { name: "매출 최대화" }).click();
@@ -369,17 +382,14 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByLabel("새 위젯 너비").selectOption("2");
-  await page.getByLabel("새 위젯 높이").selectOption("3");
-
-  await page.getByRole("button", { name: "위젯 추가" }).click();
+  await addWidgetFromDialog(page, "2", "3");
   const firstAdded = page.getByTestId("dashboard-widget-widget-5");
   await expect(firstAdded).toHaveAttribute("data-layout-x", "0");
   await expect(firstAdded).toHaveAttribute("data-layout-y", "4");
   await expect(firstAdded).toHaveAttribute("data-layout-w", "2");
   await expect(firstAdded).toHaveAttribute("data-layout-h", "3");
 
-  await page.getByRole("button", { name: "위젯 추가" }).click();
+  await addWidgetFromDialog(page, "2", "3");
   const secondAdded = page.getByTestId("dashboard-widget-widget-6");
   await expect(secondAdded).toHaveAttribute("data-layout-x", "2");
   await expect(secondAdded).toHaveAttribute("data-layout-y", "4");
@@ -470,14 +480,14 @@ test("expands only the selected widget when its header is double-clicked", async
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
   const traffic = page.getByTestId("dashboard-widget-traffic");
-  const salesHeader = sales.locator(".kmsf-dashboard-widget__header");
+  const salesTitle = sales.locator(".kmsf-dashboard-widget__title");
 
   await page.getByLabel("컬럼 선택").selectOption("12");
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(sales).toHaveAttribute("data-layout-w", "3");
   await expect(traffic).toHaveAttribute("data-layout-x", "3");
 
-  await salesHeader.dblclick();
+  await salesTitle.dblclick();
 
   await expect(sales).toHaveAttribute("data-layout-x", "0");
   await expect(sales).toHaveAttribute("data-layout-w", "9");
@@ -784,7 +794,7 @@ test("executes the complete dashboard feature set in development mode", async ({
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(page.getByText("복원 완료")).toBeVisible();
 
-  await page.getByRole("button", { name: "위젯 추가" }).click();
+  await addWidgetFromDialog(page);
   await expect(page.getByTestId("dashboard-widget-widget-5")).toBeVisible();
   await expect(page.getByText("위젯 5개")).toBeVisible();
 
@@ -808,25 +818,25 @@ test("executes the complete dashboard feature set in development mode", async ({
   await expect(sales).toHaveAttribute("data-layout-x", "0");
   await expect(sales).toHaveAttribute("data-layout-w", "3");
 
-  await page.getByRole("button", { name: "이동 토글" }).click();
-  await expect(page.getByText("이동 불가")).toBeVisible();
+  await page.getByRole("button", { name: "이동 가능" }).click();
+  await expect(page.getByRole("button", { name: "이동 불가" })).toHaveAttribute("data-active", "false");
   const lockedPosition = await readWidgetLayout(sales);
   await dragWidget(page, sales, 0, 220);
   await expect.poll(() => readWidgetLayout(sales)).toEqual(lockedPosition);
 
-  await page.getByRole("button", { name: "이동 토글" }).click();
-  await expect(page.getByText("이동 가능")).toBeVisible();
+  await page.getByRole("button", { name: "이동 불가" }).click();
+  await expect(page.getByRole("button", { name: "이동 가능" })).toHaveAttribute("data-active", "true");
   await dragWidget(page, sales, 0, 220);
   await expect.poll(async () => (await readWidgetLayout(sales)).y).not.toBe(lockedPosition.y);
 
-  await page.getByRole("button", { name: "크기 조절 토글" }).click();
-  await expect(page.getByText("크기 조절 불가")).toBeVisible();
+  await page.getByRole("button", { name: "크기 조절 가능" }).click();
+  await expect(page.getByRole("button", { name: "크기 조절 불가" })).toHaveAttribute("data-active", "false");
   const lockedSize = await readWidgetLayout(sales);
   await expect(sales.locator(".ui-resizable-se")).toBeHidden();
   await expect.poll(() => readWidgetLayout(sales)).toEqual(lockedSize);
 
-  await page.getByRole("button", { name: "크기 조절 토글" }).click();
-  await expect(page.getByText("크기 조절 가능")).toBeVisible();
+  await page.getByRole("button", { name: "크기 조절 불가" }).click();
+  await expect(page.getByRole("button", { name: "크기 조절 가능" })).toHaveAttribute("data-active", "true");
   const beforeResize = await readWidgetLayout(sales);
   await resizeWidget(page, sales, 140, 100);
   await expect.poll(async () => {

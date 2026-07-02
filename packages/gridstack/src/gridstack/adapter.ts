@@ -1,6 +1,6 @@
 import { GridStack } from "gridstack";
 import type { GridItemHTMLElement, GridStackNode, GridStackWidget } from "gridstack";
-import { mapDashboardGridOptions } from "./option-mapper";
+import { mapDashboardGridOptions, mapDashboardWidgetOptions } from "./option-mapper";
 import type { DashboardGridEngineOptions } from "./option-mapper";
 import type { DashboardLayoutSnapshot, DashboardWidget, DashboardWidgetLayout } from "../core/types";
 
@@ -334,16 +334,12 @@ export function toGridStackWidget<TData>(
   widget: DashboardWidget<TData>,
   options: DashboardGridEngineOptions,
 ): GridStackWidget {
-  const editable = options.editable ?? true;
-  const movable = editable && (options.movable ?? true) && !widget.locked;
-  const resizable = editable && (options.resizable ?? true) && !widget.locked;
+  const widgetOptions = mapDashboardWidgetOptions(widget, options);
 
   return {
     ...widget.layout,
     id: widget.id,
-    locked: widget.locked,
-    noMove: !movable,
-    noResize: !resizable,
+    ...widgetOptions,
   };
 }
 

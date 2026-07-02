@@ -1,52 +1,44 @@
 # @kmsf/gridstack
 
-`@kmsf/gridstack`는 React 애플리케이션에서 대시보드 위젯 레이아웃을 구성하기 위한 GridStack 기반 컴포넌트 패키지다.
+`@kmsf/gridstack`는 React 애플리케이션에서 dashboard widget layout을 구성하기 위한 GridStack 기반 package다. 런타임은 Next.js API에 의존하지 않고 React component와 serializable layout state 중심으로 동작한다.
 
-KMSF boilerplate 소비 앱을 주요 대상으로 하지만, 런타임은 Next.js API에 의존하지 않는다. 일반 React, Vite, Next.js client component 환경에서 사용할 수 있도록 public API를 React와 serializable layout state 중심으로 유지한다.
-
-## Features
+## 구현된 기능
 
 - `DashboardGrid` React component
-- `useDashboardGrid` state and command hook
-- Widget create, update, remove, clear
-- Maximize, minimize, restore
-- Runtime column count control from `1` to `12`
-- Auto-arrange and fit-to-columns helpers
-- Movable and resizable interaction options
-- Scheduled widget resize frame callback
-- Serializable layout and state snapshots
-- GridStack adapter boundary hidden behind package-owned APIs
+- `useDashboardGrid` state/command hook
+- widget create, update, remove, clear
+- maximize, minimize, restore
+- runtime column count `1..12`
+- auto arrange와 fit-to-columns helper
+- movable/resizable option
+- scheduled widget resize frame callback
+- serializable layout/state snapshot
+- GridStack adapter boundary
+- package stylesheet export
 
-## Installation
-
-```bash
-npm install @kmsf/gridstack
-```
-
-Install peer dependencies if the consuming app does not already provide them.
+## 설치
 
 ```bash
-npm install react react-dom
+npm install @kmsf/gridstack react react-dom
 ```
 
-`gridstack` is used as the runtime grid engine. Import the GridStack stylesheet before the package stylesheet.
+`gridstack` stylesheet을 package stylesheet보다 먼저 import한다.
 
 ```ts
 import "gridstack/dist/gridstack.min.css";
 import "@kmsf/gridstack/styles.css";
 ```
 
-## Quick Start
+## 빠른 시작
 
 ```tsx
-import { DashboardGrid, useDashboardGrid } from "@kmsf/gridstack";
-import type { DashboardWidget } from "@kmsf/gridstack";
+import { DashboardGrid, useDashboardGrid, type DashboardWidget } from "@kmsf/gridstack";
 import "gridstack/dist/gridstack.min.css";
 import "@kmsf/gridstack/styles.css";
 
 type MetricData = {
-  value: string;
   description: string;
+  value: string;
 };
 
 const initialWidgets: DashboardWidget<MetricData>[] = [
@@ -54,13 +46,7 @@ const initialWidgets: DashboardWidget<MetricData>[] = [
     id: "sales",
     title: "Sales",
     layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 },
-    data: { value: "$128k", description: "Monthly recurring revenue" },
-  },
-  {
-    id: "traffic",
-    title: "Traffic",
-    layout: { id: "traffic", x: 3, y: 0, w: 3, h: 2 },
-    data: { value: "42.8k", description: "Active sessions" },
+    data: { value: "$128k", description: "MRR" },
   },
 ];
 
@@ -73,44 +59,22 @@ export function DashboardPage() {
   return (
     <DashboardGrid
       columns={dashboard.columns}
-      refreshKey={dashboard.refreshVersion}
-      widgets={dashboard.widgets}
-      onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
       onMaximizeWidget={dashboard.commands.maximizeWidget}
       onMinimizeWidget={dashboard.commands.minimizeWidget}
-      onRestoreWidget={dashboard.commands.restoreWidget}
       onRemoveWidget={dashboard.commands.removeWidget}
-      renderWidget={(widget) => (
-        <div>
-          <strong>{widget.data?.value}</strong>
-          <p>{widget.data?.description}</p>
-        </div>
-      )}
+      onRestoreWidget={dashboard.commands.restoreWidget}
+      onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
+      refreshKey={dashboard.refreshVersion}
+      renderWidget={(widget) => <strong>{widget.data?.value}</strong>}
+      widgets={dashboard.widgets}
     />
   );
 }
 ```
 
-## State Hook
+## 주요 command
 
-`useDashboardGrid` owns the serializable dashboard state and exposes command helpers.
-
-```ts
-const dashboard = useDashboardGrid({
-  initialColumns: 6,
-  initialWidgets,
-});
-```
-
-Returned fields:
-
-- `state`: full dashboard state
-- `widgets`: current widget list
-- `columns`: current clamped column count
-- `refreshVersion`: value used to request a GridStack refresh
-- `commands`: mutation, layout, serialization, and refresh commands
-
-Common commands:
+`useDashboardGrid`는 serializable dashboard state와 command helper를 제공한다.
 
 - `addWidget(widget)`
 - `updateWidget(id, patch)`
@@ -122,7 +86,6 @@ Common commands:
 - `restoreWidget(id)`
 - `autoArrangeWidgets()`
 - `fitWidgetsToColumns()`
-- `fitWidgetToColumns(id)`
 - `setColumns(columns)`
 - `resetLayout(snapshot?)`
 - `restoreLayout(snapshot)`
@@ -130,67 +93,30 @@ Common commands:
 - `serializeLayout()`
 - `serializeState()`
 
-## Component API
+## Component API 요약
 
-`DashboardGrid` renders the widget grid and bridges React state to the GridStack adapter.
-
-Important props:
-
-| Prop | Type | Description |
-| --- | --- | --- |
-| `widgets` | `DashboardWidget<TData>[]` | Widget models to render. |
-| `columns` | `1..12` | Runtime column count. Defaults to `12`. |
-| `editable` | `boolean` | Enables or disables all edit interactions. |
-| `movable` | `boolean` | Enables or disables widget movement. |
-| `resizable` | `boolean` | Enables or disables widget resizing. |
-| `refreshKey` | `number` | Requests adapter refresh when changed. |
-| `showControls` | `boolean` | Shows built-in widget action buttons. |
-| `actionLabels` | `Partial<DashboardWidgetActionLabels>` | Localizes built-in action labels. |
-| `renderWidget` | `(widget) => ReactNode` | Renders consumer-owned widget content. |
-| `onLayoutCommit` | `(snapshot) => void` | Receives committed layout snapshots. |
-| `onWidgetLayoutChange` | `(id, layout) => void` | Receives per-widget layout changes. |
-| `onWidgetResizeFrame` | `(event) => void` | Receives scheduled resize frame events. |
-
-## Layout Model
-
-Widgets use stable string IDs and serializable layout objects.
-
-```ts
-type DashboardWidgetLayout = {
-  id: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  minW?: number;
-  minH?: number;
-  maxW?: number;
-  maxH?: number;
-};
-
-type DashboardWidget<TData = unknown> = {
-  id: string;
-  title?: string;
-  layout: DashboardWidgetLayout;
-  data?: TData;
-  minimized?: boolean;
-  maximized?: boolean;
-  locked?: boolean;
-};
-```
-
-Use `serializeLayout()` when only layout coordinates are needed. Use `serializeState()` when widget metadata and `data` should also be persisted.
+| Prop | 설명 |
+| --- | --- |
+| `widgets` | 렌더링할 widget model |
+| `columns` | runtime column count, 기본 `12` |
+| `editable` | 전체 edit interaction 활성/비활성 |
+| `movable` | widget move 활성/비활성 |
+| `resizable` | widget resize 활성/비활성 |
+| `refreshKey` | adapter refresh 요청 |
+| `showControls` | 기본 widget control 표시 |
+| `renderWidget` | consumer-owned widget content 렌더링 |
+| `onLayoutCommit` | committed layout snapshot 수신 |
+| `onWidgetLayoutChange` | widget별 layout 변경 수신 |
+| `onWidgetResizeFrame` | scheduled resize frame event 수신 |
 
 ## Styling
-
-The package ships a small default stylesheet.
 
 ```ts
 import "gridstack/dist/gridstack.min.css";
 import "@kmsf/gridstack/styles.css";
 ```
 
-KMSF global tokens can be overridden at `:root`, and package-local variables can be overridden on the grid root.
+KMSF token과 package-local CSS variable을 override할 수 있다.
 
 ```css
 :root {
@@ -200,96 +126,36 @@ KMSF global tokens can be overridden at `:root`, and package-local variables can
 
 .kmsf-dashboard-grid {
   --kmsf-dashboard-shadow: none;
-  --kmsf-dashboard-header-min-height: 40px;
 }
 ```
 
-Tailwind consumers can target package classes from their own component layer.
+## Playground
 
-```css
-@layer components {
-  .kmsf-dashboard-widget {
-    @apply border border-slate-200 bg-white shadow-sm;
-  }
-
-  .kmsf-dashboard-widget__header {
-    @apply min-h-11 px-3 py-2;
-  }
-}
-```
-
-## Design Notes
-
-- React public API and GridStack runtime are separated by `src/gridstack`.
-- Consumers persist serializable layout or state snapshots.
-- Widget IDs are preserved across layout operations.
-- Runtime column count is clamped to `1..12`.
-- Drag and resize events are kept behind the adapter boundary.
-- Resize frame notifications are scheduled with `requestAnimationFrame`.
-
-## Development
-
-Run commands from `packages/gridstack`.
+루트에서 실행:
 
 ```bash
-npm run dev
-npm run lint
-npm run test:run
-npm run build
-npm run test:e2e
-npm run verify
+npm --workspace=@kmsf/gridstack run dev
 ```
 
-Command scope:
+기본 포트는 `6001`이다. Chromium unsafe port 이슈 때문에 `6000`은 사용하지 않는다.
 
-- `npm run dev`: Vite example app
-- `npm run lint`: TypeScript typecheck
-- `npm run test:run`: Vitest unit tests
-- `npm run build`: package build
-- `npm run test:e2e`: Playwright browser checks
-- `npm run verify`: lint, Vitest, and build baseline
-
-The example dev server uses port `6001` by default because Chromium blocks `6000` as an unsafe port. If the port is already in use, choose the next available port explicitly:
+포트 변경:
 
 ```bash
 KMSF_GRIDSTACK_PORT=6002 npm --workspace=@kmsf/gridstack run dev
-KMSF_GRIDSTACK_PORT=6002 npm --workspace=@kmsf/gridstack run test:e2e
 ```
 
-## Repository Layout
+## 검증
 
-```text
-src/core
-  Serializable state, layout helpers, column helpers, resize scheduler, shared types
-
-src/gridstack
-  GridStack option mapping, adapter lifecycle, event bridge
-
-src/components
-  React grid and widget shell components
-
-example
-  Vite/React consumer example
-
-test
-  Vitest, Playwright, and package-local reports
+```bash
+npm --workspace=@kmsf/gridstack run lint
+npm --workspace=@kmsf/gridstack run test:run
+npm --workspace=@kmsf/gridstack run build
+npm --workspace=@kmsf/gridstack run test:e2e
+npm --workspace=@kmsf/gridstack run verify
+npm --workspace=@kmsf/gridstack run verify:full
 ```
 
-## Publishing Notes
+## Publishing note
 
-This package may be published to the npm registry, but the current repository metadata must be reviewed before publishing.
-
-Before `npm publish`, confirm:
-
-- `package.json` no longer has `"private": true`.
-- `exports` points to the intended published artifact paths.
-- `files`, `license`, `repository`, and package description are set.
-- Runtime dependencies and peer dependencies are intentional.
-- `npm run verify` passes from `packages/gridstack`.
-- Browser-visible changes have Playwright coverage or a documented reason for skipping.
-
-Do not publish directly from an unverified working tree.
-
-## License
-
-This package is currently maintained for KMSF project usage. Add the final license metadata before public npm publication.
+현재 package는 KMSF 프로젝트 사용을 우선한다. npm publish 전에는 `private`, license, repository, files, dependency, browser verification 상태를 별도 검토해야 한다.
