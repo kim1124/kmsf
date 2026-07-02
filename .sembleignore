@@ -1,0 +1,21 @@
+# Semble should not index generated, local-only, or secret-bearing files.
+
+node_modules/
+.next/
+out/
+build/
+coverage/
+
+.env*
+*.pem
+
+reports/
+**/reports/
+**/reports/artifacts/
+test-results/
+playwright-report/
+**/test/playwright/html-report/
+**/test/playwright/results/
+
+.superpowers/
+apps/kmsf/.local/

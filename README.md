@@ -1,130 +1,138 @@
-# KMSF 워크스페이스
+# KMSF
 
-`kmsf`는 `create-kmsf` 형태의 보일러플레이트와 재사용 패키지를 함께 관리하는 `npm workspaces` 저장소로 구성된다.
+KMSF는 Next.js 기반 애플리케이션을 빠르게 시작하기 위한 보일러플레이트와 재사용 React 패키지를 함께 관리하는 npm workspaces 저장소다.
+
+저장소의 중심은 `apps/kmsf` 앱이며, `packages/*`는 KMSF 앱과 외부 React/Vite/Next.js 소비 프로젝트에서 재사용할 수 있는 패키지로 분리한다.
 
 ## 현재 구조
 
 ```text
 kmsf/
 ├── apps/
-│   └── kmsf/                 # 현재 메인 Next.js 16 App Router 앱
+│   └── kmsf/                 # 메인 Next.js App Router 앱
 ├── examples/
 │   └── basic-dashboard/      # 패키지 소비 검증용 예제 앱
 ├── packages/
-│   ├── create-kmsf/           # KMSF scaffold CLI
-│   ├── generator-core/        # 생성 로직 패키지
-│   ├── charts/                # package name: @kmsf/charts
-│   ├── data-table/            # package name: @kmsf/data-table
-│   └── gridstack/             # package name: @kmsf/gridstack
+│   ├── charts/               # @kmsf/charts
+│   ├── chat/                 # @kmsf/chat
+│   ├── create-kmsf/          # create-kmsf CLI
+│   ├── data-table/           # @kmsf/data-table
+│   ├── generator-core/       # @kmsf/generator-core
+│   └── gridstack/            # @kmsf/gridstack
 ├── templates/
-│   ├── next-app-base/         # create-kmsf 기본 Next.js 템플릿 원본
-│   ├── next-app-auth/         # auth 관련 참고/후속 템플릿 후보
-│   ├── next-monorepo/         # monorepo 템플릿 후보
-│   └── backend-base/          # backend 템플릿 후보
-├── docs/
-├── reports/                   # 루트 작업 보고서
-├── .agents/skills/
-└── package.json               # root workspace orchestration
+│   ├── backend-base/         # 향후 backend scaffold 후보
+│   ├── next-app-auth/        # auth 참고 템플릿 후보
+│   ├── next-app-base/        # Next.js 앱 템플릿 원본
+│   └── next-monorepo/        # 향후 monorepo scaffold 후보
+├── .agents/skills/           # KMSF repo-local Codex skills
+├── AGENTS.md                 # 저장소 공통 Codex 실행 계약
+└── package.json              # root workspace orchestration
 ```
 
-`@kmsf/charts` 같은 이름은 디렉터리명이 아니라 `package.json`의 package name에 두는 편이 일반적인 구성에 더 가깝다. 따라서 실제 디렉터리는 `packages/charts`처럼 두고, 패키지명은 `@kmsf/charts`로 유지한다.
-
-## 실행 규칙
-
-- 저장소 공통 계약: [AGENTS.md](<repo-root>/AGENTS.md)
-- 메인 앱 계약: [apps/kmsf/AGENTS.md](<repo-root>/apps/kmsf/AGENTS.md)
-- 메인 앱 소스 규칙: [apps/kmsf/src/AGENTS.md](<repo-root>/apps/kmsf/src/AGENTS.md)
-- 메인 앱 테스트 규칙: [apps/kmsf/tests/AGENTS.md](<repo-root>/apps/kmsf/tests/AGENTS.md)
-- 패키지 소비 예제 계약: [examples/basic-dashboard/AGENTS.md](<repo-root>/examples/basic-dashboard/AGENTS.md)
-- 저장소 전용 skill: [.agents/skills/delivery/SKILL.md](<repo-root>/.agents/skills/delivery/SKILL.md)
-
-## 워크스페이스
-
-### 메인 앱
+## 메인 앱
 
 - 경로: `apps/kmsf`
 - package name: `@kmsf/app-kmsf`
-- 기술 스택: Next.js 16, React 19, Tailwind CSS 4, next-intl, Supabase Auth
+- 기술 스택: Next.js 16, React 19, TypeScript, Tailwind CSS 4, next-intl, Radix UI, lucide-react
+- 저장소: Supabase, LowDB 기반 Dev Local DB, sqlite3 기반 Local DB, 외부 DB adapter 후보
+- 인증: Manual, KMSF-managed local provider, Supabase Auth
 
-### 예제 앱
+자세한 앱 실행과 초기 설정 흐름은 [apps/kmsf/README.md](apps/kmsf/README.md)를 참고한다.
 
-- 경로: `examples/basic-dashboard`
-- package name: `@kmsf/example-basic-dashboard`
-- 역할: `@kmsf/charts`, `@kmsf/data-table`, `@kmsf/gridstack` 소비 검증용
+## 현재 앱 기능
 
-### 재사용 패키지
+- 초기 설정 wizard
+  - GNB 영역 선택: top, left, right, footer
+  - DB 선택: none, Dev Local DB, SQLite3, External Adapter, Supabase
+  - 인증 선택: Manual, KMSF-managed, Supabase
+  - 설정 저장 선택: manual, localStorage, connected DB
+  - 메뉴 구성 선택: manual, app routes, settings UI
+- Manual 설정 완료 시 인증 없이 KMSF welcome page 표시
+- KMSF-managed 또는 Supabase 인증 선택 시 초기 admin 계정 생성
+- Supabase 환경 변수 기반 availability check와 기존 Supabase setup 감지
+- 로그인, 회원가입, 세션 만료, 계정 정보 변경, 회원 탈퇴
+- level/role 기반 설정 페이지 접근 제어
+- 시스템 정보, 계정 관리, GNB 설정, 시스템 초기화 설정 화면
+- 계정별 desktop GNB 출력/숨김 설정
+- factory reset, backup, audit event 흐름
+- ko/en i18n 라우팅과 언어 전환
+- sample pages: dashboard, analytics, chart sample, data-table sample
 
-- `packages/create-kmsf` -> `create-kmsf`
-- `packages/generator-core` -> `@kmsf/generator-core`
-- `packages/charts` -> `@kmsf/charts`
-- `packages/data-table` -> `@kmsf/data-table`
-- `packages/gridstack` -> `@kmsf/gridstack`
+## 패키지
 
-### 템플릿
-
-- `templates/next-app-base`: `apps/kmsf`에서 동기화되는 기본 scaffold 원본
-- `templates/next-app-auth`: auth 관련 참고/후속 템플릿 후보
-- `templates/next-monorepo`: monorepo 템플릿 후보
-- `templates/backend-base`: backend 템플릿 후보
-
-현재 `create-kmsf` catalog는 `next-app-base`만 사용한다. 나머지 템플릿 후보는 실제 catalog에 추가되기 전까지 production scaffold 경로가 아니다.
+| Workspace | Package | 역할 |
+| --- | --- | --- |
+| `packages/charts` | `@kmsf/charts` | ECharts 기반 React chart 컴포넌트 |
+| `packages/chat` | `@kmsf/chat` | Ollama 중심 local LLM chat UI와 storage adapter |
+| `packages/data-table` | `@kmsf/data-table` | CSR 중심 React data table과 core helper |
+| `packages/gridstack` | `@kmsf/gridstack` | GridStack 기반 dashboard layout 컴포넌트 |
+| `packages/create-kmsf` | `create-kmsf` | standalone Next.js 앱 scaffold CLI |
+| `packages/generator-core` | `@kmsf/generator-core` | template copy/transform engine |
 
 ## 루트 명령
 
-루트 명령은 모두 `apps/kmsf` workspace로 위임된다.
+루트 명령은 기본적으로 `apps/kmsf` workspace로 위임된다.
 
 ```bash
 npm run dev
-npm run build
 npm run lint
 npm run test:run
-npm run test:e2e
-npm run test:e2e:headed
+npm run build
 npm run verify
+npm run verify:full
 ```
 
-## 앱 환경 변수
+패키지별 playground 또는 검증은 workspace 명령으로 실행한다.
 
-메인 앱 환경 변수 파일은 `apps/kmsf` 아래에 둔다.
+```bash
+npm --workspace=@kmsf/charts run dev
+npm --workspace=@kmsf/chat run dev
+npm --workspace=@kmsf/data-table run dev
+npm --workspace=@kmsf/gridstack run dev
+
+npm --workspace=@kmsf/charts run verify
+npm --workspace=@kmsf/chat run verify
+npm --workspace=@kmsf/data-table run verify
+npm --workspace=@kmsf/gridstack run verify
+npm --workspace=create-kmsf run verify
+npm --workspace=@kmsf/generator-core run verify
+```
+
+패키지 전체 baseline 검증은 명시적으로 필요할 때만 실행한다.
+
+```bash
+npm run verify:packages
+npm run verify:all
+```
+
+## 환경 변수
+
+메인 앱 환경 변수는 `apps/kmsf` 아래에서 관리한다.
 
 ```bash
 cp apps/kmsf/.env.example apps/kmsf/.env.local
 ```
 
-예시:
+주요 변수:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-SUPABASE_API_KEY=your_supabase_publishable_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_secret_key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_API_KEY=your_supabase_publishable_or_anon_key
+SUPABASE_SECRET_KEY=<server-only-value>
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-인증 provider, Supabase Google OAuth, local-json ID/PW provider 설정은 [인증 가이드](<repo-root>/docs/auth-guide.md)를 참고한다.
+`SUPABASE_SECRET_KEY`는 서버 전용으로만 사용해야 하며 클라이언트 코드나 공개 문서에 실제 값을 노출하지 않는다.
 
-## 검증 기준
+## Codex 지침
 
-완료 전 기본 검증:
+- 저장소 공통 계약: [AGENTS.md](AGENTS.md)
+- 앱 지침: [apps/kmsf/AGENTS.md](apps/kmsf/AGENTS.md)
+- repo-local skills: [.agents/skills](.agents/skills)
 
-- `npm run lint`
-- `npm run test:run`
-- `npm run build`
-- 렌더링 변경 시 브라우저 검증
+## README 운영 기준
 
-브라우저 검증 경로:
-
-1. Codex in-app browser
-2. Codex computer use
-3. `npm run test:e2e:headed`
-
-## 보고 규칙
-
-- 작업 보고서는 작업 scope의 `reports/YYYY-MM-DD.md` 형식으로 기록한다.
-- 같은 날짜의 요청 결과는 하나의 파일에 이어서 누적한다.
-- 브라우저/테스트 산출물은 해당 workspace의 `reports/artifacts/` 아래에 둔다.
-- package 작업 보고서는 `packages/<package>/reports/YYYY-MM-DD.md`에 둔다.
-
-## 참고 문서
-
-- 운영 문서: [docs/codex/README.md](<repo-root>/docs/codex/README.md)
-- 작업 보고서: [reports/2026-04-23.md](<repo-root>/reports/2026-04-23.md)
+- README는 현재 구현된 기능과 실행 가능한 명령을 기준으로 작성한다.
+- 완료되지 않은 roadmap은 구현 기능처럼 작성하지 않는다.
+- local-only report, private guide, artifact 경로는 public README에서 링크하지 않는다.

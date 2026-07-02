@@ -1,101 +1,73 @@
 # create-kmsf
 
-CLI to scaffold a standalone Next.js admin dashboard from bundled KMSF templates.
+`create-kmsf`는 KMSF Next.js starter 앱을 생성하는 scaffold CLI다. 현재 CLI는 bundled `next-app-base` template을 복사한 뒤 auth, GNB layout, optional package, i18n, install, git, Playwright 설정을 선택적으로 적용한다.
 
-## Usage
-
-Published npm usage:
+## 사용법
 
 ```bash
 npx create-kmsf my-app
 ```
 
-Tarball usage before npm publish:
+로컬 tarball 검증:
 
 ```bash
-# from this package directory
-npm pack
-npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app
+npm --workspace=create-kmsf pack --dry-run
+npm --workspace=create-kmsf pack
+npx --yes --package ./packages/create-kmsf/create-kmsf-0.1.0.tgz -- create-kmsf my-app
 ```
 
-Remote tarball usage:
+완전 scripted 실행:
 
 ```bash
-npx --yes --package https://github.com/<owner>/<repo>/releases/download/create-kmsf-v0.1.0/create-kmsf-0.1.0.tgz -- create-kmsf my-app
+npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app --auth=local-json --layout=top,left,footer --packages=gridstack,data-table,charts,chat --no-i18n --no-install --no-git --no-playwright --silent
 ```
 
-Fully scripted CI usage:
+`--silent`는 prompt를 열지 않는다. CI에서 사용할 때는 필요한 option을 모두 전달해야 한다.
 
-```bash
-npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app --auth=local-json --layout=top,left,footer --no-i18n --no-packages --no-install --no-git --no-playwright --silent
-```
+## CLI 옵션
 
-`--silent` never opens prompts. Provide every interactive option when using it.
+| 옵션 | 설명 |
+| --- | --- |
+| `--auth=<mode>` | `local-json` 기본값, `supabase`, `later`, `none` |
+| `--layout=<list>` | GNB 영역 목록. 예: `top,left,right,footer` |
+| `--packages=<list>` | optional KMSF package. 예: `gridstack,data-table,charts,chat` |
+| `--no-packages` | optional KMSF package를 추가하지 않음 |
+| `--i18n`, `--no-i18n` | ko/en i18n 포함 또는 ko-only starter 생성 |
+| `--install`, `--no-install` | dependency install 실행/생략 |
+| `--git`, `--no-git` | git init과 initial commit 실행/생략 |
+| `--playwright`, `--no-playwright` | `npx playwright install` 실행/생략 |
+| `--silent` | banner, color, prompt 없이 실행 |
+| `--verbose` | debug log 출력 |
+| `--help`, `-h` | 도움말 출력 |
+| `--version`, `-v` | 버전 출력 |
 
-## Flags
+## Auth mode
 
-| Flag | Effect |
-|---|---|
-| `--auth=<mode>` | `local-json` (default) / `supabase` / `later` / `none` |
-| `--layout=<list>` | enable GNB regions, e.g. `top,left,footer` |
-| `--packages=<list>` | add optional KMSF packages, e.g. `gridstack,data-table,charts,chat` |
-| `--no-packages` | add no optional KMSF packages |
-| `--i18n`, `--no-i18n` | include ko/en i18n or generate a ko-only starter |
-| `--install`, `--no-install` | run or skip dependency install |
-| `--git`, `--no-git` | run or skip git init + initial commit |
-| `--playwright`, `--no-playwright` | run or skip `npx playwright install` |
-| `--silent` | no banner, colors, or prompts; requires all options |
-| `--verbose` | debug logs |
-| `--help`, `-h` | usage |
-| `--version`, `-v` | print version |
+CLI scaffold auth mode는 생성 시점의 코드 포함/제거 기준이다.
 
-## Package Boundary
+- `local-json`: file-backed local auth store를 사용하고 Supabase runtime tree를 제거한다.
+- `supabase`: Supabase Auth를 사용하고 local-json auth store를 제거한다.
+- `later`: local-json과 Supabase 코드를 모두 남기고 생성 후 `KMSF_AUTH_PROVIDER`로 선택한다.
+- `none`: 인증 코드를 제거하고 protected route를 공개 starter로 바꾼다.
 
-The package is self-contained for tarball execution:
-
-- generator core code is compiled into `dist/generator-core`
-- starter templates are shipped under `templates/next-app-base`
-- runtime dependencies are public third-party packages only
-
-## What you get
-
-- Next.js 16 + React 19 + TypeScript 5
-- Tailwind 4 + Radix UI + lucide-react
-- next-intl (ko/en, URLs do not include locale prefix)
-- Optional auth: Supabase, file-backed JSON store, deferred setup, or no auth
-- Optional `@kmsf/*` dependencies for grid layouts, data tables, charts, and chat
-- Vitest + Playwright config
-- A `Welcome to {project_name}` dashboard
-
-## Auth modes
-
-- **local-json** — file-backed at `./.local/auth.db.json`. No external service. Edit `KMSF_LOCAL_AUTH_*` in `.env.local`.
-- **supabase** — Supabase Auth. Set `NEXT_PUBLIC_SUPABASE_URL`, anon key, and service role key in `.env.local`.
-- **later** — keeps both local-json and Supabase code. Set `KMSF_AUTH_PROVIDER` to `local-json` or `supabase` before running the app.
-- **none** — auth removed entirely. `/dashboard` is publicly accessible.
+주의: `apps/kmsf` 앱 본체의 최신 초기 설정 wizard는 DB/Auth/설정 저장/Menu 선택을 더 세분화한다. CLI 옵션은 현재 scaffold 생성 시점의 변환 기능이며, 앱 runtime setup 전체와 1:1로 동기화된 상태는 아니다.
 
 ## Optional KMSF packages
-
-Interactive usage shows a checkbox list for optional package dependencies. Scripted usage can pass a comma-separated list:
 
 ```bash
 npx create-kmsf my-app --packages=gridstack,data-table,charts,chat
 ```
 
-The current generator adds dependencies only. Import package styles and components in the generated app when you start using them.
-
-Package IDs:
-
 | ID | Dependency |
-|---|---|
+| --- | --- |
 | `gridstack` | `@kmsf/gridstack` |
 | `data-table` | `@kmsf/data-table` |
 | `charts` | `@kmsf/charts` |
 | `chat` | `@kmsf/chat` |
 
-These packages must be available from npm or the configured registry for external generated projects.
+현재 generator는 dependency 추가까지만 수행한다. 실제 component import와 style import는 생성된 앱에서 개발자가 적용한다.
 
-## After scaffolding
+## 생성 후 실행
 
 ```bash
 cd my-app
@@ -103,28 +75,24 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+브라우저에서 <http://localhost:3000>을 연다.
 
-## Development Verification
+## 개발 검증
 
 ```bash
-npm run lint
-npm run typecheck
-npm run build
-npm run test:run
+npm --workspace=create-kmsf run lint
+npm --workspace=create-kmsf run test:run
+npm --workspace=create-kmsf run build
+npm --workspace=create-kmsf run verify
 npm --workspace=create-kmsf pack --dry-run
 ```
 
-Local generated app smoke test before npm publish:
+생성 앱 smoke:
 
 ```bash
 npm_config_cache=/private/tmp/kmsf-npm-cache npm --workspace=create-kmsf run smoke:kmsf
 ```
 
-The smoke command builds `create-kmsf`, packs a local tarball, scaffolds a generated
-KMSF app in `/private/tmp`, installs its dependencies, and runs lint, unit tests,
-build, and the layout-shell Playwright smoke test.
+## 요구사항
 
-## Requirements
-
-- Node >= 20.0.0
+- Node.js >= 20

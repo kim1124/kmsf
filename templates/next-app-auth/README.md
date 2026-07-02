@@ -1,15 +1,16 @@
-# Next App Auth 템플릿
+# Next App Auth Template
 
-인증이 포함된 Next.js 앱 템플릿 디렉터리다.
+`templates/next-app-auth`는 auth 관련 참고/후속 템플릿 후보 디렉터리다.
 
-## 인증 Provider
+현재 production scaffold catalog의 기본 경로는 `next-app-base`이며, 이 디렉터리는 아직 `create-kmsf`의 기본 생성 경로가 아니다.
 
-- Supabase: 기본 권장 provider다. E-mail/PW, Google OAuth, Supabase Auth 세션을 사용한다.
-- local-json: ID/PW 기반 starter provider다. `db.json` 형태의 로컬 JSON 파일을 사용하며 커스터마이징하기 쉽도록 제공한다.
+## 참고 범위
 
-자세한 설정은 저장소 문서의 `docs/auth-guide.md`를 참고한다.
+- Supabase Auth 흐름 참고
+- local file-backed auth store 참고
+- auth DB 예시 구조 참고
 
-## local-json 예시 DB
+## local DB 예시
 
 예시 파일:
 
@@ -17,11 +18,11 @@
 templates/next-app-auth/.local/auth.db.example.json
 ```
 
-런타임에서 사용할 때는 아래처럼 복사한다.
+런타임에서 사용할 때는 실제 앱의 `.local` 아래로 복사해 사용한다.
 
 ```bash
 mkdir -p apps/kmsf/.local
 cp templates/next-app-auth/.local/auth.db.example.json apps/kmsf/.local/auth.db.json
 ```
 
-`apps/kmsf/.local/auth.db.json`은 계정 데이터와 password hash를 포함할 수 있으므로 커밋하지 않는다.
+`.local/auth.db.json`은 계정 데이터와 password hash를 포함할 수 있으므로 Git에 커밋하지 않는다.

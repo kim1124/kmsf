@@ -14,7 +14,8 @@ Use this as the thin KMSF delivery router. Keep decisions local to the current t
 - Code review or PR/local diff review: use `code-review`.
 - Research, external/current information lookup, official docs comparison, or pre-plan investigation: use global `ask-research`.
 - Plan, implementation review, implementation plan, or new implementation files with unresolved supervisor decisions: use `ask-question`.
-- AGENTS, GUIDE, docs/codex, or report policy cleanup: use `md-maintainer`.
+- AGENTS, GUIDE, docs/codex, or report policy cleanup: use `update-md`.
+- README alignment with implemented features, scripts, exports, or scaffold behavior: use `update-readme`.
 - Lint/typecheck/refactor/performance or memory-risk audit: use `code-health`.
 - Vitest, Playwright, verify, or browser gate execution: use `test-gate`.
 
