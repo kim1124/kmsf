@@ -35,7 +35,7 @@ describe("accountSchema", () => {
   it("accepts email-style usernames", () => {
     const parsed = accountSchema.safeParse({
       username: "sampleuser@example.com",
-      email: "kim@example.com",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
     });
@@ -46,7 +46,7 @@ describe("accountSchema", () => {
   it("accepts the reserved initial admin username", () => {
     const parsed = accountSchema.safeParse({
       username: "admin",
-      email: "kim@example.com",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
     });
@@ -57,7 +57,7 @@ describe("accountSchema", () => {
   it("accepts the agreed initial admin test password", () => {
     const parsed = accountSchema.safeParse({
       username: "admin",
-      email: "kim@example.com",
+      email: "admin@example.com",
       password: "admin!@#$",
       passwordConfirm: "admin!@#$",
     });
@@ -67,8 +67,8 @@ describe("accountSchema", () => {
 
   it("rejects usernames outside the allowed pattern", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim-1124",
-      email: "kim@example.com",
+      username: "sample-user",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
     });
@@ -90,7 +90,7 @@ describe("accountSchema", () => {
   it("rejects passwords without a special character", () => {
     const parsed = accountSchema.safeParse({
       username: "sampleuser",
-      email: "kim@example.com",
+      email: "admin@example.com",
       password: "Pass1234",
       passwordConfirm: "Pass1234",
     });
@@ -101,7 +101,7 @@ describe("accountSchema", () => {
   it("rejects password confirmation mismatches", () => {
     const parsed = accountSchema.safeParse({
       username: "sampleuser",
-      email: "kim@example.com",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass13!",
     });

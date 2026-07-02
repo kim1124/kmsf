@@ -130,7 +130,7 @@ async function deleteInitialAdminForCleanup(
 test("@supabase-remote supabase setup, sign-up, sign-in, page checks, and member deletion", async ({ page }) => {
   const runId = `${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
   const adminEmail = `admin_${runId}@mailinator.com`;
-  const memberUsername = `kim${runId.slice(-8)}`;
+  const memberUsername = `user${runId.slice(-8)}`;
   const memberEmail = `${memberUsername}@mailinator.com`;
   const memberPassword = "member00@!";
   const adminPassword = "admin00@!";

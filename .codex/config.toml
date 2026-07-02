@@ -1,4 +1,4 @@
-# Project-scoped Codex configuration for <repo-root>.
+# Project-scoped Codex configuration for this repository.
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
