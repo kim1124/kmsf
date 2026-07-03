@@ -8,6 +8,7 @@ describe("HELP_TEXT", () => {
 	      "Usage: npx create-kmsf [name] [options]
 
 	      Options:
+	        --template=<id>         next-app-base (default) | react-vite-base
 	        --auth=<mode>           local-json (default) | supabase | later | none
 	        --layout=<list>         comma-separated GNB regions: top,left,right,footer
 	        --packages=<list>       comma-separated KMSF packages: gridstack,data-table,charts,chat

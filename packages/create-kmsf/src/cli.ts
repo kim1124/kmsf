@@ -35,13 +35,13 @@ import { createLogger } from "./logger.js";
 const require = createRequire(import.meta.url);
 const PKG = require("../package.json") as { version: string };
 
-function findTemplateRoot(): string {
+function findTemplateRoot(templateId: string): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const packageRoot = path.resolve(here, "..");
-  const bundled = path.join(packageRoot, "templates", "next-app-base");
+  const bundled = path.join(packageRoot, "templates", templateId);
   if (existsSync(bundled)) return bundled;
 
-  return path.resolve(packageRoot, "..", "..", "templates", "next-app-base");
+  return path.resolve(packageRoot, "..", "..", "templates", templateId);
 }
 
 export async function runCli(argv: string[] = process.argv.slice(2)): Promise<number> {
@@ -82,7 +82,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
       logger.error(e.message);
       return 3;
     }
-    throw e;
+    logger.error((e as Error).message);
+    return 3;
   }
 
   const targetDir = path.resolve(process.cwd(), resolved.projectName);
@@ -92,7 +93,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const result = await scaffold({
       projectName: resolved.projectName,
       targetDir,
-      templateDir: findTemplateRoot(),
+      templateDir: findTemplateRoot(resolved.templateId),
+      templateId: resolved.templateId,
       authMode: resolved.authMode,
       selectedPackages: resolved.selectedPackages,
       gnbRegions: resolved.gnbRegions,

@@ -1,7 +1,6 @@
 import type { EChartsOption, SeriesOption } from "echarts";
 
 import type { GenericChartDataFormat, KmsfChartType } from "../../../src";
-import { getExamplePalette } from "./chart-colors";
 import { buildLiveTrendRows, chartSamples } from "./chart-samples";
 import type { ChartSample, SampleClock } from "./chart-samples";
 import { officialChartFixtures } from "./official-chart-fixtures";
@@ -15,15 +14,24 @@ export interface ChartExampleContext {
   seriesCount: number;
 }
 
+export interface ChartExampleControls {
+  legend: boolean;
+  refresh: boolean;
+  tooltip: boolean;
+}
+
 export interface ChartExampleDefinition {
   buildData: (context: ChartExampleContext) => unknown;
   buildOptions?: (context: ChartExampleContext) => EChartsOption;
   buildSeries?: (context: ChartExampleContext) => SeriesOption[];
+  controls?: ChartExampleControls;
   dataFormat?: GenericChartDataFormat;
   defaultSeriesCount?: number;
   disabledReason?: string;
   id: string;
   mode: "static" | "live";
+  officialExampleId?: string;
+  officialUrl?: string;
   seriesCountEnabled?: boolean;
   seriesOptions?: Partial<SeriesOption> | Array<Partial<SeriesOption>>;
   summary: string;
@@ -50,13 +58,20 @@ const singleSeriesExampleTypes = new Set<KmsfChartType>([
   "treemap",
   "wordCloud",
 ]);
-const compactStructuralExampleTypes = new Set<KmsfChartType>([
+const hiddenLegendControlTypes = new Set<KmsfChartType>([
+  "bar",
+  "boxplot",
+  "candlestick",
+  "funnel",
   "gauge",
+  "heatmap",
+  "lines",
   "parallel",
+  "pictorialBar",
   "sankey",
   "sunburst",
-  "themeRiver",
   "tree",
+  "treemap",
   "wordCloud",
 ]);
 const officialFixturesByType = new Map<KmsfChartType, OfficialChartFixture[]>(
@@ -114,34 +129,6 @@ function getBaseTags(sample: ChartSample, mode: "static" | "live", extra: ChartE
   return Array.from(new Set(tags));
 }
 
-function mergePlainObjects<TValue extends Record<string, unknown>>(base: TValue, override?: Record<string, unknown>): TValue {
-  if (!override) {
-    return base;
-  }
-
-  const result: Record<string, unknown> = { ...base };
-
-  for (const [key, value] of Object.entries(override)) {
-    const current = result[key];
-
-    if (
-      current &&
-      value &&
-      typeof current === "object" &&
-      typeof value === "object" &&
-      !Array.isArray(current) &&
-      !Array.isArray(value)
-    ) {
-      result[key] = mergePlainObjects(current as Record<string, unknown>, value as Record<string, unknown>);
-      continue;
-    }
-
-    result[key] = value;
-  }
-
-  return result as TValue;
-}
-
 function buildSampleData(sample: ChartSample, context: ChartExampleContext, clock: SampleClock): unknown {
   return sample.buildData(clock, context.seriesCount);
 }
@@ -158,127 +145,20 @@ function getLiveUpdateInterval(_sample: ChartSample) {
   return LIVE_UPDATE_INTERVAL_MS;
 }
 
-function buildOptionVariant(sample: ChartSample, clock: SampleClock, variant = 0): EChartsOption {
-  const baseOptions = (sample.buildOptions?.(clock, 3) ?? {}) as Record<string, unknown>;
-  const palette = getExamplePalette(variant + 2);
-  const commonOptions: Record<string, unknown> = {
-    color: palette,
+function getExampleControls(sample: ChartSample): ChartExampleControls {
+  return {
+    legend: !hiddenLegendControlTypes.has(sample.type),
+    refresh: true,
+    tooltip: true,
   };
-  const typeOptions: Partial<Record<KmsfChartType, Record<string, unknown>>> = {
-    bar: {
-      grid: { bottom: 36, left: 24, right: 16, top: 28 },
-      xAxis: { axisLabel: { rotate: 20 } },
-    },
-    boxplot: {
-      grid: { bottom: 32, left: 32, right: 18, top: 28 },
-      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
-    },
-    candlestick: {
-      grid: { bottom: 38, left: 28, right: 18, top: 26 },
-      yAxis: { scale: true },
-    },
-    effectScatter: {
-      xAxis: { boundaryGap: false },
-      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
-    },
-    funnel: {
-      legend: { bottom: 0, top: undefined },
-    },
-    gauge: {
-      legend: false,
-    },
-    graph: {
-      legend: { top: 8 },
-    },
-    heatmap: {
-      visualMap: { bottom: 4, left: "center", orient: "horizontal" },
-    },
-    line: {
-      dataZoom: [{ type: "inside" }],
-      xAxis: { boundaryGap: false },
-      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
-    },
-    lines: {
-      grid: { bottom: 28, left: 28, right: 20, top: 28 },
-    },
-    parallel: {
-      parallel: { bottom: 28, left: 58, right: 30, top: 64 },
-    },
-    pictorialBar: {
-      grid: { bottom: 34, left: 24, right: 16, top: 28 },
-    },
-    pie: {
-      legend: { orient: "vertical", right: 8, top: 36, type: "scroll" },
-    },
-    radar: {
-      legend: { top: 8 },
-      radar: { center: ["50%", "62%"], radius: "46%", splitNumber: 4 },
-    },
-    sankey: {
-      legend: false,
-    },
-    scatter: {
-      xAxis: { boundaryGap: false },
-      yAxis: { splitLine: { lineStyle: { type: "dashed" } } },
-    },
-    sunburst: {
-      legend: false,
-    },
-    themeRiver: {
-      singleAxis: { bottom: 38, left: 48, right: 24, top: 64, type: "time" },
-    },
-    tree: {
-      legend: { top: 8 },
-    },
-    treemap: {
-      legend: false,
-    },
-    wordCloud: {
-      legend: false,
-    },
-  };
-
-  return mergePlainObjects(mergePlainObjects(baseOptions, commonOptions), typeOptions[sample.type]) as EChartsOption;
 }
 
-function buildOptionSeries(sample: ChartSample, variant = 0): Partial<SeriesOption> | Array<Partial<SeriesOption>> | undefined {
-  if (sample.seriesOptions) {
-    return sample.seriesOptions;
-  }
-
-  if (sample.type === "line") {
-    return variant % 2 === 0 ? { areaStyle: {}, smooth: true } : { lineStyle: { width: 3 }, smooth: true };
-  }
-
-  if (sample.type === "bar") {
-    return variant % 2 === 0 ? { barMaxWidth: 18 } : { barGap: "24%", barMaxWidth: 26 };
-  }
-
-  if (sample.type === "pie") {
-    return variant % 2 === 0
-      ? { center: ["34%", "52%"], radius: ["42%", "72%"] }
-      : { center: ["36%", "52%"], roseType: "radius", radius: ["24%", "72%"] };
-  }
-
-  if (sample.type === "scatter" || sample.type === "effectScatter") {
-    return variant % 2 === 0 ? { symbolSize: 10 } : { symbol: "diamond", symbolSize: 14 };
-  }
-
-  if (sample.type === "tree") {
-    return variant % 2 === 0 ? { symbolSize: 8 } : { edgeShape: "polyline", symbolSize: 10 };
-  }
-
-  if (sample.type === "sankey") {
-    return variant % 2 === 0 ? { lineStyle: { opacity: 0.35 } } : { nodeGap: 10, nodeWidth: 12 };
-  }
-
-  if (sample.type === "themeRiver") {
-    return variant % 2 === 0 ? { emphasis: { focus: "series" } } : { label: { show: false } };
-  }
-
-  return variant % 2 === 0
-    ? { emphasis: { focus: "series" } }
-    : { emphasis: { focus: "self" }, selectedMode: "single" };
+function sanitizeExampleId(value: string) {
+  return value
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .toLowerCase();
 }
 
 function createExamples(sample: ChartSample): ChartExampleDefinition[] {
@@ -286,6 +166,7 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
     return [
       {
         buildData: () => sample.buildData(staticClock, 1),
+        controls: { legend: false, refresh: false, tooltip: false },
         dataFormat: sample.dataFormat,
         disabledReason: sample.disabledReason,
         id: `${sample.type}-placeholder`,
@@ -300,16 +181,19 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
 
   const seriesCountEnabled = canUseSeriesCount(sample);
   const officialBasicFixture = getOfficialFixture(sample.type, "Basic");
-  const officialAdvancedFixture = getOfficialFixture(sample.type, "Advanced");
+  const controls = getExampleControls(sample);
 
   const examples: ChartExampleDefinition[] = [
     {
       buildData: (context) =>
         officialBasicFixture?.data ??
         buildSampleData(sample, { ...context, seriesCount: 1 }, getStaticClock(context.refreshVersion)),
+      controls,
       dataFormat: officialBasicFixture?.dataFormat ?? sample.dataFormat,
       id: `${sample.type}-static-basic`,
       mode: "static",
+      officialExampleId: officialBasicFixture?.officialExampleId,
+      officialUrl: officialBasicFixture?.officialUrl,
       seriesCountEnabled: false,
       seriesOptions: officialBasicFixture?.seriesOptions ?? sample.seriesOptions,
       summary: officialBasicFixture?.summary ?? `${sample.summary}의 기본 사용 예제입니다.`,
@@ -337,6 +221,7 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
 
         return buildSampleData(sample, context, nextClock);
       },
+      controls,
       dataFormat: sample.dataFormat,
       defaultSeriesCount: seriesCountEnabled ? 2 : undefined,
       id: `${sample.type}-live-update`,
@@ -355,75 +240,30 @@ function createExamples(sample: ChartSample): ChartExampleDefinition[] {
         ? { buildSeries: (context) => sample.buildSeries!(offsetClock(context.clock, context.refreshVersion), context.seriesCount) }
         : {}),
     },
-    {
-      buildData: (context) => {
-        const nextClock = getStaticClock(context.refreshVersion + 2);
-
-        return buildSampleData(sample, context, nextClock);
-      },
-      buildOptions: (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 2)),
-      dataFormat: sample.dataFormat,
-      defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
-      id: `${sample.type}-option-variant`,
-      mode: "static",
-      seriesCountEnabled: false,
-      seriesOptions: buildOptionSeries(sample),
-      summary: `${sample.summary}에 자주 쓰는 시각 옵션을 적용한 예제입니다.`,
-      tags: getBaseTags(sample, "static", ["Type"]),
-      title: "옵션 변형",
-      type: sample.type,
-      ...(sample.buildSeries
-        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 2), context.seriesCount) }
-        : {}),
-    },
-    {
-      buildData: (context) => buildSampleData(sample, context, getStaticClock(context.refreshVersion + 4)),
-      buildOptions: (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 4), 1),
-      dataFormat: sample.dataFormat,
-      defaultSeriesCount: seriesCountEnabled ? 2 : undefined,
-      id: `${sample.type}-data-variant`,
-      mode: "static",
-      seriesCountEnabled: false,
-      seriesOptions: buildOptionSeries(sample, 1),
-      summary: `${sample.summary}의 데이터 분포를 다르게 구성한 예제입니다.`,
-      tags: getBaseTags(sample, "static", ["Type"]),
-      title: "데이터 변형",
-      type: sample.type,
-      ...(sample.buildSeries
-        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 4), context.seriesCount) }
-        : {}),
-    },
-    {
-      buildData: (context) =>
-        officialAdvancedFixture?.data ?? buildSampleData(sample, context, getStaticClock(context.refreshVersion + 7)),
-      buildOptions: officialAdvancedFixture?.options
-        ? () => officialAdvancedFixture.options!
-        : (context) => buildOptionVariant(sample, getStaticClock(context.refreshVersion + 7), 2),
-      dataFormat: officialAdvancedFixture?.dataFormat ?? sample.dataFormat,
-      defaultSeriesCount: seriesCountEnabled ? 3 : undefined,
-      id: `${sample.type}-layout-variant`,
-      mode: "static",
-      seriesCountEnabled: false,
-      seriesOptions: officialAdvancedFixture?.seriesOptions ?? buildOptionSeries(sample, 2),
-      summary: officialAdvancedFixture?.summary ?? `${sample.summary}의 레이아웃과 강조 표현을 바꾼 예제입니다.`,
-      tags: getBaseTags(sample, "static", sample.type === "pictorialBar" ? ["Advanced"] : ["Type"]),
-      title: officialAdvancedFixture?.title ?? "레이아웃 변형",
-      type: sample.type,
-      ...(officialAdvancedFixture?.series
-        ? { buildSeries: () => officialAdvancedFixture.series! }
-        : sample.buildSeries
-        ? { buildSeries: (context) => sample.buildSeries!(getStaticClock(context.refreshVersion + 7), context.seriesCount) }
-        : {}),
-    },
   ];
 
-  if (!compactStructuralExampleTypes.has(sample.type)) {
-    return examples;
+  for (const fixture of (officialFixturesByType.get(sample.type) ?? []).filter((item) => item.officialExampleId !== officialBasicFixture?.officialExampleId)) {
+    examples.push({
+      buildData: () => fixture.data,
+      controls,
+      dataFormat: fixture.dataFormat ?? sample.dataFormat,
+      defaultSeriesCount: undefined,
+      id: `${sample.type}-official-${sanitizeExampleId(fixture.officialExampleId)}`,
+      mode: "static",
+      officialExampleId: fixture.officialExampleId,
+      officialUrl: fixture.officialUrl,
+      seriesCountEnabled: false,
+      seriesOptions: fixture.seriesOptions ?? sample.seriesOptions,
+      summary: fixture.summary,
+      tags: getBaseTags(sample, "static", fixture.section === "Advanced" ? ["Advanced"] : ["Type"]),
+      title: fixture.title,
+      type: sample.type,
+      ...(fixture.options ? { buildOptions: () => fixture.options! } : {}),
+      ...(fixture.series ? { buildSeries: () => fixture.series! } : {}),
+    });
   }
 
-  return examples
-    .filter((example) => example.mode === "live" || example.id.endsWith("static-basic") || example.tags.includes("Advanced"))
-    .slice(0, 3);
+  return examples;
 }
 
 export const chartExampleGroups: Partial<Record<KmsfChartType, ChartExampleDefinition[]>> = Object.fromEntries(
@@ -431,6 +271,74 @@ export const chartExampleGroups: Partial<Record<KmsfChartType, ChartExampleDefin
 ) as Partial<Record<KmsfChartType, ChartExampleDefinition[]>>;
 
 export function getExampleUsageCode(example: ChartExampleDefinition) {
+  if (example.type === "line") {
+    return `<TrendChart
+  data={trendRows}
+  series={[
+    { id: "series-1", name: "Series 1" },
+    { id: "series-2", name: "Series 2" },
+  ]}
+/>`;
+  }
+
+  if (example.type === "bar" || example.type === "pie" || example.type === "treemap") {
+    return `<TopChart
+  data={topRows}
+  mode="${example.type}"
+/>`;
+  }
+
+  if (example.type === "gauge") {
+    return `<GaugeChart
+  data={[{ name: "Score", value: 72 }]}
+  seriesOptions={seriesOptions}
+/>`;
+  }
+
+  if (example.type === "sunburst") {
+    return `<SunburstChart
+  data={data}
+/>`;
+  }
+
+  if (example.type === "wordCloud") {
+    return `<WordCloud
+  data={data}
+/>`;
+  }
+
+  if (example.type === "radar") {
+    return `<RadarChart
+  data={data}
+  indicators={indicators}
+  series={series}
+/>`;
+  }
+
+  if (example.type === "heatmap") {
+    return `<HeatmapChart
+  data={data}
+  xAxisData={xAxisData}
+  yAxisData={yAxisData}
+  visualMap={visualMap}
+/>`;
+  }
+
+  if (example.type === "graph") {
+    return `<GraphChart
+  nodes={nodes}
+  links={links}
+  layout="force"
+/>`;
+  }
+
+  if (example.type === "sankey") {
+    return `<SankeyChart
+  data={nodes}
+  links={links}
+/>`;
+  }
+
   const dataFormatLine = example.dataFormat ? `\n  dataFormat="${example.dataFormat}"` : "";
   const optionsLine = example.buildOptions ? "\n  options={options}" : "";
   const seriesLine = example.buildSeries ? "\n  series={series}" : "";

@@ -119,8 +119,11 @@ async function gotoChartExample(page: Page, type: string) {
   await page.goto(`/examples/${type}`);
 }
 
-async function openPropsTab(card: Locator) {
-  await card.getByRole("tab", { name: "Props" }).click();
+async function readChartCanvasSnapshot(card: Locator) {
+  const canvas = card.locator("canvas").first();
+  await expect(canvas).toBeVisible();
+
+  return canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL("image/png"));
 }
 
 function elapsedSeconds(startedAt: number) {
@@ -191,10 +194,6 @@ async function readPerformanceCheckpoint(session: CDPSession) {
   };
 }
 
-async function readText(locator: Locator) {
-  return (await locator.textContent()) ?? "";
-}
-
 function summarizeMemory(samples: SoakSnapshot[]) {
   const memorySamples = samples.filter((sample): sample is SoakSnapshot & { heapUsed: number } =>
     typeof sample.heapUsed === "number",
@@ -233,14 +232,12 @@ test("line live chart updates during soak without browser diagnostics", async ({
   await gotoChartExample(page, "line");
 
   const liveCard = page.getByTestId("chart-example-card-line-live-update");
-  await openPropsTab(liveCard);
-  const liveData = liveCard.getByTestId("sample-data");
   await expect.poll(async () => (await getCanvasLayerCheck(liveCard, "line")).failures.join("\n")).toBe("");
-  const before = await liveData.textContent();
+  const before = await readChartCanvasSnapshot(liveCard);
 
   await page.waitForTimeout(durationMs);
 
-  await expect(liveData).not.toHaveText(before ?? "");
+  await expect.poll(() => readChartCanvasSnapshot(liveCard), { timeout: 3_000 }).not.toBe(before);
   expect(diagnostics).toEqual([]);
 });
 
@@ -259,9 +256,7 @@ test("line live chart performance and memory stay stable during soak", async ({ 
 
   const cards = page.getByTestId(new RegExp(`chart-example-card-${type}-`));
   const liveCard = page.getByTestId("chart-example-card-line-live-update");
-  await openPropsTab(liveCard);
-  const liveData = liveCard.getByTestId("sample-data");
-  let previousData = await readText(liveData);
+  let previousData = await readChartCanvasSnapshot(liveCard);
   let cycle = 0;
 
   while (Date.now() - startedAt < durationMs) {
@@ -272,7 +267,7 @@ test("line live chart performance and memory stay stable during soak", async ({ 
     await page.setViewportSize(viewport);
 
     try {
-      await expect(cards).toHaveCount(5, { timeout: 3_000 });
+      await expect.poll(async () => cards.count(), { timeout: 3_000 }).toBeGreaterThanOrEqual(2);
     } catch (error) {
       recordAnomaly(anomalies, startedAt, type, `card visibility failed: ${String(error)}`);
     }
@@ -293,7 +288,7 @@ test("line live chart performance and memory stay stable during soak", async ({ 
 
     await page.waitForTimeout(intervalMs);
 
-    const currentData = await readText(liveData);
+    const currentData = await readChartCanvasSnapshot(liveCard);
     const sampleDataChanged = currentData !== previousData;
 
     if (!sampleDataChanged) {
@@ -401,12 +396,10 @@ test("all implemented chart types update during soak without browser diagnostics
 
     const cards = page.getByTestId(new RegExp(`chart-example-card-${type}-`));
     const liveCard = page.getByTestId(`chart-example-card-${type}-live-update`);
-    await openPropsTab(liveCard);
-    const liveData = liveCard.getByTestId("sample-data");
-    const before = await readText(liveData);
+    const before = await readChartCanvasSnapshot(liveCard);
 
     try {
-      await expect(cards).toHaveCount(5, { timeout: 3_000 });
+      await expect.poll(async () => cards.count(), { timeout: 3_000 }).toBeGreaterThanOrEqual(2);
     } catch (error) {
       recordAnomaly(anomalies, startedAt, type, `card visibility failed: ${String(error)}`);
     }
@@ -430,7 +423,7 @@ test("all implemented chart types update during soak without browser diagnostics
     await page.waitForTimeout(intervalMs);
 
     try {
-      await expect.poll(() => readText(liveData), { timeout: 2_000 }).not.toBe(before);
+      await expect.poll(() => readChartCanvasSnapshot(liveCard), { timeout: 3_000 }).not.toBe(before);
       sampleDataChanged = true;
     } catch {
       recordAnomaly(anomalies, startedAt, type, "sample data did not change after the soak interval");

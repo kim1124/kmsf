@@ -593,6 +593,70 @@ export const chartSamples: ChartSample[] = [
 ];
 
 export function getUsageCode(sample: ChartSample) {
+  if (sample.type === "line") {
+    return `<TrendChart
+  data={trendRows}
+  series={[
+    { id: "series-1", name: "Series 1" },
+    { id: "series-2", name: "Series 2" },
+  ]}
+/>`;
+  }
+
+  if (sample.type === "bar" || sample.type === "pie" || sample.type === "treemap") {
+    return `<TopChart
+  data={topRows}
+  mode="${sample.type}"
+/>`;
+  }
+
+  if (sample.type === "gauge") {
+    return `<GaugeChart
+  data={[{ name: "Score", value: 72 }]}
+  seriesOptions={seriesOptions}
+/>`;
+  }
+
+  if (sample.type === "sunburst") {
+    return `<SunburstChart data={data} />`;
+  }
+
+  if (sample.type === "wordCloud") {
+    return `<WordCloud data={data} />`;
+  }
+
+  if (sample.type === "radar") {
+    return `<RadarChart
+  data={data}
+  indicators={indicators}
+  series={series}
+/>`;
+  }
+
+  if (sample.type === "heatmap") {
+    return `<HeatmapChart
+  data={data}
+  xAxisData={xAxisData}
+  yAxisData={yAxisData}
+  visualMap={visualMap}
+/>`;
+  }
+
+  if (sample.type === "graph") {
+    return `<GraphChart
+  nodes={nodes}
+  links={links}
+  layout="force"
+/>`;
+  }
+
+  if (sample.type === "sankey") {
+    return `<SankeyChart
+  data={nodes}
+  links={links}
+/>`;
+  }
+
   const dataFormatLine = sample.dataFormat ? `\n  dataFormat="${sample.dataFormat}"` : "";
   const optionsLine = sample.buildOptions ? "\n  options={options}" : "";
   const seriesLine = sample.buildSeries ? "\n  series={series}" : "";

@@ -124,14 +124,13 @@ function seriesDoc(type: KmsfChartType) {
   return { label: `series-${type}`, url: officialSeriesDocs[type] };
 }
 
-function topExample(type: KmsfChartType) {
-  return `<GenericChart
-  type="${type}"
+function topExample(type: "bar" | "pie" | "treemap") {
+  return `<TopChart
   data={[
     ["Alpha", 120],
     ["Beta", 96],
   ]}
-  dataFormat="top"
+  mode="${type}"
 />`;
 }
 
@@ -146,13 +145,24 @@ function trendExample(type: KmsfChartType) {
 />`;
 }
 
+const trendChartExample = `<TrendChart
+  data={[
+    ["2026-05-26 10:00:00", 120, 82],
+    ["2026-05-26 10:00:01", 132, 91],
+  ]}
+  series={[
+    { id: "sales", name: "Sales" },
+    { id: "orders", name: "Orders" },
+  ]}
+/>`;
+
 const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
   line: {
     type: "line",
     dataDescription: "`data`: `[[time, value], ...]` 형태의 추이 데이터입니다. `time`은 문자열 또는 `Date`를 사용할 수 있습니다.",
     recommendedProps: ["`dataFormat`: `trend`", "`seriesOptions.smooth`: 기본 `true`입니다."],
     officialDocs: [seriesDoc("line")],
-    exampleCode: trendExample("line"),
+    exampleCode: trendChartExample,
   },
   bar: {
     type: "bar",
@@ -221,18 +231,15 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
       { label: "radar", url: componentDocs.radar },
       seriesDoc("radar"),
     ],
-    exampleCode: `<GenericChart
-  type="radar"
+    exampleCode: `<RadarChart
   data={[{ name: "KMSF", value: [92, 84, 78] }]}
-  dataFormat="native"
+  indicators={[
+    { name: "UX", max: 100 },
+    { name: "API", max: 100 },
+    { name: "Perf", max: 100 },
+  ]}
   options={{
-    radar: {
-      indicator: [
-        { name: "UX", max: 100 },
-        { name: "API", max: 100 },
-        { name: "Perf", max: 100 },
-      ],
-    },
+    radar: { radius: "58%" },
   }}
 />`,
   },
@@ -249,18 +256,14 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
       seriesDoc("heatmap"),
       { label: "visualMap", url: componentDocs.visualMap },
     ],
-    exampleCode: `<GenericChart
-  type="heatmap"
+    exampleCode: `<HeatmapChart
   data={[
     [0, 0, 42],
     [1, 0, 56],
   ]}
-  dataFormat="native"
-  options={{
-    visualMap: { min: 0, max: 100 },
-    xAxis: { type: "category", data: ["Mon", "Tue"] },
-    yAxis: { type: "category", data: ["A"] },
-  }}
+  visualMap={{ min: 0, max: 100 }}
+  xAxisData={["Mon", "Tue"]}
+  yAxisData={["A"]}
 />`,
   },
   tree: {
@@ -291,15 +294,13 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
     dataDescription: "`data`: `[{ name, value?, children? }]` 형태의 계층 데이터입니다.",
     recommendedProps: ["`dataFormat`: `native`"],
     officialDocs: [seriesDoc("sunburst")],
-    exampleCode: `<GenericChart
-  type="sunburst"
+    exampleCode: `<SunburstChart
   data={[
     {
       name: "Traffic",
       children: [{ name: "Organic", value: 46 }],
     },
   ]}
-  dataFormat="native"
 />`,
   },
   map: {
@@ -345,17 +346,13 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
       { prop: "series", code: "series[].links", description: "node 간 연결 관계를 source, target으로 정의합니다." },
     ],
     officialDocs: [seriesDoc("graph")],
-    exampleCode: `<GenericChart
-  type="graph"
-  data={[
+    exampleCode: `<GraphChart
+  nodes={[
     { name: "Visit", x: 80, y: 140 },
     { name: "Signup", x: 220, y: 80 },
   ]}
-  dataFormat="native"
-  series={[{
-    layout: "none",
-    links: [{ source: "Visit", target: "Signup" }],
-  }]}
+  layout="none"
+  links={[{ source: "Visit", target: "Signup" }]}
 />`,
   },
   boxplot: {
@@ -409,11 +406,10 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
     dataDescription: "`data`: `[[name, value], ...]` 형태의 단일 지표 또는 TOP 데이터입니다.",
     recommendedProps: ["`dataFormat`: `top`", "`seriesOptions`: `min`, `max` 등 gauge 표시 범위 조정"],
     officialDocs: [seriesDoc("gauge")],
-    exampleCode: `<GenericChart
-  type="gauge"
-  data={[["Conversion", 72]]}
-  dataFormat="top"
-  seriesOptions={{ min: 0, max: 100 }}
+    exampleCode: `<GaugeChart
+  data={{ name: "Conversion", value: 72 }}
+  max={100}
+  min={0}
 />`,
   },
   funnel: {
@@ -421,7 +417,14 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
     dataDescription: "`data`: `[[name, value], ...]` 형태의 TOP 데이터입니다.",
     recommendedProps: ["`dataFormat`: `top`", "`label`: 기본 숨김입니다.", "`tooltip`: single-series TOP tooltip은 `Item N` 라벨을 사용합니다."],
     officialDocs: [seriesDoc("funnel")],
-    exampleCode: topExample("funnel"),
+    exampleCode: `<GenericChart
+  type="funnel"
+  data={[
+    ["Visit", 100],
+    ["Lead", 72],
+  ]}
+  dataFormat="top"
+/>`,
   },
   sankey: {
     type: "sankey",
@@ -431,13 +434,9 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
       { prop: "series", code: "series[].links", description: "흐름의 source, target, value를 정의합니다." },
     ],
     officialDocs: [seriesDoc("sankey")],
-    exampleCode: `<GenericChart
-  type="sankey"
+    exampleCode: `<SankeyChart
   data={[{ name: "Visit" }, { name: "Signup" }]}
-  dataFormat="native"
-  series={[{
-    links: [{ source: "Visit", target: "Signup", value: 10 }],
-  }]}
+  links={[{ source: "Visit", target: "Signup", value: 10 }]}
 />`,
   },
   themeRiver: {
@@ -496,7 +495,12 @@ const chartDocDefinitions: Record<KmsfChartType, ChartDocDefinition> = {
     dataDescription: "`data`: `[[name, value], ...]` 형태의 TOP 키워드 데이터입니다.",
     recommendedProps: ["`dataFormat`: `top`"],
     officialDocs: [{ label: "echarts-wordcloud", url: officialSeriesDocs.wordCloud }],
-    exampleCode: topExample("wordCloud"),
+    exampleCode: `<WordCloud
+  data={[
+    { name: "Alpha", value: 120 },
+    { name: "Beta", value: 96 },
+  ]}
+/>`,
   },
 };
 
@@ -785,7 +789,18 @@ export const chartApiFeatureDocs: ChartApiFeatureDoc[] = [
         description: "ECharts instance가 준비되면 호출되는 callback입니다.",
       },
     ],
-    samples: [{ code: chartDocDefinitions.bar.exampleCode, language: "tsx", title: "GenericChart 기본 예제" }],
+    samples: [{
+      code: `<GenericChart
+  type="bar"
+  data={[
+    ["Alpha", 120],
+    ["Beta", 96],
+  ]}
+  dataFormat="top"
+/>`,
+      language: "tsx",
+      title: "GenericChart 기본 예제",
+    }],
     liveLinks: [{ label: "GenericChart 라이브 예제", path: "/examples/generic-chart", type: "bar" }],
   },
   {
@@ -864,8 +879,8 @@ export function DashboardCharts() {
       },
     ],
     liveLinks: [
-      { label: "Trend 라이브 예제", path: "/examples/trend", type: "line" },
-      { label: "Top 라이브 예제", path: "/examples/top", type: "bar" },
+      { label: "Line 라이브 예제", path: "/examples/line#line-live-update", type: "line" },
+      { label: "Bar 라이브 예제", path: "/examples/bar#bar-live-update", type: "bar" },
     ],
   },
   {

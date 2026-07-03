@@ -1,10 +1,11 @@
 import { parseArgs } from "node:util";
-import type { AuthMode, GnbRegion, KmsfPackageId } from "./generator-core/index.js";
+import type { AuthMode, GnbRegion, KmsfPackageId, TemplateId } from "./generator-core/index.js";
 import { parseGnbRegionList } from "./generator-core/gnb-layout-options.js";
 import { parseKmsfPackageList } from "./generator-core/package-options.js";
 
 export interface ParsedArgs {
   projectName?: string;
+  templateId?: TemplateId;
   authMode?: AuthMode;
   selectedPackages?: KmsfPackageId[];
   gnbRegions?: GnbRegion[];
@@ -19,6 +20,7 @@ export interface ParsedArgs {
 }
 
 const VALID_AUTH: ReadonlyArray<AuthMode> = ["local-json", "supabase", "later", "none"];
+const VALID_TEMPLATES: ReadonlyArray<TemplateId> = ["next-app-base", "react-vite-base"];
 
 export function parseCliArgs(argv: string[]): ParsedArgs {
   const { values, positionals } = parseArgs({
@@ -27,6 +29,7 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
     strict: false,
     options: {
       auth: { type: "string" },
+      template: { type: "string" },
       layout: { type: "string" },
       packages: { type: "string" },
       "no-packages": { type: "boolean" },
@@ -48,6 +51,13 @@ export function parseCliArgs(argv: string[]): ParsedArgs {
   const result: ParsedArgs = {};
 
   if (positionals.length > 0) result.projectName = positionals[0];
+
+  if (typeof values.template === "string") {
+    if (!VALID_TEMPLATES.includes(values.template as TemplateId)) {
+      throw new Error(`invalid --template value: ${values.template}. Use ${VALID_TEMPLATES.join(" | ")}`);
+    }
+    result.templateId = values.template as TemplateId;
+  }
 
   if (typeof values.auth === "string") {
     if (!VALID_AUTH.includes(values.auth as AuthMode)) {
@@ -88,6 +98,7 @@ export const HELP_TEXT = `
 Usage: npx create-kmsf [name] [options]
 
 Options:
+  --template=<id>         next-app-base (default) | react-vite-base
   --auth=<mode>           local-json (default) | supabase | later | none
   --layout=<list>         comma-separated GNB regions: top,left,right,footer
   --packages=<list>       comma-separated KMSF packages: gridstack,data-table,charts,chat

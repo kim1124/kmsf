@@ -1,6 +1,9 @@
 /** Auth provider mode chosen at scaffold time. */
 export type AuthMode = "local-json" | "supabase" | "later" | "none";
 
+/** Starter template selected at scaffold time. */
+export type TemplateId = "next-app-base" | "react-vite-base";
+
 /** Optional KMSF packages added to the generated app. */
 export type KmsfPackageId = "gridstack" | "data-table" | "charts" | "chat";
 
@@ -31,6 +34,8 @@ export interface ScaffoldOptions {
   targetDir: string;
   /** Absolute path to templates root (e.g. .../templates/next-app-base). */
   templateDir: string;
+  /** Starter template selected at scaffold time. */
+  templateId: TemplateId;
   /** Auth mode. */
   authMode: AuthMode;
   /** Include i18n config and messages/. Default true. */

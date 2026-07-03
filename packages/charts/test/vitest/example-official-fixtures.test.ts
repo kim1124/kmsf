@@ -16,7 +16,12 @@ describe("official chart fixtures", () => {
   it("covers every supported rendered type except map and custom", () => {
     const expected = supportedGenericChartTypes.filter((type) => type !== "map" && type !== "custom");
 
-    expect(officialChartFixtures.map((fixture) => fixture.type).sort()).toEqual([...expected].sort());
+    expect(Array.from(new Set(officialChartFixtures.map((fixture) => fixture.type))).sort()).toEqual([...expected].sort());
+  });
+
+  it("keeps official fixtures curated instead of auto-generated from the whole catalog", () => {
+    expect(officialChartFixtures.length).toBeLessThan(40);
+    expect(officialChartFixtures.some((fixture) => fixture.summary.includes("로컬 데이터로 축약한 예제"))).toBe(false);
   });
 
   it("marks live fixtures as data-edit locked", () => {

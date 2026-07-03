@@ -16,6 +16,16 @@ describe("parseCliArgs", () => {
     expect(r3.authMode).toBe("later");
   });
 
+  it("parses --template flag", () => {
+    const r = parseCliArgs(["my-app", "--template=react-vite-base"]);
+
+    expect(r.templateId).toBe("react-vite-base");
+  });
+
+  it("rejects invalid --template value", () => {
+    expect(() => parseCliArgs(["my-app", "--template=bogus"])).toThrow(/template/);
+  });
+
   it("rejects invalid --auth value", () => {
     expect(() => parseCliArgs(["m", "--auth=bogus"])).toThrow(/auth/);
   });

@@ -1,6 +1,6 @@
 # create-kmsf
 
-`create-kmsf`는 KMSF Next.js starter 앱을 생성하는 scaffold CLI다. 현재 CLI는 bundled `next-app-base` template을 복사한 뒤 auth, GNB layout, optional package, i18n, install, git, Playwright 설정을 선택적으로 적용한다.
+`create-kmsf`는 KMSF starter 앱을 생성하는 scaffold CLI다. 현재 CLI는 bundled template을 복사한 뒤 auth, GNB layout, optional package, i18n, install, git, Playwright 설정을 선택적으로 적용한다.
 
 ## 패키지 상태
 
@@ -15,6 +15,12 @@
 npx create-kmsf my-app
 ```
 
+React/Vite starter 생성:
+
+```bash
+npx create-kmsf my-app --template=react-vite-base --auth=none
+```
+
 로컬 tarball 검증:
 
 ```bash
@@ -26,7 +32,7 @@ npx --yes --package ./packages/create-kmsf/create-kmsf-0.1.0.tgz -- create-kmsf 
 완전 scripted 실행:
 
 ```bash
-npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app --auth=local-json --layout=top,left,footer --packages=gridstack,data-table,charts,chat --no-i18n --no-install --no-git --no-playwright --silent
+npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app --template=next-app-base --auth=local-json --layout=top,left,footer --packages=gridstack,data-table,charts,chat --no-i18n --no-install --no-git --no-playwright --silent
 ```
 
 `--silent`는 prompt를 열지 않는다. CI에서 사용할 때는 필요한 option을 모두 전달해야 한다.
@@ -35,6 +41,7 @@ npx --yes --package ./create-kmsf-0.1.0.tgz -- create-kmsf my-app --auth=local-j
 
 | 옵션 | 설명 |
 | --- | --- |
+| `--template=<id>` | starter template. `next-app-base` 기본값, `react-vite-base` |
 | `--auth=<mode>` | `local-json` 기본값, `supabase`, `later`, `none` |
 | `--layout=<list>` | GNB 영역 목록. 예: `top,left,right,footer` |
 | `--packages=<list>` | optional KMSF package. 예: `gridstack,data-table,charts,chat` |
@@ -57,6 +64,20 @@ CLI scaffold auth mode는 생성 시점의 코드 포함/제거 기준이다.
 - `later`: local-json과 Supabase 코드를 모두 남기고 생성 후 `KMSF_AUTH_PROVIDER`로 선택한다.
 - `none`: 인증 코드를 제거하고 protected route를 공개 starter로 바꾼다.
 
+## Template
+
+| Template | 설명 | 지원 auth mode |
+| --- | --- | --- |
+| `next-app-base` | Next.js App Router 기반 starter. 기존 기본값이다. | `local-json`, `supabase`, `later`, `none` |
+| `react-vite-base` | React/Vite SPA starter. React Router Data Mode, Zustand, react-i18next, Axios, Zod, Vitest, Playwright를 포함한다. | `none`, `later` |
+
+예시:
+
+```bash
+npx create-kmsf my-app --template=next-app-base
+npx create-kmsf my-app --template=react-vite-base --auth=none
+```
+
 주의: `apps/kmsf` 앱 본체의 최신 초기 설정 wizard는 DB/Auth/설정 저장/Menu 선택을 더 세분화한다. CLI 옵션은 현재 scaffold 생성 시점의 변환 기능이며, 앱 runtime setup 전체와 1:1로 동기화된 상태는 아니다.
 
 ## Optional KMSF packages
@@ -76,7 +97,7 @@ npx create-kmsf my-app --packages=gridstack,data-table,charts,chat
 
 ## 생성되는 starter 범위
 
-- Next.js `next-app-base` template 복사
+- 선택한 starter template 복사
 - 선택한 auth mode별 runtime tree pruning
 - 선택한 GNB 영역 `top`, `left`, `right`, `footer` 반영
 - optional KMSF package dependency 추가

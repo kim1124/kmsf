@@ -314,7 +314,7 @@ test("pagination page owns the table paging example above virtualization", async
     .locator(".docs-sidebar__group", { hasText: "Body / Performance" })
     .getByRole("link")
     .allTextContents();
-  expect(performanceLinks).toEqual(["Pagination", "Virtualization"]);
+  expect(performanceLinks).toEqual(["Pagination", "Infinite Scroll", "Lazy Load", "Virtualization"]);
   expect(diagnostics).toEqual([]);
 });
 
@@ -602,6 +602,14 @@ test("docs sidebar keeps feature-specific route identities", async ({ page }) =>
   await expect(page.getByRole("link", { exact: true, name: "Pagination" })).toHaveAttribute(
     "href",
     "/performance/pagination",
+  );
+  await expect(page.getByRole("link", { exact: true, name: "Infinite Scroll" })).toHaveAttribute(
+    "href",
+    "/performance/infinite-scroll",
+  );
+  await expect(page.getByRole("link", { exact: true, name: "Lazy Load" })).toHaveAttribute(
+    "href",
+    "/performance/lazy-load",
   );
   await expect(page.getByRole("link", { exact: true, name: "Context Menu 예제" })).toHaveAttribute(
     "href",

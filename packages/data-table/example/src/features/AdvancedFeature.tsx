@@ -6,7 +6,7 @@ const unavailable = [
   "별도 외부 store adapter 객체",
   "시각적 Fill Handle UI",
   "server-side row model",
-  "lazy-load row model",
+  "viewport datasource model",
   "그룹핑",
   "집계",
   "피벗",

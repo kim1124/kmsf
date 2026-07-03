@@ -1,4 +1,4 @@
-export type ChartThemeValue = "basic" | "dark" | "skyblue" | "mint" | "gray" | "orange";
+export type ChartThemeValue = "kmsf" | "dark" | "skyblue" | "mint" | "gray" | "orange";
 
 export interface ChartThemeOption {
   label: string;
@@ -8,9 +8,9 @@ export interface ChartThemeOption {
 
 export const chartThemeOptions: ChartThemeOption[] = [
   {
-    label: "Basic",
+    label: "KMSF",
     palette: ["#064e3b", "#047857", "#059669", "#10b981", "#14b8a6", "#0d9488", "#0f766e", "#2dd4bf", "#34d399", "#5eead4"],
-    value: "basic",
+    value: "kmsf",
   },
   {
     label: "Dark",
@@ -24,7 +24,7 @@ export const chartThemeOptions: ChartThemeOption[] = [
   },
   {
     label: "Mint",
-    palette: ["#064e3b", "#047857", "#059669", "#10b981", "#14b8a6", "#0d9488", "#0f766e", "#2dd4bf", "#34d399", "#5eead4"],
+    palette: ["#0f766e", "#14b8a6", "#2dd4bf", "#5eead4", "#99f6e4", "#6ee7b7", "#34d399", "#22c55e", "#84cc16", "#bef264"],
     value: "mint",
   },
   {
@@ -39,7 +39,7 @@ export const chartThemeOptions: ChartThemeOption[] = [
   },
 ];
 
-export const defaultChartThemeValue: ChartThemeValue = "basic";
+export const defaultChartThemeValue: ChartThemeValue = "kmsf";
 
 export function getChartThemeOption(value: string): ChartThemeOption {
   return chartThemeOptions.find((theme) => theme.value === value) ?? chartThemeOptions[0]!;
