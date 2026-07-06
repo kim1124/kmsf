@@ -23,8 +23,8 @@ describe("accountSchema", () => {
 
   it("accepts email-style usernames", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim1124@example.com",
-      email: "kim@example.com",
+      username: "sampleuser@example.com",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
     });
@@ -34,8 +34,8 @@ describe("accountSchema", () => {
 
   it("rejects usernames outside the allowed pattern", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim-1124",
-      email: "kim@example.com",
+      username: "sample-user",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
     });
@@ -45,7 +45,7 @@ describe("accountSchema", () => {
 
   it("rejects invalid emails", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim1124",
+      username: "sampleuser",
       email: "kim",
       password: "Pass12!",
       passwordConfirm: "Pass12!",
@@ -56,8 +56,8 @@ describe("accountSchema", () => {
 
   it("rejects passwords without a special character", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim1124",
-      email: "kim@example.com",
+      username: "sampleuser",
+      email: "admin@example.com",
       password: "Pass1234",
       passwordConfirm: "Pass1234",
     });
@@ -67,8 +67,8 @@ describe("accountSchema", () => {
 
   it("rejects password confirmation mismatches", () => {
     const parsed = accountSchema.safeParse({
-      username: "kim1124",
-      email: "kim@example.com",
+      username: "sampleuser",
+      email: "admin@example.com",
       password: "Pass12!",
       passwordConfirm: "Pass13!",
     });
@@ -81,7 +81,7 @@ describe("signInSchema", () => {
   it("accepts login fields that match the shared rules", () => {
     const parsed = signInSchema.safeParse({
       locale: "ko",
-      username: "kim1124",
+      username: "sampleuser",
       password: "Pass12!",
     });
 
@@ -91,7 +91,7 @@ describe("signInSchema", () => {
 
 describe("sanitizeVisibleInput", () => {
   it("removes executable markup while preserving visible text", () => {
-    expect(sanitizeVisibleInput("<img src=x onerror=alert(1)>kim1124")).toBe("kim1124");
+    expect(sanitizeVisibleInput("<img src=x onerror=alert(1)>sampleuser")).toBe("sampleuser");
   });
 });
 

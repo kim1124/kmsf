@@ -1,6 +1,6 @@
 // AI-NOTE: substituteTokens — `{{name}}` 텍스트 치환.
 // compilePattern은 tokenizer 방식 (`**/`를 `(?:.*/)?`로 변환) — root-level
-// 파일도 `**/*.json` 같은 패턴에 매칭되도록 보장. (도메인문서.md §3.1.2)
+// 파일도 `**/*.json` 같은 패턴에 매칭되도록 보장.
 // `copy.ts`에는 같은 spec 버그를 다른 방식 (variant set)으로 우회한 코드가 있음.
 //
 // 토큰 정의: `{{token_name}}` (alpha + 밑줄 + 숫자, `\w+`).

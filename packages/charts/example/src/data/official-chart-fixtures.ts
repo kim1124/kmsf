@@ -150,7 +150,7 @@ function nativeFixture(input: NativeFixtureInput): OfficialChartFixture {
   };
 }
 
-export const officialChartFixtures: OfficialChartFixture[] = [
+const curatedOfficialChartFixtures: OfficialChartFixture[] = [
   nativeFixture({
     colors,
     data: [],
@@ -368,6 +368,75 @@ export const officialChartFixtures: OfficialChartFixture[] = [
   }),
   nativeFixture({
     data: [],
+    officialExampleId: "gauge-progress",
+    options: { tooltip: { formatter: "{b}: {c}%" } },
+    series: [{
+      axisLine: { lineStyle: { width: 18 } },
+      data: [{ name: "Progress", value: 72 }],
+      detail: { formatter: "{value}%", valueAnimation: true },
+      progress: { roundCap: true, show: true, width: 18 },
+      type: "gauge",
+    }],
+    summary: "공식 Gauge Progress 예제처럼 진행률 바를 강조한 게이지입니다.",
+    title: "Gauge Progress",
+    type: "gauge",
+  }),
+  nativeFixture({
+    data: [],
+    officialExampleId: "gauge-grade",
+    series: [{
+      axisLine: { lineStyle: { color: [[0.3, "#ef4444"], [0.7, "#f59e0b"], [1, "#10b981"]], width: 18 } },
+      data: [{ name: "Grade", value: 86 }],
+      detail: { formatter: "{value}%", valueAnimation: true },
+      type: "gauge",
+    }],
+    summary: "공식 Grade Gauge 예제처럼 구간별 색상 등급을 표시합니다.",
+    title: "Grade Gauge",
+    type: "gauge",
+  }),
+  nativeFixture({
+    data: [],
+    officialExampleId: "gauge-ring",
+    series: [{
+      axisLine: { lineStyle: { color: [[1, "#10b981"]], width: 20 } },
+      data: [{ name: "Ring", value: 64 }],
+      detail: { formatter: "{value}%", valueAnimation: true },
+      endAngle: -270,
+      progress: { show: true, width: 20 },
+      radius: "72%",
+      startAngle: 90,
+      type: "gauge",
+    }],
+    summary: "공식 Ring Gauge 예제처럼 원형 progress ring으로 표현합니다.",
+    title: "Ring Gauge",
+    type: "gauge",
+  }),
+  nativeFixture({
+    data: [],
+    officialExampleId: "gauge-barometer",
+    series: [
+      {
+        center: ["35%", "55%"],
+        data: [{ name: "Pressure", value: 74 }],
+        detail: { formatter: "{value} kPa", valueAnimation: true },
+        max: 120,
+        radius: "60%",
+        type: "gauge",
+      },
+      {
+        center: ["72%", "55%"],
+        data: [{ name: "Humidity", value: 48 }],
+        detail: { formatter: "{value}%", valueAnimation: true },
+        radius: "48%",
+        type: "gauge",
+      },
+    ],
+    summary: "공식 Barometer 예제처럼 두 개의 계기판을 한 화면에 배치합니다.",
+    title: "Barometer",
+    type: "gauge",
+  }),
+  nativeFixture({
+    data: [],
     officialExampleId: "funnel",
     options: { legend: { data: ["Show", "Click", "Visit", "Inquiry", "Order"] }, tooltip: { formatter: "{a} <br/>{b} : {c}%", trigger: "item" } },
     series: [{
@@ -440,4 +509,8 @@ export const officialChartFixtures: OfficialChartFixture[] = [
     title: "WordCloud Extension",
     type: "wordCloud",
   },
+];
+
+export const officialChartFixtures: OfficialChartFixture[] = [
+  ...curatedOfficialChartFixtures,
 ];

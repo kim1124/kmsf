@@ -8,12 +8,6 @@ This file applies to `packages/charts/src/common`.
 
 The common layer owns ECharts lifecycle helpers, option builders, data builders, data normalization, formatters, theme options, and resize scheduling.
 
-## Knowledge Map
-
-- Research: `docs/agents/common/research.md`
-- Plan: `docs/agents/common/plan.md`
-- Memory: `docs/agents/common/memory.md`
-
 ## Rules
 
 - DO NOT: import Next.js APIs.

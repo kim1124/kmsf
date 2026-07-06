@@ -60,6 +60,18 @@ describe("external package contract", () => {
     ).toBe(true);
   });
 
+  it("ships the React Vite base template inside create-kmsf", async () => {
+    expect(
+      await exists(path.join(PACKAGE_ROOT, "templates/react-vite-base/package.json")),
+    ).toBe(true);
+    expect(
+      await exists(path.join(PACKAGE_ROOT, "templates/react-vite-base/src/main.tsx")),
+    ).toBe(true);
+    expect(
+      await exists(path.join(PACKAGE_ROOT, "templates/react-vite-base/gitignore")),
+    ).toBe(true);
+  });
+
   it("ships npm-safe placeholders for dotfiles ignored by npm pack", async () => {
     expect(
       await exists(path.join(PACKAGE_ROOT, "templates/next-app-base/gitignore")),

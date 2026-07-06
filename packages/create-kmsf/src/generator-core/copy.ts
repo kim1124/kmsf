@@ -1,5 +1,5 @@
 // AI-NOTE: copyDir + glob-style exclude. plan spec의 단순 compilePattern은
-// 두 케이스에서 깨지므로 (도메인문서.md §3.1.2):
+// 두 케이스에서 깨지므로:
 //   1. `dir/**` 패턴이 dir 자체를 prune 못 함 (빈 디렉터리 남음)
 //   2. `**/x` 패턴이 root-level 파일을 매칭 못 함
 // 그래서 본 모듈은 input pattern 한 개에서 여러 RegExp variant를 생성한다.

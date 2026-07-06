@@ -2,6 +2,13 @@
 
 `@kmsf/gridstack`는 React 애플리케이션에서 dashboard widget layout을 구성하기 위한 GridStack 기반 package다. 런타임은 Next.js API에 의존하지 않고 React component와 serializable layout state 중심으로 동작한다.
 
+## 패키지 상태
+
+- 현재 `package.json` 기준 `private: true`인 repository-local package다.
+- React와 React DOM은 peer dependency로 유지한다.
+- `gridstack`은 runtime dependency이며, consumer는 GridStack CSS와 package CSS를 함께 import해야 한다.
+- npm 배포 전에는 `private`, license, repository, files, dependency, browser verification 상태를 별도 검토해야 한다.
+
 ## 구현된 기능
 
 - `DashboardGrid` React component
@@ -15,6 +22,14 @@
 - serializable layout/state snapshot
 - GridStack adapter boundary
 - package stylesheet export
+
+## Public API
+
+| Import | 설명 |
+| --- | --- |
+| `@kmsf/gridstack` | `DashboardGrid`, `useDashboardGrid`, layout/state helpers, option mapper, public types |
+| `@kmsf/gridstack/styles.css` | KMSF dashboard grid stylesheet |
+| `kmsfGridstackPackage` | package 식별 상수 |
 
 ## 설치
 

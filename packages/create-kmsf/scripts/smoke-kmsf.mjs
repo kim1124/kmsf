@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -102,6 +102,14 @@ async function findPackedTarball(directory) {
   return path.join(directory, tarballs[0]);
 }
 
+async function assertExists(filePath) {
+  try {
+    await access(filePath);
+  } catch {
+    throw new Error(`Expected generated file to exist: ${filePath}`);
+  }
+}
+
 async function main() {
   packDir = await mkdtemp(path.join(tmpRoot, "create-kmsf-pack-"));
   workDir = await mkdtemp(path.join(tmpRoot, "create-kmsf-smoke-"));
@@ -116,8 +124,10 @@ async function main() {
 
   const tarballPath = await findPackedTarball(packDir);
   const appName = "kmsf-smoke";
+  const viteAppName = "kmsf-vite-smoke";
   const cliInstallDir = path.join(workDir, "create-kmsf-cli");
   const appDir = path.join(workDir, appName);
+  const viteAppDir = path.join(workDir, viteAppName);
   await mkdir(cliInstallDir, { recursive: true });
 
   run("install local create-kmsf tarball", "npm", [
@@ -145,6 +155,30 @@ async function main() {
   ], {
     cwd: workDir,
   });
+
+  run("generate React Vite app from local tarball", path.join(
+    cliInstallDir,
+    "node_modules",
+    ".bin",
+    "create-kmsf",
+  ), [
+    viteAppName,
+    "--template=react-vite-base",
+    "--auth=none",
+    "--layout=top,left,footer",
+    "--i18n",
+    "--no-packages",
+    "--no-install",
+    "--no-git",
+    "--no-playwright",
+    "--silent",
+  ], {
+    cwd: workDir,
+  });
+
+  await assertExists(path.join(viteAppDir, "index.html"));
+  await assertExists(path.join(viteAppDir, "vite.config.ts"));
+  await assertExists(path.join(viteAppDir, "src", "main.tsx"));
 
   run("install generated app dependencies", "npm", ["install"], { cwd: appDir });
   run("install Playwright browser dependencies", "npx", ["playwright", "install"], { cwd: appDir });

@@ -8,12 +8,6 @@ This file applies to `packages/charts/test`.
 
 The test workspace owns package-local Vitest, Playwright, browser artifacts, instruction contracts, and work report routing.
 
-## Knowledge Map
-
-- Research: `docs/agents/test/research.md`
-- Plan: `docs/agents/test/plan.md`
-- Memory: `docs/agents/test/memory.md`
-
 ## Rules
 
 - MUST: Vitest tests under `test/vitest`.
@@ -22,7 +16,7 @@ The test workspace owns package-local Vitest, Playwright, browser artifacts, ins
 - DO NOT: leave active artifacts under repository root `test-results`.
 - MUST: For behavior changes, write or update the smallest failing test before production code.
 - REPORT: skipped browser checks with blocker and residual risk.
-- MUST: instruction contract tests aligned with `AGENTS.md`, `GUIDE.md`, and `docs/agents`.
+- MUST: instruction contract tests aligned with `AGENTS.md`, `GUIDE.md`, `README.md`, and tracked `docs/`.
 
 ## Canvas Layer Classification
 

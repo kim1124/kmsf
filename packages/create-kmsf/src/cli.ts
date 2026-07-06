@@ -1,7 +1,7 @@
 // AI-NOTE: create-kmsf의 main entry point.
 // 흐름: parseArgs → resolveScaffoldOptions(prompts) → scaffold() → 결과 출력.
 //
-// IMMUTABLE invariants (도메인문서.md §3.5):
+// IMMUTABLE invariants:
 //   - exit code 매핑: TargetExists=1, TemplateMissing=2,
 //     기타 ScaffoldError/MissingRequiredOptions=3, AbortedError=130,
 //     unexpected=99. cli.ts의 catch 블록이 단일 진실 소스.
@@ -35,13 +35,13 @@ import { createLogger } from "./logger.js";
 const require = createRequire(import.meta.url);
 const PKG = require("../package.json") as { version: string };
 
-function findTemplateRoot(): string {
+function findTemplateRoot(templateId: string): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const packageRoot = path.resolve(here, "..");
-  const bundled = path.join(packageRoot, "templates", "next-app-base");
+  const bundled = path.join(packageRoot, "templates", templateId);
   if (existsSync(bundled)) return bundled;
 
-  return path.resolve(packageRoot, "..", "..", "templates", "next-app-base");
+  return path.resolve(packageRoot, "..", "..", "templates", templateId);
 }
 
 export async function runCli(argv: string[] = process.argv.slice(2)): Promise<number> {
@@ -82,7 +82,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
       logger.error(e.message);
       return 3;
     }
-    throw e;
+    logger.error((e as Error).message);
+    return 3;
   }
 
   const targetDir = path.resolve(process.cwd(), resolved.projectName);
@@ -92,7 +93,8 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<nu
     const result = await scaffold({
       projectName: resolved.projectName,
       targetDir,
-      templateDir: findTemplateRoot(),
+      templateDir: findTemplateRoot(resolved.templateId),
+      templateId: resolved.templateId,
       authMode: resolved.authMode,
       selectedPackages: resolved.selectedPackages,
       gnbRegions: resolved.gnbRegions,

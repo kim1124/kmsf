@@ -1,6 +1,6 @@
 {
   "name": "@kmsf/charts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,7 +24,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "dependencies": {
     "dayjs": "latest",

@@ -48,7 +48,7 @@ test.describe("charts docs playground routing", () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test("chart type pages use the docs format with chart examples and editable props", async ({ page }) => {
+  test("chart type pages use the docs format with chart cards and editable data", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
 
     await page.goto("/examples/line");
@@ -56,16 +56,15 @@ test.describe("charts docs playground routing", () => {
     await expect(page.getByRole("banner")).toContainText("@kmsf/charts");
     await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toBeVisible();
     await expect(page.locator(".docs-shell__content")).toContainText("Line");
-    await expect(page.getByRole("heading", { name: "차트 예제" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "차트 예제" })).toHaveCount(0);
     await expect(page.getByText("라이브 예제")).toHaveCount(0);
 
     const firstCard = page.getByTestId("chart-example-card-line-static-basic");
     await expect(firstCard).toBeVisible();
     await expect(firstCard.getByRole("tab", { name: "Usage" })).toBeVisible();
-    await expect(firstCard.getByRole("tab", { name: "Props" })).toBeVisible();
-    await expect(firstCard.getByRole("tab", { name: "Data" })).toHaveCount(0);
+    await expect(firstCard.getByRole("tab", { name: "Data" })).toBeVisible();
 
-    await firstCard.getByRole("tab", { name: "Props" }).click();
+    await firstCard.getByRole("tab", { name: "Data" }).click();
     const configEditor = firstCard.getByRole("textbox", { exact: true, name: "Chart config JSON" });
     await expect(configEditor).toBeVisible();
     const configEditorBox = await configEditor.boundingBox();
@@ -132,6 +131,7 @@ test.describe("charts docs playground routing", () => {
     const themeSelect = page.getByLabel("차트 테마 선택");
     const topSearch = page.getByRole("banner").getByRole("textbox", { exact: true, name: "전체 차트 검색" });
     await expect(themeSelect).toBeVisible();
+    await expect(themeSelect).toHaveValue("kmsf");
     await expect(topSearch).toBeVisible();
 
     const themeBox = await themeSelect.boundingBox();
@@ -158,7 +158,7 @@ test.describe("charts docs playground routing", () => {
     await expect(page.getByRole("main").locator("canvas")).toHaveCount(0);
     await expect(page.locator("#api-generic-rendering").getByRole("heading", { name: "1. GenericChart 렌더링" })).toBeVisible();
     await expect(page.locator("#api-native-required-options").getByRole("heading", { name: "3. Native 필수 옵션" })).toBeVisible();
-    await expect(page.locator("#api-native-required-options").getByRole("heading", { name: "Options" })).toBeVisible();
+    await expect(page.locator("#api-native-required-options").getByRole("heading", { exact: true, name: "Options" })).toBeVisible();
     await expect(page.locator("#api-native-required-options")).toContainText("heatmap: options.visualMap");
     await expect(page.locator("#api-native-required-options")).toContainText("간단한 예제 코드");
     await expect(page.locator("#api-native-required-options").getByRole("link", { name: "Heatmap 라이브 예제" })).toHaveAttribute(
@@ -175,7 +175,7 @@ test.describe("charts docs playground routing", () => {
         borderRadius: style.borderRadius,
       };
     });
-    const apiNameStyle = await page.locator("#api-generic-rendering dt").first().evaluate((element) => {
+    const apiNameStyle = await page.locator("#api-generic-rendering .docs-reference-list__item h4").first().evaluate((element) => {
       const style = window.getComputedStyle(element);
 
       return {
@@ -192,6 +192,42 @@ test.describe("charts docs playground routing", () => {
     expect(apiNameStyle.color).toBe("rgb(8, 121, 95)");
     expect(apiNameStyle.fontFamily).toContain("ui-monospace");
 
+    const apiIndent = await page.locator("#api-native-required-options").evaluate((section) => {
+      const groupHeading = section.querySelector("h2")?.getBoundingClientRect();
+      const subsectionHeadings = Array.from(section.querySelectorAll(".docs-reference-list__subsection > h3"))
+        .filter((heading) => ["Props", "Options"].includes(heading.textContent?.trim() ?? ""))
+        .map((heading) => heading.getBoundingClientRect());
+
+      return subsectionHeadings.map((heading) => Math.round(heading.left - (groupHeading?.left ?? 0)));
+    });
+    expect(apiIndent.every((indent) => indent >= 12 && indent <= 20)).toBe(true);
+    const methodsIndent = await page.locator("#api-lifecycle-methods").evaluate((section) => {
+      const groupHeading = section.querySelector("h2")?.getBoundingClientRect();
+      const methodsHeading = Array.from(section.querySelectorAll(".docs-reference-list__subsection > h3"))
+        .find((heading) => heading.textContent?.trim() === "Methods")
+        ?.getBoundingClientRect();
+
+      return Math.round((methodsHeading?.left ?? 0) - (groupHeading?.left ?? 0));
+    });
+    expect(methodsIndent).toBeGreaterThanOrEqual(12);
+    expect(methodsIndent).toBeLessThanOrEqual(20);
+    const apiHeadingHierarchy = await page.locator("#api-generic-rendering").evaluate((section) => {
+      const propsHeading = Array.from(section.querySelectorAll(".docs-reference-list__subsection > h3"))
+        .find((heading) => heading.textContent?.trim() === "Props")
+        ?.getBoundingClientRect();
+      const propNameHeading = section.querySelector(".docs-reference-list__item h4")?.getBoundingClientRect();
+      const propDescription = section.querySelector(".docs-reference-list__item dd")?.getBoundingClientRect();
+
+      return {
+        descriptionIndent: Math.round((propDescription?.left ?? 0) - (propNameHeading?.left ?? 0)),
+        hasEntryHeading: Boolean(section.querySelector(".docs-reference-list__item h4")),
+        nameIndent: Math.round((propNameHeading?.left ?? 0) - (propsHeading?.left ?? 0)),
+      };
+    });
+    expect(apiHeadingHierarchy.hasEntryHeading).toBe(true);
+    expect(apiHeadingHierarchy.nameIndent).toBeGreaterThanOrEqual(12);
+    expect(apiHeadingHierarchy.descriptionIndent).toBeGreaterThanOrEqual(12);
+
     const topSearch = page.getByRole("banner").getByRole("textbox", { exact: true, name: "전체 차트 검색" });
     await topSearch.fill("visualMap");
     const result = page.getByRole("option").filter({ hasText: "API" }).filter({ hasText: "visualMap" }).first();
@@ -203,19 +239,24 @@ test.describe("charts docs playground routing", () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test("trend and top examples are separate pages without series count or data tabs", async ({ page }) => {
+  test("trend and top aggregate routes remain available and searchable", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
 
     await page.goto("/examples/trend");
-    await expect(page.locator(".docs-shell__content")).toContainText("Trend");
-    await expect(page.getByTestId("chart-example-card-line-live-update")).toBeVisible();
-    await expect(page.getByLabel(/Series 개수/)).toHaveCount(0);
-    await expect(page.getByRole("tab", { name: "Data" })).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("heading", { exact: true, name: "Trend" })).toBeVisible();
+    await expect(page.getByTestId("chart-example-card-line-static-basic")).toBeVisible();
 
     await page.goto("/examples/top");
-    await expect(page.locator(".docs-shell__content")).toContainText("Top");
+    await expect(page.getByRole("main").getByRole("heading", { exact: true, name: "Top" })).toBeVisible();
     await expect(page.getByTestId("chart-example-card-bar-static-basic")).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Data" })).toHaveCount(0);
+
+    const topSearch = page.getByRole("banner").getByRole("textbox", { exact: true, name: "전체 차트 검색" });
+    await topSearch.fill("top");
+    const topResult = page.getByRole("option").filter({ hasText: "Top" }).first();
+    await expect(topResult).toBeVisible();
+    await topResult.click();
+
+    await expect(page).toHaveURL(/\/examples\/top$/);
 
     expect(diagnostics).toEqual([]);
   });

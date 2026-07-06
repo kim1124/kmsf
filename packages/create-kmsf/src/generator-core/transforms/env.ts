@@ -1,10 +1,11 @@
 import { readFile, writeFile, access } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import type { AuthMode } from "../types.js";
+import type { AuthMode, TemplateId } from "../types.js";
 
 export interface GenerateEnvOptions {
   authMode: AuthMode;
+  templateId: TemplateId;
 }
 
 export interface GenerateEnvResult {
@@ -24,6 +25,10 @@ export async function generateEnvLocal(
   projectRoot: string,
   options: GenerateEnvOptions,
 ): Promise<GenerateEnvResult> {
+  if (options.templateId === "react-vite-base") {
+    return { created: false, skippedReason: "env not required for react-vite-base" };
+  }
+
   const examplePath = path.join(projectRoot, ".env.example");
   const localPath = path.join(projectRoot, ".env.local");
 

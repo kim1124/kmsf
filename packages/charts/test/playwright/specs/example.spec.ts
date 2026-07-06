@@ -31,7 +31,7 @@ test("chart docs page renders examples, highlighted usage, editable props, and c
   await expect(page.locator("body")).toHaveCSS("font-family", /Spoqa Han Sans Neo/);
   await expect(page.getByRole("banner")).toContainText("@kmsf/charts");
   await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "차트 예제" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "차트 예제" })).toHaveCount(0);
   await expect(page.getByRole("banner").getByRole("textbox", { exact: true, name: "전체 차트 검색" })).toBeVisible();
   await expect(page.getByRole("banner").getByLabel("playground status")).toHaveCount(0);
   await expect(page.locator(".chart-example-main").getByRole("textbox", { exact: true, name: "전체 차트 검색" })).toHaveCount(0);
@@ -59,7 +59,7 @@ test("chart docs page renders examples, highlighted usage, editable props, and c
   await expect(firstCard.getByRole("tab", { name: "Usage" })).toBeVisible();
   await expect(firstCard.getByTestId("sample-code").locator(".docs-code__pre")).toBeVisible();
 
-  await firstCard.getByRole("tab", { name: "Props" }).click();
+  await firstCard.getByRole("tab", { name: "Data" }).click();
   await expect(firstCard.getByRole("textbox", { exact: true, name: "Chart config JSON" })).toBeVisible();
   await expect(firstCard.getByRole("textbox", { exact: true, name: "data JSON" })).toHaveCount(0);
   await expect(firstCard.getByRole("textbox", { exact: true, name: "options JSON" })).toHaveCount(0);
@@ -128,7 +128,7 @@ test("props editor applies valid data and reports invalid JSON without browser d
 
   await page.goto("/examples/bar");
   const firstCard = page.getByTestId("chart-example-card-bar-static-basic");
-  await firstCard.getByRole("tab", { name: "Props" }).click();
+  await firstCard.getByRole("tab", { name: "Data" }).click();
   const editor = firstCard.getByRole("textbox", { exact: true, name: "Chart config JSON" });
   const config = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
 

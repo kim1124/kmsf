@@ -2,33 +2,24 @@ import { describe, expect, test } from "vitest";
 
 import type { KmsfChartType } from "../../src";
 import { buildLiveTrendRows, chartSamples } from "../../example/src/data/chart-samples";
-import { chartExampleGroups, clampExampleSeriesCount } from "../../example/src/data/chart-examples";
+import { chartExampleGroups, clampExampleSeriesCount, getExampleUsageCode } from "../../example/src/data/chart-examples";
 
 const preparedTypes = new Set(["map", "custom"]);
 const singleSeriesExampleTypes = new Set<KmsfChartType>(["funnel", "gauge", "pie", "sunburst", "themeRiver", "treemap", "wordCloud"]);
-const compactStructuralExampleTypes = new Set<KmsfChartType>(["gauge", "parallel", "sankey", "sunburst", "themeRiver", "tree", "wordCloud"]);
 const zeroClock = { flowTick: 0, topTick: 0, trendTick: 0 };
 
 describe("chart example groups", () => {
-  test("renderable chart types expose one to five meaningful examples with one live example", () => {
+  test("renderable chart types expose curated basic and live examples without generated filler variants", () => {
     const renderableSamples = chartSamples.filter((sample) => !sample.disabledReason);
+    const generatedVariantTitles = new Set(["옵션 변형", "데이터 변형", "레이아웃 변형"]);
 
     for (const sample of renderableSamples) {
       const examples = chartExampleGroups[sample.type] ?? [];
-      expect(examples.length, sample.type).toBeGreaterThanOrEqual(1);
-      expect(examples.length, sample.type).toBeLessThanOrEqual(5);
+      expect(examples.length, sample.type).toBeGreaterThanOrEqual(2);
       expect(new Set(examples.map((example) => example.id)).size, sample.type).toBe(examples.length);
-      expect(new Set(examples.map((example) => example.title)).size, sample.type).toBe(examples.length);
+      expect(examples.some((example) => example.id === `${sample.type}-static-basic`), sample.type).toBe(true);
       expect(examples.filter((example) => example.mode === "live"), sample.type).toHaveLength(1);
-    }
-  });
-
-  test("structural chart pages avoid duplicated static variants", () => {
-    for (const type of compactStructuralExampleTypes) {
-      const examples = chartExampleGroups[type] ?? [];
-
-      expect(examples.length, type).toBeGreaterThanOrEqual(1);
-      expect(examples.length, type).toBeLessThanOrEqual(3);
+      expect(examples.some((example) => generatedVariantTitles.has(example.title)), sample.type).toBe(false);
     }
   });
 
@@ -43,6 +34,56 @@ describe("chart example groups", () => {
 
   test("mixed series official samples are grouped as Advanced examples", () => {
     expect(chartExampleGroups.pictorialBar?.some((example) => example.tags.includes("Advanced"))).toBe(true);
+  });
+
+  test("gauge page keeps only distinct official gauge examples", () => {
+    const officialGaugeIds = ["gauge-simple", "gauge-progress", "gauge-grade", "gauge-ring", "gauge-barometer"];
+    const examples = chartExampleGroups.gauge ?? [];
+    const officialIds = examples.map((example) => example.officialExampleId).filter(Boolean);
+
+    expect(officialIds).toEqual(expect.arrayContaining(officialGaugeIds));
+    expect(officialIds).toHaveLength(officialGaugeIds.length);
+  });
+
+  test("official examples do not include generated fallback duplicates", () => {
+    for (const examples of Object.values(chartExampleGroups)) {
+      for (const example of examples ?? []) {
+        expect(example.summary).not.toContain("로컬 데이터로 축약한 예제");
+      }
+    }
+  });
+
+  test("usage snippets prefer public wrapper components when the package exposes one", () => {
+    const expectations: Partial<Record<KmsfChartType, string>> = {
+      bar: "<TopChart",
+      gauge: "<GaugeChart",
+      graph: "<GraphChart",
+      heatmap: "<HeatmapChart",
+      line: "<TrendChart",
+      pie: "<TopChart",
+      radar: "<RadarChart",
+      sankey: "<SankeyChart",
+      sunburst: "<SunburstChart",
+      treemap: "<TopChart",
+      wordCloud: "<WordCloud",
+    };
+
+    for (const [type, componentSnippet] of Object.entries(expectations) as Array<[KmsfChartType, string]>) {
+      const example = chartExampleGroups[type]?.find((item) => item.id === `${type}-static-basic`);
+
+      expect(example, type).toBeDefined();
+      expect(getExampleUsageCode(example!), type).toContain(componentSnippet);
+      expect(getExampleUsageCode(example!), type).not.toContain("<GenericChart");
+    }
+  });
+
+  test("controls are exposed only when the example can visibly react", () => {
+    const heatmap = chartExampleGroups.heatmap?.find((example) => example.id === "heatmap-static-basic");
+    const line = chartExampleGroups.line?.find((example) => example.id === "line-live-update");
+
+    expect(heatmap?.controls?.legend).toBe(false);
+    expect(heatmap?.controls?.tooltip).toBe(true);
+    expect(line?.controls).toMatchObject({ legend: true, refresh: true, tooltip: true });
   });
 
   test("first static examples use official fixture data and options where available", () => {
@@ -136,9 +177,9 @@ describe("chart example groups", () => {
     }
   });
 
-  test("option variants do not inject title or subtitle by default", () => {
+  test("static examples do not inject title or subtitle by default", () => {
     for (const examples of Object.values(chartExampleGroups)) {
-      for (const example of examples.filter((item) => item.id.endsWith("option-variant"))) {
+      for (const example of examples.filter((item) => item.mode === "static")) {
         const options = example.buildOptions?.({ clock: zeroClock, refreshVersion: 0, seriesCount: 3 });
         const title = Array.isArray(options?.title) ? options?.title[0] : options?.title;
 

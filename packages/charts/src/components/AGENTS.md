@@ -8,12 +8,6 @@ This file applies to `packages/charts/src/components`.
 
 The component layer owns public React chart components, props, aliases, chart-specific option assembly, and consumer-facing data contracts.
 
-## Knowledge Map
-
-- Research: `docs/agents/components/research.md`
-- Plan: `docs/agents/components/plan.md`
-- Memory: `docs/agents/components/memory.md`
-
 ## Rules
 
 - DO NOT: introduce Next.js-only APIs.

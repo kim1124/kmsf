@@ -12,6 +12,7 @@ describe("resolveScaffoldOptions", () => {
   it("uses parsed args when complete (no prompts)", async () => {
     const opts = await resolveScaffoldOptions({
       projectName: "my-app",
+      templateId: "next-app-base",
       authMode: "local-json",
       includeI18n: true,
       runInstall: true,
@@ -29,6 +30,7 @@ describe("resolveScaffoldOptions", () => {
   it("prompts only for missing values", async () => {
     promptMock.mockResolvedValue({ projectName: "from-prompt" });
     const opts = await resolveScaffoldOptions({
+      templateId: "next-app-base",
       authMode: "supabase",
       includeI18n: false,
       runInstall: false,
@@ -44,7 +46,7 @@ describe("resolveScaffoldOptions", () => {
   it("aborts when user presses Ctrl+C (empty answer)", async () => {
     promptMock.mockResolvedValue({});
     await expect(
-      resolveScaffoldOptions({ authMode: "none", includeI18n: false }),
+      resolveScaffoldOptions({ templateId: "next-app-base", authMode: "none", includeI18n: false }),
     ).rejects.toThrow(/aborted/i);
   });
 
@@ -64,6 +66,7 @@ describe("resolveScaffoldOptions", () => {
     await expect(
       resolveScaffoldOptions({
         projectName: "ci-app",
+        templateId: "next-app-base",
         authMode: "local-json",
         includeI18n: true,
         runInstall: false,
@@ -83,6 +86,7 @@ describe("resolveScaffoldOptions", () => {
     await expect(
       resolveScaffoldOptions({
         projectName: "ci-app",
+        templateId: "next-app-base",
         authMode: "local-json",
         includeI18n: true,
         runInstall: false,
@@ -103,6 +107,7 @@ describe("resolveScaffoldOptions", () => {
 
     const opts = await resolveScaffoldOptions({
       projectName: "my-app",
+      templateId: "next-app-base",
       authMode: "later",
       includeI18n: true,
       runInstall: false,
@@ -128,6 +133,7 @@ describe("resolveScaffoldOptions", () => {
 
     const opts = await resolveScaffoldOptions({
       projectName: "my-app",
+      templateId: "next-app-base",
       authMode: "later",
       includeI18n: true,
       runInstall: false,
@@ -150,5 +156,49 @@ describe("resolveScaffoldOptions", () => {
         ]),
       }),
     ]);
+  });
+
+  it("prompts for starter template when it is missing", async () => {
+    promptMock.mockResolvedValue({
+      templateId: "react-vite-base",
+    });
+
+    const opts = await resolveScaffoldOptions({
+      projectName: "my-app",
+      authMode: "none",
+      includeI18n: true,
+      runInstall: false,
+      runGitInit: false,
+      runPlaywrightInstall: false,
+      selectedPackages: [],
+      gnbRegions: ["top", "left", "footer"],
+    });
+
+    expect(opts.templateId).toBe("react-vite-base");
+    expect(promptMock).toHaveBeenCalledTimes(1);
+    expect(promptMock.mock.calls[0][0]).toEqual([
+      expect.objectContaining({
+        type: "select",
+        name: "templateId",
+      }),
+    ]);
+  });
+
+  it("rejects unsupported auth modes for a selected template", async () => {
+    await expect(
+      resolveScaffoldOptions({
+        projectName: "my-app",
+        templateId: "react-vite-base",
+        authMode: "local-json",
+        includeI18n: true,
+        runInstall: false,
+        runGitInit: false,
+        runPlaywrightInstall: false,
+        selectedPackages: [],
+        gnbRegions: ["top", "left", "footer"],
+      }),
+    ).rejects.toThrow(/auth mode local-json is not supported by template react-vite-base/i);
+
+    expect(promptMock).not.toHaveBeenCalled();
   });
 });

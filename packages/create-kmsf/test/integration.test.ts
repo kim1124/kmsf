@@ -152,4 +152,66 @@ describe("integration smoke", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/not empty/i);
   }, 15000);
+
+  it("rejects unsupported auth mode for react-vite-base", async () => {
+    const result = spawnSync(
+      "node",
+      [
+        BIN,
+        "bad-vite-auth",
+        "--template=react-vite-base",
+        "--auth=local-json",
+        "--layout=top,left",
+        "--i18n",
+        "--no-packages",
+        "--no-install",
+        "--no-git",
+        "--no-playwright",
+        "--silent",
+      ],
+      { cwd: workDir, encoding: "utf8" },
+    );
+
+    expect(result.status).toBe(3);
+    expect(result.stderr).toMatch(/auth mode local-json is not supported by template react-vite-base/i);
+  }, 15000);
+
+  it("scaffolds a react-vite-base project without auth", async () => {
+    const projectName = "vite-app";
+    const projectPath = path.join(workDir, projectName);
+
+    const result = spawnSync(
+      "node",
+      [
+        BIN,
+        projectName,
+        "--template=react-vite-base",
+        "--auth=none",
+        "--layout=top,left,footer",
+        "--i18n",
+        "--no-packages",
+        "--no-install",
+        "--no-git",
+        "--no-playwright",
+        "--silent",
+      ],
+      { cwd: workDir, encoding: "utf8" },
+    );
+
+    expect(result.status).toBe(0);
+    expect(await exists(path.join(projectPath, "package.json"))).toBe(true);
+    expect(await exists(path.join(projectPath, "index.html"))).toBe(true);
+    expect(await exists(path.join(projectPath, "vite.config.ts"))).toBe(true);
+    expect(await exists(path.join(projectPath, "src/main.tsx"))).toBe(true);
+    expect(await exists(path.join(projectPath, "src/routes/router.tsx"))).toBe(true);
+    expect(await exists(path.join(projectPath, "src/auth"))).toBe(false);
+    expect(await exists(path.join(projectPath, "next.config.ts"))).toBe(false);
+    expect(await exists(path.join(projectPath, "src/app"))).toBe(false);
+
+    const generatedPackage = await readJson<{ scripts?: Record<string, string> }>(
+      path.join(projectPath, "package.json"),
+    );
+    expect(generatedPackage.scripts?.dev).toBe("vite");
+    expect(generatedPackage.scripts?.build).toContain("vite build");
+  }, 30000);
 });

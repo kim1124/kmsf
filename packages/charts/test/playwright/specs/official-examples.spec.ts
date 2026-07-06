@@ -23,7 +23,7 @@ test.describe("official-like chart examples", () => {
     await page.goto("/examples/pie");
 
     const card = page.locator(".chart-example-card").first();
-    await card.getByRole("tab", { name: "Props" }).click();
+    await card.getByRole("tab", { name: "Data" }).click();
 
     await expect(card.getByLabel("Chart config JSON")).toBeVisible();
     await expect(card.getByLabel("data JSON")).toHaveCount(0);
@@ -31,15 +31,14 @@ test.describe("official-like chart examples", () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test("live example locks data editing", async ({ page }) => {
+  test("live example does not expose editable data", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
 
     await page.goto("/examples/line#line-live-update");
 
     const card = page.locator("#line-live-update");
-    await card.getByRole("tab", { name: "Props" }).click();
 
-    await expect(card.getByText("실시간 데이터는 예제 생성기가 관리합니다.")).toBeVisible();
+    await expect(card.getByRole("tab", { name: "Data" })).toHaveCount(0);
     await expect(card.getByLabel("Chart config JSON")).toHaveCount(0);
     expect(diagnostics).toEqual([]);
   });

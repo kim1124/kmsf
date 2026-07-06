@@ -60,6 +60,8 @@ next-env.d.ts
 **/GUIDE.md
 **/docs/codex/
 **/docs/superpowers/
+docs/guide/
+packages/*/docs/agents/
 reports/
 
 # local browser and workflow artifacts

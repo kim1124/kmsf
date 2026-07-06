@@ -4,8 +4,8 @@
 
 - SCOPE: `@kmsf/gridstack` package, `src`, `src/core`, `src/gridstack`, `src/components`, `example`, `test`, `GUIDE.md`.
 - CONTEXT: Root `AGENTS.md`의 공통 process, skill, completion, reporting rule을 상속한다.
-- MUST: 세부 지식, 계획, 히스토리는 `docs/agents/README.md`를 따른다.
 - MUST: 하위 규칙은 `src/core/AGENTS.md`, `src/gridstack/AGENTS.md`, `src/components/AGENTS.md`, `test/AGENTS.md`, `example/AGENTS.md`를 따른다.
+- MUST: Package documentation starts at `README.md`, `GUIDE.md`, and `docs/README.md`.
 
 ## Product Goals
 

@@ -1141,7 +1141,7 @@ pre {
 }
 
 .sample-tabs .chart-config-editor__textarea {
-  min-height: 360px;
+  min-height: 520px;
 }
 
 .ui-card {
@@ -1715,8 +1715,11 @@ pre {
 }
 
 .docs-reference-list__subsection {
+  border-left: 2px solid #d7eee6;
   display: grid;
   gap: 10px;
+  margin-left: 0;
+  padding-left: 14px;
 }
 
 .docs-reference-list__subsection h3 {
@@ -1736,7 +1739,8 @@ pre {
 .docs-reference-list__item {
   border-top: 1px solid #eef6f3;
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  padding-left: 16px;
   padding-top: 10px;
 }
 
@@ -1746,6 +1750,10 @@ pre {
 }
 
 .docs-reference-list__item dt {
+  margin: 0;
+}
+
+.docs-reference-list__item h4 {
   align-items: center;
   color: #08795f;
   display: flex;
@@ -1754,14 +1762,16 @@ pre {
   font-family: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   font-weight: 900;
+  line-height: 1.35;
+  margin: 0;
   min-width: 0;
 }
 
-.docs-reference-list__item dt span {
+.docs-reference-list__item h4 span {
   min-width: 0;
 }
 
-.docs-reference-list__item dt em {
+.docs-reference-list__item h4 em {
   background: #f1fbf7;
   border: 1px solid #d7eee6;
   border-radius: 999px;
@@ -1777,7 +1787,7 @@ pre {
   color: #41564f;
   font-size: 13px;
   line-height: 1.55;
-  margin: 0;
+  margin: 0 0 0 16px;
 }
 
 .docs-reference-list__item dd p {

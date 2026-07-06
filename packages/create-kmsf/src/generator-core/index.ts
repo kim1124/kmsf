@@ -1,9 +1,9 @@
 // AI-NOTE: scaffold() orchestrator — entry point of @kmsf/generator-core.
-// IMMUTABLE step order (도메인문서.md §3.1.1):
+// IMMUTABLE step order:
 //   1. ensureTemplateExists  →  TemplateMissing 에러 일찍 발생
 //   2. isEmptyOrMissing      →  TargetExists 에러 일찍 발생
 //   3. copyDir               →  파일 복사 (실패 시 partial dir cleanup)
-//   4. applyAuthMode         →  모드별 파일 제거 + sign-in wholesale 교체 (Q1)
+//   4. applyAuthMode         →  Next template only: 모드별 파일 제거 + sign-in wholesale 교체 (Q1)
 //   5. transformPackageJson  →  name 치환 + supabase dep 제거
 //   6. substituteTokens      →  {{project_name}} 텍스트 치환
 //   7. generateEnvLocal      →  .env.example → .env.local
@@ -108,7 +108,11 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   }
 
   options.logger.step(`Configuring auth: ${options.authMode}`);
-  await applyAuthMode(options.targetDir, options.authMode);
+  if (options.templateId === "next-app-base") {
+    await applyAuthMode(options.targetDir, options.authMode);
+  } else if (options.templateId === "react-vite-base" && options.authMode === "none") {
+    await rm(path.join(options.targetDir, "src", "auth"), { recursive: true, force: true });
+  }
   options.logger.stepDone();
 
   options.logger.step("Configuring package.json");
@@ -137,7 +141,10 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   options.logger.stepDone();
 
   options.logger.step("Generating .env.local");
-  await generateEnvLocal(options.targetDir, { authMode: options.authMode });
+  await generateEnvLocal(options.targetDir, {
+    authMode: options.authMode,
+    templateId: options.templateId,
+  });
   options.logger.stepDone();
 
   if (options.runInstall) {
@@ -190,6 +197,7 @@ export type {
   ScaffoldLogger,
   KmsfPackageId,
   GnbRegion,
+  TemplateId,
 } from "./types.js";
 export { TEMPLATE_CATALOG, getTemplate } from "./catalog.js";
 export { KMSF_PACKAGE_OPTIONS, KMSF_PACKAGE_IDS, parseKmsfPackageList } from "./package-options.js";

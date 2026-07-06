@@ -82,6 +82,11 @@ function buildEditableConfig(input: {
 
 export function ChartExampleCard({ clock, example, themePalette }: ChartExampleCardProps) {
   const initialSeriesCount = clampExampleSeriesCount(example.defaultSeriesCount ?? 1);
+  const controls = example.controls ?? {
+    legend: getInitialLegendState(example.type),
+    refresh: true,
+    tooltip: true,
+  };
   const [optionState, setOptionState] = useState<LocalOptionState>(() => ({
     legend: getInitialLegendState(example.type),
     tooltip: true,
@@ -188,50 +193,60 @@ export function ChartExampleCard({ clock, example, themePalette }: ChartExampleC
           )}
         </div>
 
-        <section aria-label={`${example.title} 차트 옵션 컨트롤`} className="option-toolbar chart-example-card__toolbar">
-          <Button
-            aria-pressed={optionState.legend}
-            className="chart-option-toggle"
-            data-state={optionState.legend ? "on" : "off"}
-            variant="outline"
-            onClick={() => setOptionState((state) => ({ ...state, legend: !state.legend }))}
-          >
-            <FileText aria-hidden="true" size={16} />
-            {optionState.legend ? "범례 숨김" : "범례 표시"}
-          </Button>
-          <Button
-            aria-pressed={optionState.tooltip}
-            className="chart-option-toggle"
-            data-state={optionState.tooltip ? "on" : "off"}
-            variant="outline"
-            onClick={() => setOptionState((state) => ({ ...state, tooltip: !state.tooltip }))}
-          >
-            <PanelRight aria-hidden="true" size={16} />
-            {optionState.tooltip ? "툴팁 숨김" : "툴팁 표시"}
-          </Button>
-          <Button variant="outline" onClick={refreshData}>
-            <RefreshCw aria-hidden="true" size={16} />
-            전체 데이터 갱신
-          </Button>
-        </section>
+        {controls.legend || controls.tooltip || controls.refresh ? (
+          <section aria-label={`${example.title} 차트 옵션 컨트롤`} className="option-toolbar chart-example-card__toolbar">
+            {controls.legend ? (
+              <Button
+                aria-pressed={optionState.legend}
+                className="chart-option-toggle"
+                data-state={optionState.legend ? "on" : "off"}
+                variant="outline"
+                onClick={() => setOptionState((state) => ({ ...state, legend: !state.legend }))}
+              >
+                <FileText aria-hidden="true" size={16} />
+                {optionState.legend ? "범례 숨김" : "범례 표시"}
+              </Button>
+            ) : null}
+            {controls.tooltip ? (
+              <Button
+                aria-pressed={optionState.tooltip}
+                className="chart-option-toggle"
+                data-state={optionState.tooltip ? "on" : "off"}
+                variant="outline"
+                onClick={() => setOptionState((state) => ({ ...state, tooltip: !state.tooltip }))}
+              >
+                <PanelRight aria-hidden="true" size={16} />
+                {optionState.tooltip ? "툴팁 숨김" : "툴팁 표시"}
+              </Button>
+            ) : null}
+            {controls.refresh ? (
+              <Button variant="outline" onClick={refreshData}>
+                <RefreshCw aria-hidden="true" size={16} />
+                전체 데이터 갱신
+              </Button>
+            ) : null}
+          </section>
+        ) : null}
 
         <Tabs className="sample-tabs" defaultValue="usage">
           <TabsList aria-label={`${example.title} 샘플 정보`}>
             <TabsTrigger value="usage">Usage</TabsTrigger>
-            <TabsTrigger value="props">Props</TabsTrigger>
+            {example.mode === "static" ? <TabsTrigger value="data">Data</TabsTrigger> : null}
           </TabsList>
           <TabsContent value="usage">
             <CodeBlock code={usageCode} language="tsx" testId="sample-code" title="Usage" />
           </TabsContent>
-          <TabsContent value="props">
-            <ChartConfigEditor
-              config={editableConfig ?? currentConfig}
-              disabledReason={lockedLiveEditorReason}
-              id={`${example.id}-chart-config-json`}
-              onChange={handleConfigChange}
-              onError={setConfigError}
-            />
-          </TabsContent>
+          {example.mode === "static" ? (
+            <TabsContent value="data">
+              <ChartConfigEditor
+                config={editableConfig ?? currentConfig}
+                disabledReason={lockedLiveEditorReason}
+                id={`${example.id}-chart-config-json`}
+                onChange={handleConfigChange}
+                onError={setConfigError}
+              />
+            </TabsContent>
+          ) : null}
         </Tabs>
 
         <span className="sr-only" data-testid="series-count-summary">

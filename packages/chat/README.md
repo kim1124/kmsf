@@ -1,23 +1,33 @@
 # @kmsf/chat
 
-Standalone React chat package for local LLM workflows.
+`@kmsf/chat`은 local LLM workflow를 위한 standalone React chat package다. 초기 대상은 Ollama이며, host app이 storage와 설정 저장 방식을 주입할 수 있도록 package boundary를 유지한다.
 
-## Features
+## 패키지 상태
 
-- ChatGPT-like chat shell.
-- Local Ollama model discovery and streaming chat.
-- Initial setup page with required model selection.
-- Manual model-name fallback when Ollama model discovery fails.
-- Local browser storage adapter.
-- Supabase storage adapter with consumer-provided client and user identity.
-- Host-injected `local-db` storage mode for KMSF local DB integration.
-- Settings dialog and embeddable settings page.
-- Floating chatbot entry point with close-to-save one-time sessions, visibility persistence, draggable position persistence, and optional backdrop event handling.
-- Resizable chat sidebar with package-scoped width persistence.
-- Sass source styles compiled to the exported `@kmsf/chat/styles.css` entry.
-- Vitest logic tests and Playwright browser tests.
+- 현재 `package.json` 기준 `private: true`인 repository-local package다.
+- React와 React DOM은 peer dependency로 유지한다.
+- Package runtime은 Next.js API에 의존하지 않는다.
+- npm 배포 전에는 `private`, license, repository, files, dependency, browser verification 상태를 별도 검토해야 한다.
 
-## Usage
+## 구현된 기능
+
+- ChatGPT-like chat shell
+- Ollama model discovery: `GET /api/tags`
+- Ollama streaming chat: `POST /api/chat`
+- model selection이 끝나기 전 prompt submit 비활성화
+- model discovery 실패 시 manual model-name fallback
+- local browser storage adapter
+- Supabase storage adapter
+- host-injected `local-db` storage mode contract
+- setup page, settings dialog, embeddable settings page
+- floating chatbot entry point
+- floating panel position persistence
+- close-to-save one-time session
+- resizable sidebar와 package-scoped width persistence
+- `@kmsf/chat/styles.css` style entry
+- Vitest logic tests와 Playwright browser tests
+
+## 사용
 
 ```tsx
 import {
@@ -30,30 +40,55 @@ import {
 import "@kmsf/chat/styles.css";
 ```
 
-The package does not hard-code a model default.
-The first prompt is disabled until the user selects a discovered model or enters a model name manually.
-`ChatFloatingButton` uses the same setup and store contract as `ChatShell`; closed floating sessions are saved through `ChatHistoryStore`.
-When the floating panel is open, the backdrop does not close the session by default. Hosts can pass a backdrop event handler to customize that behavior without changing the default close-only-through-button flow.
-`ChatHistoryStore` includes explicit deletion methods so hosts can permanently remove a thread and its messages through the same boundary.
-The `local-db` storage mode is a package contract value with host API endpoint and server DB path settings; host apps provide the actual `ChatHistoryStore` implementation.
+`@kmsf/chat`은 기본 model을 hard-code하지 않는다. 사용자는 discovery된 model을 선택하거나 model 이름을 수동 입력해야 한다.
+
+`ChatFloatingButton`은 `ChatShell`과 같은 setup/store contract를 사용한다. 닫힌 floating session은 `ChatHistoryStore`를 통해 저장된다.
+
+## Public API
+
+| Export group | 설명 |
+| --- | --- |
+| `ChatShell`, `ChatFloatingButton`, `ChatComposer`, `ChatMessageList`, `ChatSidebar`, `ChatStatusBar` | embeddable chat UI components |
+| `ChatSetupPage`, `ChatSettingsPage`, `ChatSettingsDialog` | setup/settings UI surfaces |
+| `createLocalChatStore`, `createLocalSetupStore` | browser-local storage adapters |
+| `createSupabaseChatStore` | consumer-provided Supabase client 기반 storage adapter |
+| Ollama client exports | model discovery와 streaming chat helper |
+| Core state/type exports | chat state, composer state, setup state, settings state, floating/sidebar preferences, error/type contracts |
+| `@kmsf/chat/styles.css` | optional package stylesheet |
+
+## Storage
+
+지원 storage boundary:
+
+- `createLocalChatStore`
+- `createSupabaseChatStore`
+- host-provided `ChatHistoryStore`
+- host-provided local DB API endpoint
+
+Package는 Supabase service key나 host app env를 직접 읽지 않는다.
 
 ## Local Ollama
 
-Default Ollama base URL is `http://localhost:11434`.
-The package calls:
+기본 Ollama base URL은 `http://localhost:11434`다.
 
-- `GET /api/tags` for model discovery.
-- `POST /api/chat` for streaming chat.
+기본 테스트는 Ollama를 mock한다. 실제 Ollama 검증은 host networking과 CORS 정책을 확인한 뒤 별도 수행한다.
 
-The package does not read Ollama Desktop private history endpoints. Conversation history is stored through `createLocalChatStore`, `createSupabaseChatStore`, or a host-provided `ChatHistoryStore`.
-Chat response failures are persisted as assistant messages with `status: "error"` and normalized error text so reload keeps the failed turn context.
+## Playground
 
-Default tests mock Ollama. Live Ollama verification should be run separately when host networking and CORS policy are known.
-
-## Verification
+루트에서 실행:
 
 ```bash
+npm --workspace=@kmsf/chat run dev
+```
+
+기본 포트는 `4014`다.
+
+## 검증
+
+```bash
+npm --workspace=@kmsf/chat run lint
 npm --workspace=@kmsf/chat run test:run
+npm --workspace=@kmsf/chat run build
 npm --workspace=@kmsf/chat run test:e2e
 npm --workspace=@kmsf/chat run verify
 npm --workspace=@kmsf/chat run verify:full

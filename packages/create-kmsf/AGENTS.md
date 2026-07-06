@@ -3,7 +3,6 @@
 ## Role
 
 이 파일은 `create-kmsf` CLI 패키지에서 AI 에이전트가 가장 먼저 읽는 지침 map이다.
-세부 지식, 계획, 히스토리는 `docs/agents/README.md`를 따라 확인한다.
 KMSF repo root `AGENTS.md`의 공통 Process Routing, Superpowers/TDD, repo skill, completion gate, reporting rule은 `packages/*` 하위 프로젝트에도 공통 적용된다. 이 파일은 create-kmsf 전용 범위, 예외, 검증 명령만 정의한다.
 
 ## Package Scope
@@ -23,7 +22,7 @@ KMSF repo root `AGENTS.md`의 공통 Process Routing, Superpowers/TDD, repo skil
 - `src/generator-core/AGENTS.md`: catalog, copy, transforms, post-install hook rules
 - `templates/next-app-base/AGENTS.md`: generated Next app template rules
 - `test/AGENTS.md`: Vitest, integration, packaging smoke, report routing
-- `docs/agents/README.md`: research, plan, memory map for all domains
+- `README.md`: current CLI usage, options, package surface, and verification commands
 
 ## Implementation Rules
 

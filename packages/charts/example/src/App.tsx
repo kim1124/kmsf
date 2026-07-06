@@ -31,7 +31,7 @@ import { chartSamples, getUsageCode } from "./data/chart-samples";
 import type { ChartSample, SampleClock } from "./data/chart-samples";
 import { chartExampleGroups } from "./data/chart-examples";
 import type { ChartExampleDefinition } from "./data/chart-examples";
-import { buildChartPath, searchCharts } from "./data/chart-search";
+import { buildChartPath, searchCharts, type ChartSearchItem } from "./data/chart-search";
 import { chartThemeOptions, defaultChartThemeValue, getChartThemeOption } from "./data/chart-themes";
 import type { ChartThemeOption, ChartThemeValue } from "./data/chart-themes";
 import { chartApiFeatureDocs } from "./docs/chart-docs";
@@ -131,7 +131,7 @@ function GlobalChartSearch() {
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
-  const results = useMemo(() => searchCharts(query), [query]);
+  const results = useMemo(() => searchChartsWithDocsPages(query), [query]);
 
   useEffect(() => {
     setQuery("");
@@ -149,7 +149,7 @@ function GlobalChartSearch() {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
 
-  const selectResult = (item: ReturnType<typeof searchCharts>[number]) => {
+  const selectResult = (item: ChartSearchItem) => {
     navigate(buildChartPath(item));
     setQuery("");
   };
@@ -992,21 +992,6 @@ export function DashboardCharts() {
   );
 }`;
 
-const nativeRequiredSample = `<GenericChart
-  type="radar"
-  data={[{ name: "KMSF", value: [92, 84, 78] }]}
-  dataFormat="native"
-  options={{
-    radar: {
-      indicator: [
-        { name: "UX", max: 100 },
-        { name: "API", max: 100 },
-        { name: "Perf", max: 100 },
-      ],
-    },
-  }}
-/>`;
-
 const dashboardIntegrationSample = `import { DashboardGrid, useDashboardGrid } from "@kmsf/gridstack";
 import { GenericChart } from "@kmsf/charts";
 
@@ -1157,7 +1142,7 @@ export const chartsDocsPages: ChartsDocsPage[] = [
     label: "Theme",
     liveExampleId: "theme",
     path: "/examples/theme",
-    summary: "Basic, Dark, Skyblue, Mint, Gray, Orange chart theme palette를 확인합니다.",
+    summary: "KMSF, Dark, Skyblue, Mint, Gray, Orange chart theme palette를 확인합니다.",
     title: "Theme",
   },
   ...chartTypeDocsPages,
@@ -1202,6 +1187,61 @@ const chartsDocsNavGroups = chartsDocsPages.reduce<Array<{ category: string; pag
   return groups;
 }, []);
 
+function inferSearchType(page: ChartsDocsPage): KmsfChartType {
+  if (page.liveExampleId?.startsWith("chart:")) {
+    return page.liveExampleId.slice("chart:".length) as KmsfChartType;
+  }
+
+  if (page.liveExampleId === "top") {
+    return "bar";
+  }
+
+  return "line";
+}
+
+function normalizeDocsPageSearchText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function searchChartsWithDocsPages(query: string, limit = 10): ChartSearchItem[] {
+  const normalizedQuery = normalizeDocsPageSearchText(query);
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const docsPageItems: ChartSearchItem[] = chartsDocsPages
+    .map((page) => ({
+      description: page.summary,
+      id: `docs-page:${page.path}`,
+      keywords: normalizeDocsPageSearchText(
+        [page.category, page.label, page.title, page.summary, ...page.codeSamples.map((sample) => `${sample.title} ${sample.code}`)].join(" "),
+      ),
+      kind: "chart-doc" as const,
+      path: page.path,
+      priority: page.path === "/examples/top" || page.path === "/examples/trend" ? 0 : 2,
+      title: page.title,
+      type: inferSearchType(page),
+    }))
+    .filter((item) => item.keywords.includes(normalizedQuery));
+
+  const seen = new Set<string>();
+
+  return [...docsPageItems, ...searchCharts(query, limit * 2)]
+    .filter((item) => {
+      const key = item.path ?? item.id;
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    })
+    .sort((left, right) => left.priority - right.priority || left.title.localeCompare(right.title))
+    .slice(0, limit);
+}
+
 function ChartsApiReference() {
   return (
     <div className="docs-reference-list">
@@ -1217,8 +1257,10 @@ function ChartsApiReference() {
               {section.props.map((entry) => (
                 <div className="docs-reference-list__item" key={`${section.id}-props-${entry.name}`}>
                   <dt>
-                    <span>{entry.name}</span>
-                    <em>{entry.type}</em>
+                    <h4>
+                      <span>{entry.name}</span>
+                      <em>{entry.type}</em>
+                    </h4>
                   </dt>
                   <dd>
                     <p>{entry.description}</p>
@@ -1234,8 +1276,10 @@ function ChartsApiReference() {
               {section.options.map((entry) => (
                 <div className="docs-reference-list__item" key={`${section.id}-options-${entry.name}`}>
                   <dt>
-                    <span>{entry.name}</span>
-                    <em>{entry.type}</em>
+                    <h4>
+                      <span>{entry.name}</span>
+                      <em>{entry.type}</em>
+                    </h4>
                   </dt>
                   <dd>
                     <p>{entry.description}</p>
@@ -1252,8 +1296,10 @@ function ChartsApiReference() {
                 {section.methods.map((method) => (
                   <div className="docs-reference-list__item" key={`${section.id}-methods-${method.name}`}>
                     <dt>
-                      <span>{method.name}</span>
-                      <em>method</em>
+                      <h4>
+                        <span>{method.name}</span>
+                        <em>method</em>
+                      </h4>
                     </dt>
                     <dd>
                       <p>{method.description}</p>
@@ -1436,9 +1482,6 @@ function ChartsCodeExample({ sample }: { sample: DocsCodeSample }) {
 function ChartsLiveExampleSection({ page, theme }: { page: ChartsDocsPage; theme: ChartThemeOption }) {
   return (
     <section aria-label="차트 예제" className="docs-live">
-      <div className="docs-live__header">
-        <h2>차트 예제</h2>
-      </div>
       <ChartsLiveExample id={page.liveExampleId ?? "getting-started"} theme={theme} />
     </section>
   );

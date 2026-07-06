@@ -1,9 +1,12 @@
 import prompts from "prompts";
 import {
   validateProjectName,
+  getTemplate,
+  TEMPLATE_CATALOG,
   type AuthMode,
   type GnbRegion,
   type KmsfPackageId,
+  type TemplateId,
 } from "./generator-core/index.js";
 import {
   DEFAULT_GNB_REGION_IDS,
@@ -15,6 +18,7 @@ import type { ParsedArgs } from "./args.js";
 
 export interface ResolvedOptions {
   projectName: string;
+  templateId: TemplateId;
   authMode: AuthMode;
   selectedPackages: KmsfPackageId[];
   gnbRegions: GnbRegion[];
@@ -56,10 +60,10 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
     }
   }
 
-  const questions: prompts.PromptObject[] = [];
+  const initialQuestions: prompts.PromptObject[] = [];
 
   if (!args.projectName) {
-    questions.push({
+    initialQuestions.push({
       type: "text",
       name: "projectName",
       message: "Project name",
@@ -75,18 +79,41 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
     });
   }
 
+  if (!args.templateId && !args.silent) {
+    initialQuestions.push({
+      type: "select",
+      name: "templateId",
+      message: "Starter template",
+      choices: Object.values(TEMPLATE_CATALOG).map((template) => ({
+        title: template.name,
+        value: template.id,
+      })),
+      initial: 0,
+    });
+  }
+
+  const initialAnswers = initialQuestions.length > 0
+    ? await prompts(initialQuestions, { onCancel: () => false })
+    : {};
+
+  const templateId =
+    args.templateId ??
+    (initialAnswers as { templateId?: TemplateId }).templateId ??
+    "next-app-base";
+  const template = getTemplate(templateId);
+
+  const questions: prompts.PromptObject[] = [];
+
   if (!args.authMode) {
     questions.push({
       type: "select",
       name: "authMode",
       message: "Auth mode",
-      choices: [
-        { title: "local-json (file-backed, no external service)", value: "local-json" },
-        { title: "supabase (Supabase Auth)", value: "supabase" },
-        { title: "later (keep auth code, choose provider after scaffold)", value: "later" },
-        { title: "none (no auth)", value: "none" },
-      ],
-      initial: 0,
+      choices: template.supportedAuthModes.map((mode) => ({
+        title: formatAuthChoice(mode),
+        value: mode,
+      })),
+      initial: Math.max(0, template.supportedAuthModes.indexOf(template.defaultAuthMode)),
     });
   }
 
@@ -167,8 +194,13 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
     : {};
 
   const merged = {
-    projectName: args.projectName ?? (answers as { projectName?: string }).projectName,
-    authMode: args.authMode ?? (answers as { authMode?: AuthMode }).authMode,
+    projectName:
+      args.projectName ??
+      (initialAnswers as { projectName?: string }).projectName,
+    templateId,
+    authMode:
+      args.authMode ??
+      (answers as { authMode?: AuthMode }).authMode,
     selectedPackages:
       args.selectedPackages ??
       (answers as { selectedPackages?: KmsfPackageId[] }).selectedPackages,
@@ -186,6 +218,7 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
 
   if (
     !merged.projectName ||
+    !merged.templateId ||
     !merged.authMode ||
     merged.selectedPackages === undefined ||
     merged.gnbRegions === undefined ||
@@ -197,7 +230,24 @@ export async function resolveScaffoldOptions(args: ParsedArgs): Promise<Resolved
     throw new AbortedError();
   }
 
+  if (!template.supportedAuthModes.includes(merged.authMode)) {
+    throw new Error(`auth mode ${merged.authMode} is not supported by template ${template.id}`);
+  }
+
   return merged as ResolvedOptions;
 }
 
 export { AbortedError, MissingRequiredOptionsError };
+
+function formatAuthChoice(mode: AuthMode): string {
+  switch (mode) {
+    case "local-json":
+      return "local-json (file-backed, no external service)";
+    case "supabase":
+      return "supabase (Supabase Auth)";
+    case "later":
+      return "later (keep auth skeleton, choose provider after scaffold)";
+    case "none":
+      return "none (no auth)";
+  }
+}

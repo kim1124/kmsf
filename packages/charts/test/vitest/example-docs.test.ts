@@ -109,7 +109,11 @@ describe("example chart docs", () => {
         "Methods/Utilities",
       ]);
       expect(doc.sections.every((section) => section.entries.length > 0), doc.type).toBe(true);
-      expect(doc.exampleCode, doc.type).toContain("<GenericChart");
+      if (["line", "bar", "pie", "treemap", "gauge", "wordCloud", "sunburst", "radar", "heatmap", "graph", "sankey"].includes(doc.type)) {
+        expect(doc.exampleCode, doc.type).not.toContain("<GenericChart");
+      } else {
+        expect(doc.exampleCode, doc.type).toContain("<GenericChart");
+      }
       expect(doc.liveExamplePath, doc.type).toBe(`/examples/${doc.type}#${doc.type}-live-update`);
     }
 
@@ -142,7 +146,7 @@ describe("example chart docs", () => {
 
     expect(nativeSection?.options.map((entry) => entry.name)).toContain("heatmap: options.visualMap");
     expect(nativeSection?.options.map((entry) => entry.name)).toContain("radar: options.radar.indicator");
-    expect(nativeSection?.samples.some((sample) => sample.code.includes('type="heatmap"'))).toBe(true);
+    expect(nativeSection?.samples.some((sample) => sample.code.includes("<HeatmapChart"))).toBe(true);
     expect(nativeSection?.liveLinks.map((link) => link.path)).toContain("/examples/heatmap#heatmap-live-update");
   });
 

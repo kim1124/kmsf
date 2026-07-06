@@ -1,4 +1,4 @@
-# Project-scoped Codex configuration for /Users/kim1124/Dev/kmsf.
+# Project-scoped Codex configuration for this repository.
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
@@ -6,3 +6,17 @@ url = "https://developers.openai.com/mcp"
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = [
+  "-y",
+  "chrome-devtools-mcp@latest",
+  "--isolated",
+  "--memory-debugging",
+  "--no-usage-statistics",
+  "--no-performance-crux",
+  "--viewport=1440x900",
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 120
