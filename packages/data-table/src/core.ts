@@ -739,6 +739,8 @@ function createCellComponentParams<TData>(
   rowId: KmsfRowId,
   column: KmsfDataTableRuntimeColumn<TData>,
 ): KmsfCellComponentPayload<TData> {
+  const rowIndex = state.rowIds.indexOf(rowId);
+
   return {
     column: {
       definition: column,
@@ -749,10 +751,10 @@ function createCellComponentParams<TData>(
     },
     row: {
       data: row,
-      dataIndex: state.rows.indexOf(row),
+      dataIndex: rowIndex,
       disabled: false,
       id: rowId,
-      index: state.rowIds.indexOf(rowId),
+      index: rowIndex,
       selected: state.selection.rowIds.includes(rowId),
     },
     selection: {

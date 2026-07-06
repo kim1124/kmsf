@@ -9,14 +9,10 @@ import {
   copyKmsfCellRange,
   copyKmsfRow,
   createKmsfDataTableState,
-  formatKmsfCellValue,
-  getKmsfCellClassName,
-  getKmsfCellStyle,
   getKmsfCellValue,
   getKmsfHeaderRows,
   getKmsfSortedRowIndexes,
   getKmsfVisibleColumns,
-  isKmsfCellDisabled,
   isKmsfCellInSelectedRange,
   moveKmsfColumn,
   moveKmsfColumnGroup,
@@ -42,7 +38,9 @@ import type {
   KmsfCellAddress,
   KmsfCellComponent,
   KmsfCellComponentPayload,
+  KmsfClipboardGuard,
   KmsfColumnLayout,
+  KmsfColumnProps,
   KmsfCopiedCell,
   KmsfCopiedCellRange,
   KmsfCopiedRow,
@@ -366,6 +364,63 @@ function createCellComponentPayload<TData>(
     },
     value,
   };
+}
+
+function resolveRenderableCellProps<TData>(
+  column: KmsfDataTableRuntimeColumn<TData>,
+  payload: KmsfCellComponentPayload<TData>,
+): KmsfColumnProps<TData> | undefined {
+  const props = column.cell?.props;
+
+  return typeof props === "function" ? props(payload) : props;
+}
+
+function resolveRenderableCellGuard<TData>(
+  guard: KmsfClipboardGuard<TData> | undefined,
+  payload: KmsfCellComponentPayload<TData>,
+) {
+  if (guard === undefined) {
+    return true;
+  }
+
+  return typeof guard === "boolean" ? guard : guard(payload);
+}
+
+function isRenderableCellDisabled<TData>(
+  props: KmsfColumnProps<TData> | undefined,
+  payload: KmsfCellComponentPayload<TData>,
+) {
+  return props?.disabled !== undefined && resolveRenderableCellGuard(props.disabled, payload) === true;
+}
+
+function getRenderableCellClassName<TData>(
+  props: KmsfColumnProps<TData> | undefined,
+  payload: KmsfCellComponentPayload<TData>,
+) {
+  const className = props?.className;
+
+  return typeof className === "function" ? className(payload) : className;
+}
+
+function getRenderableCellStyle<TData>(
+  props: KmsfColumnProps<TData> | undefined,
+  payload: KmsfCellComponentPayload<TData>,
+) {
+  const style = props?.style;
+
+  return typeof style === "function" ? style(payload) : style;
+}
+
+function formatRenderableCellValue<TData>(
+  column: KmsfDataTableRuntimeColumn<TData>,
+  rawValue: unknown,
+  payload: KmsfCellComponentPayload<TData>,
+) {
+  if (column.cell?.format) {
+    return column.cell.format(payload);
+  }
+
+  return rawValue == null ? "" : String(rawValue);
 }
 
 function createHeaderComponentPayload<TData>(
@@ -1053,6 +1108,7 @@ function KmsfDataTableInner<TData>(
       : currentTheme.density === "spacious"
         ? "text-[13px]"
         : "text-[length:var(--kmsf-font-size-base,12px)]";
+  const selectedRowIdSet = useMemo(() => new Set(state.selection.rowIds), [state.selection.rowIds]);
   const columnWidths = useMemo(() => {
     const columnCount = visibleColumns.length;
 
@@ -2118,7 +2174,7 @@ function KmsfDataTableInner<TData>(
           ) : null}
           {rowWindow.entries.map((entry, entryIndex) => {
             const rowRuntimeProps = resolveRowProps(rowProps, entry.row, entry.visibleIndex);
-            const isRowSelected = state.selection.rowIds.includes(entry.rowId);
+            const isRowSelected = selectedRowIdSet.has(entry.rowId);
             const isViewportEndRow = emptyFillerHeight === 0 && entryIndex === rowWindow.entries.length - 1;
             const rowCustomBackground = getRowCustomBackground(rowRuntimeProps.style);
             const rowRenderKey = virtualized ? `virtual-row-slot-${entryIndex}` : String(entry.rowId);
@@ -2143,13 +2199,13 @@ function KmsfDataTableInner<TData>(
                 ]
                   .filter(Boolean)
                   .join(" ")}
-	                data-disabled={rowRuntimeProps.disabled ? "true" : undefined}
-	                data-kmsf-row-custom-background={rowCustomBackground === undefined ? undefined : "true"}
-	                data-kmsf-row-data-index={entry.dataIndex}
-	                data-kmsf-row-parity={entry.visibleIndex % 2 === 0 ? "even" : "odd"}
-	                data-row-draggable={rowRuntimeProps.draggable ? "true" : "false"}
-	                data-selected-row={isRowSelected ? "true" : undefined}
-	                data-testid={`row-${String(entry.rowId)}`}
+                data-disabled={rowRuntimeProps.disabled ? "true" : undefined}
+                data-kmsf-row-custom-background={rowCustomBackground === undefined ? undefined : "true"}
+                data-kmsf-row-data-index={entry.dataIndex}
+                data-kmsf-row-parity={entry.visibleIndex % 2 === 0 ? "even" : "odd"}
+                data-row-draggable={rowRuntimeProps.draggable ? "true" : "false"}
+                data-selected-row={isRowSelected ? "true" : undefined}
+                data-testid={`row-${String(entry.rowId)}`}
                 draggable={false}
                 key={rowRenderKey}
                 onClick={(event) => {
@@ -2189,53 +2245,53 @@ function KmsfDataTableInner<TData>(
                 {visibleColumns.map((column, columnIndex) => {
                   const rawValue = getKmsfCellValue(state, entry.row, column.id);
                   const address = { columnId: column.id, rowId: entry.rowId };
-                  const cellDisabled =
-                    rowRuntimeProps.disabled || isKmsfCellDisabled(state, entry.row, entry.rowId, column);
-                  const cellClassName = toClassName(getKmsfCellClassName(state, entry.row, entry.rowId, column));
-                  const cellStyle = getKmsfCellStyle(state, entry.row, entry.rowId, column);
                   const isCellInRange = cellSelection && isKmsfCellInSelectedRange(state, address);
                   const isCellSelected =
                     cellSelection &&
                     state.selection.cell?.rowId === entry.rowId &&
                     state.selection.cell.columnId === column.id;
-	                  const cellPayload = createCellComponentPayload(
-	                    entry,
-	                    rowRuntimeProps.disabled,
+                  const cellPayload = createCellComponentPayload(
+                    entry,
+                    rowRuntimeProps.disabled,
                     isRowSelected,
                     state.selection.rowIds.length,
                     column,
                     columnIndex,
                     rawValue,
-	                  );
-	                  const hasCellComponents = Boolean(column.cell?.components?.length);
-	                  const formattedCellValue = formatKmsfCellValue(state, entry.row, entry.rowId, column);
-	                  const cellComponents = column.cell?.components?.map((component) => {
-	                    if (component.type !== "input") {
-	                      return component;
-	                    }
+                  );
+                  const cellProps = resolveRenderableCellProps(column, cellPayload);
+                  const cellDisabled = rowRuntimeProps.disabled || isRenderableCellDisabled(cellProps, cellPayload);
+                  const cellClassName = toClassName(getRenderableCellClassName(cellProps, cellPayload));
+                  const cellStyle = getRenderableCellStyle(cellProps, cellPayload);
+                  const hasCellComponents = Boolean(column.cell?.components?.length);
+                  const formattedCellValue = formatRenderableCellValue(column, rawValue, cellPayload);
+                  const cellComponents = column.cell?.components?.map((component) => {
+                    if (component.type !== "input") {
+                      return component;
+                    }
 
-	                    const onValueChange = component.onValueChange;
+                    const onValueChange = component.onValueChange;
 
-	                    return {
-	                      ...component,
-	                      onValueChange: (payload) => {
-	                        commitState((current) =>
-	                          updateKmsfRows(current, [
-	                            {
-	                              id: payload.row.id,
-	                              patch: (currentRow) =>
-	                                setKmsfNestedInputValue(currentRow, payload.column.field, payload.value),
-	                            },
-	                          ]),
-	                        );
-	                        onValueChange?.(payload);
-	                      },
-	                    } satisfies KmsfCellComponent<TData>;
-	                  });
-	                  const visibleCellComponents = getRenderableKmsfComponents(cellComponents, cellPayload);
-	                  const cellContent = column.cell?.renderer ? (
-	                    column.cell.renderer(cellPayload)
-	                  ) : hasCellComponents ? (
+                    return {
+                      ...component,
+                      onValueChange: (payload) => {
+                        commitState((current) =>
+                          updateKmsfRows(current, [
+                            {
+                              id: payload.row.id,
+                              patch: (currentRow) =>
+                                setKmsfNestedInputValue(currentRow, payload.column.field, payload.value),
+                            },
+                          ]),
+                        );
+                        onValueChange?.(payload);
+                      },
+                    } satisfies KmsfCellComponent<TData>;
+                  });
+                  const visibleCellComponents = getRenderableKmsfComponents(cellComponents, cellPayload);
+                  const cellContent = column.cell?.renderer ? (
+                    column.cell.renderer(cellPayload)
+                  ) : hasCellComponents ? (
                     renderKmsfContentWithComponents(formattedCellValue, cellComponents, cellPayload, {
                       showContent: false,
                     })

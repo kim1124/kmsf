@@ -413,6 +413,55 @@ test("header page keeps only requested actions and state outputs", async ({ page
   expect(diagnostics).toEqual([]);
 });
 
+test("header examples keep table body vertical scrolling available", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/examples/header");
+
+  for (const testId of [
+    "header-example-basic",
+    "header-example-visibility",
+    "header-example-layout",
+  ]) {
+    const metrics = await page
+      .getByTestId(testId)
+      .locator(".kmsf-data-table__body-viewport")
+      .evaluate((viewport) => {
+        const style = window.getComputedStyle(viewport);
+
+        return {
+          clientHeight: viewport.clientHeight,
+          overflowY: style.overflowY,
+          scrollHeight: viewport.scrollHeight,
+        };
+      });
+
+    expect(metrics.overflowY, `${testId} body overflow`).toBe("auto");
+    expect(metrics.scrollHeight, `${testId} body scrollHeight`).toBeGreaterThan(metrics.clientHeight + 1);
+  }
+
+  await page.goto("/examples/column-groups");
+  for (const testId of ["header-example-groups", "column-group-dynamic-columns"]) {
+    const metrics = await page
+      .getByTestId(testId)
+      .locator(".kmsf-data-table__body-viewport")
+      .evaluate((viewport) => {
+        const style = window.getComputedStyle(viewport);
+
+        return {
+          clientHeight: viewport.clientHeight,
+          overflowY: style.overflowY,
+          scrollHeight: viewport.scrollHeight,
+        };
+      });
+
+    expect(metrics.overflowY, `${testId} body overflow`).toBe("auto");
+    expect(metrics.scrollHeight, `${testId} body scrollHeight`).toBeGreaterThan(metrics.clientHeight + 1);
+  }
+
+  expect(diagnostics).toEqual([]);
+});
+
 test("data table uses 2px outer radius and keeps viewport edge lines visible", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto("/");

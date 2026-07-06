@@ -1,6 +1,6 @@
 {
   "name": "@kmsf/chat",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -26,7 +26,8 @@
     "dist",
     "README.md",
     "GUIDE.md",
-    "supabase"
+    "supabase",
+    "CHANGELOG.md"
   ],
   "sideEffects": [
     "./dist/styles.css"

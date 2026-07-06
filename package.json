@@ -24,9 +24,14 @@
     "smoke:pack:create-kmsf": "npm_config_cache=/private/tmp/kmsf-npm-cache npm pack --workspace=create-kmsf --dry-run",
     "verify:full": "npm --workspace=apps/kmsf run verify:full",
     "verify:packages": "npm --workspace=@kmsf/charts run verify && npm --workspace=@kmsf/gridstack run verify && npm --workspace=@kmsf/data-table run verify && npm --workspace=create-kmsf run verify && npm --workspace=@kmsf/generator-core run verify",
-    "verify:all": "npm run verify && npm run verify:packages"
+    "verify:all": "npm run verify && npm run verify:packages",
+    "changeset": "changeset",
+    "version:packages": "changeset version"
   },
   "overrides": {
     "postcss": "8.5.14"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0"
   }
 }
